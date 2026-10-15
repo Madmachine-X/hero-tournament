@@ -1,0 +1,36 @@
+const { chromium } = require('playwright');
+const path = require('path');
+const OUT = '/tmp/claude-0/shots4';
+require('fs').mkdirSync(OUT, { recursive: true });
+(async () => {
+  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+  await page.goto('file://' + path.resolve(__dirname, '../index.html'));
+  await page.waitForTimeout(2200);
+  await page.screenshot({ path: OUT + '/m-title.png' });
+  await page.click('#ti-new'); await page.waitForTimeout(600);
+  await page.screenshot({ path: OUT + '/m-dialog.png' });
+  await page.evaluate(() => {
+    const d = window.__dbg; document.querySelector('#dialog').hidden = true;
+    const G = d.G; G.stage = 'act1'; addHero('eulji', 5); saveGame();
+  });
+  await page.evaluate(() => continueGame());
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: OUT + '/m-map.png' });
+  await page.evaluate(() => { UI.sel = { type: 'city', id: 'gangneung' }; renderPanel(); document.querySelector('#panel').scrollIntoView(); });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: OUT + '/m-panel.png' });
+  const sw = await page.evaluate(() => document.documentElement.scrollWidth + ' ' + document.querySelector('#scr-map').scrollWidth);
+  console.log('scrollWidth', sw);
+  await page.evaluate(() => window.__dbg.launchAttack('gangneung'));
+  await page.click('[data-go]');
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => window.__dbg.Battle.fastForward(3, false));
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: OUT + '/m-battle.png' });
+  console.log(await page.evaluate(() => { const o = document.querySelector('#b-orders'); return [getComputedStyle(o).gridTemplateColumns, o.getBoundingClientRect().width, document.querySelector('.b-bottom').getBoundingClientRect().width, document.querySelector('.b-heroes').scrollWidth, document.querySelector('.b-heroes').getBoundingClientRect().width, window.innerWidth, document.documentElement.clientWidth].join(' | '); }));
+  console.log('ERRORS', errors.join('\n') || 'none');
+  await browser.close();
+})();

@@ -1,0 +1,118 @@
+<title>천하제일 영웅대회</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Brush+Script&family=Noto+Serif+KR:wght@700;900&family=Song+Myung&display=swap">
+<style>
+/*__CSS__*/
+</style>
+
+<div id="app">
+  <!-- 타이틀 -->
+  <section id="scr-title" class="screen">
+    <div class="ti-bg" aria-hidden="true">
+      <div class="mirror"><div class="mirror-ring"></div><div class="mirror-face"></div></div>
+      <span class="wisp" style="--x:12%;--d:9s;--s:.9"></span><span class="wisp" style="--x:28%;--d:12s;--s:.6"></span>
+      <span class="wisp" style="--x:63%;--d:10s;--s:1"></span><span class="wisp" style="--x:81%;--d:14s;--s:.7"></span>
+      <span class="wisp" style="--x:47%;--d:16s;--s:.5"></span>
+    </div>
+    <div class="ti-body">
+      <p class="ti-eyebrow">저승에서 열리는 영웅들의 경연</p>
+      <h1 class="ti-title"><span>천하제일</span><span>영웅대회</span></h1>
+      <p class="ti-sub">염라대왕이 업경대에 이승의 땅을 비췄다. 이름 없는 혼 하나가 고향의 영웅들을 모아 한반도를 차지하러 간다.</p>
+      <div class="ti-actions">
+        <button class="btn primary big" id="ti-new">새로 시작</button>
+        <button class="btn big" id="ti-cont" hidden>이어하기</button>
+        <button class="btn ghost" id="ti-help">조작법</button>
+      </div>
+      <p class="ti-save" id="ti-save"></p>
+      <p class="ti-foot">프로토타입 · 1막 「고향의 혼」 · 태초 국가 한국 · 도시 6곳 · 영웅 13명</p>
+    </div>
+  </section>
+
+  <!-- 이야기 배경 -->
+  <section id="scr-story" class="screen" hidden data-scene="river">
+    <div class="story-bg" aria-hidden="true"><span id="story-mark"></span></div>
+  </section>
+
+  <!-- 전략 지도 -->
+  <section id="scr-map" class="screen" hidden>
+    <header class="topbar">
+      <div class="brand"><b>천하제일 영웅대회</b><span>1막 · 고향의 혼</span></div>
+      <div class="res">
+        <span class="r"><i>날</i><b id="t-day">1일차</b></span>
+        <span class="r phase" id="t-phase" data-phase="day">낮</span>
+        <span class="r"><i>금</i><b id="t-gold">0</b></span>
+        <span class="r"><i>군량</i><b id="t-food">0</b></span>
+        <span class="r"><i>병력</i><b id="t-sol">0</b></span>
+        <span class="r"><i>영웅</i><b id="t-heroes">0</b></span>
+        <span class="r"><i>업</i><b id="t-karma">0</b></span>
+        <span class="r ap" id="t-ap">행동 가능</span>
+      </div>
+      <div class="tb-btns">
+        <button class="btn ghost sm" id="btn-help">조작법</button>
+        <button class="btn ghost sm" id="btn-title">타이틀</button>
+        <button class="btn primary" id="btn-end">턴 넘기기</button>
+      </div>
+    </header>
+    <div class="mapbody">
+      <div id="mapwrap"><canvas id="map" aria-label="한반도 전략 지도"></canvas>
+        <div class="legend">
+          <span><i style="--c:#7fd3e6"></i>아군</span><span><i style="--c:#c8323c"></i>연개소문</span><span><i style="--c:#e0812f"></i>견훤</span>
+          <span><i style="--c:#d2ad3c"></i>김유신</span><span><i style="--c:#8b95a6"></i>무명혼</span><span><i style="--c:#5a7cc0"></i>바다 망령</span>
+        </div>
+      </div>
+      <aside id="panel">
+        <nav id="tabs" class="tabs">
+          <button data-tab="info" class="on">지도</button><button data-tab="heroes">영웅</button><button data-tab="items">소지품</button><button data-tab="rumor">소문</button>
+        </nav>
+        <div id="panel-body"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 전투 -->
+  <section id="scr-battle" class="screen" hidden>
+    <canvas id="bcv"></canvas>
+    <div class="b-top">
+      <div class="b-title"><b id="b-name">전투</b><span><span id="b-phase"></span> · <span id="b-form"></span></span></div>
+      <div class="b-forces"><span>아군 <b id="b-ally">0</b></span><div class="b-bar"><i id="b-bar-ally"></i></div><span>적군 <b id="b-enemy">0</b></span><span class="b-mor">사기 <b id="b-mor-a">0</b> : <b id="b-mor-e">0</b></span></div>
+      <div class="b-btns"><div class="b-speed" id="b-speed" role="group" aria-label="게임 속도"><button data-sp="1">1×</button><button data-sp="2">2×</button><button data-sp="3">3×</button></div><button class="btn sm" id="b-auto">자동 전투</button><button class="btn sm" id="b-pause">일시정지</button><button class="btn sm danger" id="b-retreat">퇴각</button></div>
+    </div>
+    <div class="b-bottom">
+      <div class="b-orders" id="b-orders"></div>
+      <div class="b-heroes" id="b-heroes"></div>
+    </div>
+    <div id="b-tip" hidden>
+      <b>전투 안내</b>
+      <span>땅을 누르면 이동, 적을 누르면 공격합니다. <kbd>WASD</kbd>로도 움직일 수 있습니다.</span>
+      <span><kbd>Q</kbd> 고유 기술 · <kbd>1</kbd>~<kbd>4</kbd> 부대 명령 · <kbd>Tab</kbd> 영웅 바꾸기</span>
+      <span><kbd>F</kbd> 속도 1×·2×·3× · <kbd>R</kbd> 자동 전투 켜고 끄기</span>
+      <span>영웅이 쓰러지면 부대 사기가 떨어집니다. 사기가 버티면 혼불 대장이 지휘를 잇고, 꺾이면 도망칩니다. (눌러서 닫기)</span>
+    </div>
+    <canvas id="b-mini" aria-label="전장 미니맵"></canvas>
+    <div id="cutin"></div>
+    <div id="b-result" hidden></div>
+  </section>
+
+  <!-- 대화 -->
+  <div id="dialog" hidden>
+    <div class="dlg-box">
+      <div id="dlg-face" class="medal lg"><span id="dlg-glyph"></span></div>
+      <div class="dlg-main">
+        <div id="dlg-name"></div>
+        <p id="dlg-text"></p>
+        <div id="dlg-choices" hidden></div>
+        <form id="dlg-input" hidden><label for="dlg-name-in">이름</label><input id="dlg-name-in" maxlength="8" autocomplete="off" placeholder="무명"><button class="btn primary" type="submit">정하기</button></form>
+      </div>
+      <span class="dlg-next" aria-hidden="true">▼</span>
+    </div>
+  </div>
+
+  <div id="modal" hidden><div id="modal-card" class="modal-card"></div></div>
+  <div id="toasts" aria-live="polite"></div>
+</div>
+
+<script>
+/*__JS__*/
+</script>
