@@ -5096,7 +5096,7 @@ function boot() {
 }
 function refreshTitle() {
   const s = loadSave();
-  const ok = !!(s && s.stage === 'act1' && s.v === 3);
+  const ok = !!(s && s.stage === 'act1' && (s.v === 3 || s.v === 4));
   $('#ti-cont').hidden = !ok;
   $('#ti-save').textContent = ok ? `${s.name} 맹주 · ${s.day}일차 · 영웅 ${s.roster.length}명` : '';
 }
