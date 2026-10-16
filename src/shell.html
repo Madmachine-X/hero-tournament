@@ -41,6 +41,7 @@
       <div class="brand"><b>천하제일 영웅대회</b><span>1막 · 고향의 혼</span></div>
       <div class="res">
         <span class="r"><i>날</i><b id="t-day">1일차</b></span>
+        <span class="phase-orb" id="t-orb" aria-hidden="true"></span>
         <span class="r phase" id="t-phase" data-phase="day">낮</span>
         <span class="r"><i>금</i><b id="t-gold">0</b></span>
         <span class="r"><i>군량</i><b id="t-food">0</b></span>
@@ -55,8 +56,31 @@
         <button class="btn primary" id="btn-end">턴 넘기기</button>
       </div>
     </header>
+    <div id="cmdrail" hidden>
+      <div class="cmdrail-wash" aria-hidden="true"></div>
+      <div class="cmdrail-inner">
+        <div class="cmdrail-meta">
+          <span class="cmdrail-seal" id="cmdrail-seal">令</span>
+          <div>
+            <b id="cmdrail-city">도시를 고르면 내정이 열립니다</b>
+            <span id="cmdrail-note">지도의 아군 도시를 고르세요.</span>
+          </div>
+        </div>
+        <div id="cmdrail-btns" class="cmds"></div>
+      </div>
+      <div id="cmdrail-picker"></div>
+    </div>
     <div class="mapbody">
-      <div id="mapwrap"><canvas id="map" aria-label="한반도 전략 지도"></canvas>
+      <div id="mapwrap">
+        <div class="map-fx" aria-hidden="true">
+          <span class="map-vignette"></span>
+          <span class="map-ink"></span>
+          <span class="map-wisp" style="--x:12%;--d:13s;--s:.8"></span>
+          <span class="map-wisp" style="--x:38%;--d:18s;--s:.55"></span>
+          <span class="map-wisp" style="--x:67%;--d:11s;--s:1"></span>
+          <span class="map-wisp" style="--x:86%;--d:16s;--s:.7"></span>
+        </div>
+        <canvas id="map" aria-label="한반도 전략 지도"></canvas>
         <div class="legend">
           <span><i style="--c:#7fd3e6"></i>아군</span><span><i style="--c:#c8323c"></i>연개소문</span><span><i style="--c:#e0812f"></i>견훤</span>
           <span><i style="--c:#d2ad3c"></i>김유신</span><span><i style="--c:#8b95a6"></i>무명혼</span><span><i style="--c:#5a7cc0"></i>바다 망령</span>
