@@ -8,6 +8,103 @@ const Battle = (() => {
   const DMG_SCALE = 0.27; /* 전투 템포: 낮을수록 길게 싸운다 */
   const prefs = { speed: 1, auto: false };
   const keys = {};
+
+  /* ---------- 소리: 음원 파일 없이 Web Audio로 직접 만든다 ---------- */
+  const Sfx = (() => {
+    let ac = null, master = null, noiseBuf = null, drumT = 0, muteFF = false;
+    let on = (() => { try { return localStorage.getItem('chyw-sound') !== 'off'; } catch (e) { return true; } })();
+    const last = {};
+    function ready() {
+      if (!on || muteFF) return false;
+      try {
+        if (!ac) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return false;
+          ac = new AC();
+          master = ac.createGain(); master.gain.value = 0.55; master.connect(ac.destination);
+          noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+          const d = noiseBuf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        }
+        if (ac.state === 'suspended') ac.resume();
+        return ac.state !== 'closed';
+      } catch (e) { return false; }
+    }
+    // 같은 소리가 너무 자주 겹치지 않게 (초당 몇 번까지만)
+    function gate(name, gap) { const t = performance.now(); if (last[name] && t - last[name] < gap) return false; last[name] = t; return true; }
+    function env(g, t, a, peak, dur) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
+    function noise(t, dur, peak, type, freq, q, a = 0.004) {
+      const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 1;
+      const g = ac.createGain(); env(g, t, a, peak, dur);
+      src.connect(f); f.connect(g); g.connect(master);
+      src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05);
+      return f;
+    }
+    function tone(t, dur, peak, type, f0, f1, a = 0.005) {
+      const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t);
+      if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = ac.createGain(); env(g, t, a, peak, dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function drum(t, big) {
+      tone(t, big ? 0.7 : 0.4, big ? 0.9 : 0.5, 'sine', big ? 110 : 140, big ? 38 : 50, 0.003);
+      noise(t, 0.12, big ? 0.35 : 0.18, 'lowpass', 600, 0.7);
+    }
+    const P = {
+      // 칼 부딪힘: 짧은 금속성 잡음
+      clash(big) {
+        if (!gate('clash', big ? 40 : 75)) return;
+        const t = ac.currentTime;
+        noise(t, big ? 0.16 : 0.08, big ? 0.32 : 0.12, 'bandpass', 2600 + Math.random() * 1800, 6);
+        tone(t, big ? 0.22 : 0.1, big ? 0.08 : 0.03, 'triangle', 1800 + Math.random() * 900, 900);
+      },
+      crit() { if (!gate('crit', 90)) return; const t = ac.currentTime; noise(t, 0.25, 0.4, 'highpass', 3000, 1); tone(t, 0.35, 0.12, 'square', 2400, 600); },
+      arrow() { if (!gate('arrow', 110)) return; const f = noise(ac.currentTime, 0.18, 0.05, 'bandpass', 1800, 3, 0.05); f.frequency.exponentialRampToValueAtTime(600, ac.currentTime + 0.18); },
+      // 기술: 낮게 울리는 굉음과 쓸어 올라가는 소리
+      skill(big) {
+        if (!gate('skill', 250)) return;
+        const t = ac.currentTime;
+        tone(t, big ? 1.4 : 0.7, big ? 0.7 : 0.4, 'sawtooth', big ? 70 : 110, big ? 35 : 55, 0.01);
+        const f = noise(t, big ? 1.1 : 0.6, big ? 0.35 : 0.2, 'bandpass', 400, 2, 0.08); f.frequency.exponentialRampToValueAtTime(big ? 5000 : 3000, t + (big ? 1.0 : 0.5));
+        if (big) { drum(t, true); tone(t + 0.05, 1.6, 0.12, 'sine', 523, 520, 0.02); tone(t + 0.05, 1.6, 0.08, 'sine', 784, 780, 0.02); }
+      },
+      // 영웅 쓰러짐: 징 소리
+      fall(boss) {
+        const t = ac.currentTime;
+        drum(t, true);
+        [1, 2.76, 5.4].forEach((m, i) => tone(t, boss ? 3 : 2, (boss ? 0.22 : 0.14) / (i + 1), 'sine', (boss ? 92 : 120) * m, (boss ? 88 : 116) * m, 0.01));
+      },
+      // 첫 격돌
+      impact() { const t = ac.currentTime; drum(t, true); noise(t, 0.9, 0.5, 'lowpass', 900, 0.5, 0.01); for (let i = 0; i < 4; i++) P.clash(true); },
+      // 출진 북 세 번 + 함성
+      start() {
+        const t = ac.currentTime + 0.05;
+        drum(t, true); drum(t + 0.32, false); drum(t + 0.56, true);
+        const f = noise(t + 0.5, 1.4, 0.16, 'bandpass', 700, 1.5, 0.25); f.frequency.linearRampToValueAtTime(1100, t + 1.6);
+      },
+      win() { const t = ac.currentTime; [0, 0.18, 0.36].forEach((d, i) => drum(t + d, i === 2)); [392, 523, 659, 784].forEach((fq, i) => tone(t + 0.4 + i * 0.12, 1.4, 0.13, 'triangle', fq)); },
+      lose() { const t = ac.currentTime; drum(t, true); [330, 277, 220].forEach((fq, i) => tone(t + 0.3 + i * 0.3, 1.2, 0.12, 'triangle', fq, fq * 0.97)); },
+      ui() { if (!gate('ui', 60)) return; tone(ac.currentTime, 0.06, 0.08, 'triangle', 900, 700); },
+    };
+    function play(name, ...a) { if (ready()) try { P[name](...a); } catch (e) {} }
+    // 전투 중 깔리는 북소리: 남은 병력이 적을수록, 위기일수록 빨라진다
+    function tick(dt, tense) {
+      if (!ready()) return;
+      drumT -= dt;
+      if (drumT > 0) return;
+      const t = ac.currentTime;
+      drum(t, false); drum(t + (tense ? 0.18 : 0.26), false);
+      drumT = tense ? 0.75 : 1.15;
+    }
+    return {
+      play, tick,
+      get on() { return on; },
+      toggle() { on = !on; try { localStorage.setItem('chyw-sound', on ? 'on' : 'off'); } catch (e) {} if (!on && ac) ac.suspend(); else ready(); return on; },
+      quiet(v) { muteFF = v; },
+      reset() { drumT = 1.6; },
+    };
+  })();
   let uid = 0;
   const hud = { cards: [] };
   const ORDERS = [
@@ -38,6 +135,8 @@ const Battle = (() => {
     $('#b-pause').addEventListener('click', togglePause);
     $('#b-auto').addEventListener('click', () => { if (!B) return; B.autoCtrl = !B.autoCtrl; prefs.auto = B.autoCtrl; syncButtons(); });
     $('#b-speed').addEventListener('click', (e) => { const b = e.target.closest('[data-sp]'); if (b && B) { B.speed = +b.dataset.sp; prefs.speed = B.speed; syncButtons(); } });
+    $('#b-sound').addEventListener('click', () => { Sfx.toggle(); Sfx.play('ui'); syncButtons(); });
+    $('#b-skip').addEventListener('click', skipBattle);
     $('#b-retreat').addEventListener('click', () => { if (B && !B.over) finish(false, true); });
     const ob = $('#b-orders');
     ob.innerHTML = ORDERS.map((o) => `<button class="ord" data-ord="${o.id}"><kbd>${o.key}</kbd>${o.name}</button>`).join('');
@@ -225,6 +324,8 @@ const Battle = (() => {
       c.shadowBlur = 0; c.globalAlpha = 1;
     } });
     B.shake = 4;
+    B.punch = 0; B.focus = null; B.clashed = false; B.ciT = { mini: 0, boss: 0 };
+    Sfx.reset(); Sfx.play('start');
     buildHud();
     $('#b-name').textContent = cfg.title || '전투';
     $('#b-form').textContent = `${FORMATIONS[B.form[0]].name} vs ${FORMATIONS[B.form[1]].name}`;
@@ -271,6 +372,10 @@ const Battle = (() => {
       if (B.slowT > 0) B.slowT -= dt;
       let rem = dt * (B.speed || 1) * (B.slowT > 0 ? 0.3 : 1);
       while (rem > 1e-6 && B && !B.paused) { const d = Math.min(rem, 1 / 30); step(d); rem -= d; }
+      if (B && !B.over) {
+        const a = B.units.filter((u) => u.team === 0 && u.alive).length, e = B.units.filter((u) => u.team === 1 && u.alive).length;
+        Sfx.tick(dt, a < e * 0.7 || B.units.some((u) => u.boss && u.alive && u.team === 1));
+      }
     }
     if (B.tipT > 0) { B.tipT -= dt; if (B.tipT <= 0) $('#b-tip').hidden = true; }
     render();
@@ -304,9 +409,16 @@ const Battle = (() => {
     B.shake = Math.max(0, B.shake - dt * 20);
     B.flash = Math.max(0, B.flash - dt * 2.5);
     B.darken = Math.max(0, B.darken - dt * 0.5);
+    B.punch = Math.max(0, (B.punch || 0) - dt * 1.6);
     for (const m of B.mist) { m.x += m.vx * dt; if (m.x - m.r > W) m.x = -m.r; }
   }
   const later = (t, fn) => B.timers.push({ t, fn });
+  /* 카메라 펀치: 큰 순간에 화면이 살짝 당겨졌다 돌아온다 */
+  function zoomNow() { return VS * (B.zoom || 1) * (1 + 0.16 * easeOut(Math.min(1, B.punch || 0))); }
+  function punch(k, x, y, hold = 0.9) {
+    B.punch = Math.max(B.punch || 0, k);
+    if (x != null) B.focus = { x, y, t: hold };
+  }
 
   function tick(u, dt) {
     u.atkT -= dt;
@@ -381,9 +493,12 @@ const Battle = (() => {
     const atk = u.atk * (1 + u.buffAtk) * (u.sq && u.kind === 'soldier' ? 0.8 + u.sq.morale / 250 : 1) * attackMult(u, t);
     if (u.ranged) {
       const d = Math.hypot(t.x - u.x, t.y - u.y);
+      if (u.kind === 'hero' || Math.random() < 0.12) Sfx.play('arrow');
       B.proj.push({ type: 'arrow', x: u.x, y: u.y - 4, sx: u.x, sy: u.y, t, lx: t.x, ly: t.y, sp: 420, dmg: atk, src: u, team: u.team, life: 2.4, a: u.face, total: Math.max(30, d), delay: u.kind === 'soldier' ? Math.random() * 0.25 : 0 });
     } else {
       u.swing = 0.2;
+      if (!B.clashed) firstClash(u, t);
+      Sfx.play('clash', u.kind === 'hero');
       hit(u, t, atk, { quiet: t.kind !== 'hero' && u.kind !== 'hero' });
       if (u.kind === 'hero' || u.summon === 'tiger') {
         slashFx(t.x, t.y - 8, u.face, u.color, u.kind === 'hero' ? 20 : 24);
@@ -391,6 +506,22 @@ const Battle = (() => {
         for (let i = 0; i < 3; i++) B.parts.push({ x: t.x, y: t.y - 6, vx: Math.cos(u.face) * rand(40, 120) + rand(-30, 30), vy: rand(-60, 10), grav: 260, life: 0.45, max: 0.45, size: rand(1.5, 3), color: 'rgba(20,10,10,0.85)' });
       }
     }
+  }
+
+  /* 두 군대가 처음 맞부딪히는 순간: 잠깐 멈추고 크게 흔든다 */
+  function firstClash(u, t) {
+    B.clashed = true;
+    const x = (u.x + t.x) / 2, y = (u.y + t.y) / 2;
+    B.slowT = Math.max(B.slowT, 0.32);
+    B.shake = Math.max(B.shake, 9);
+    punch(0.7, x, y, 0.7);
+    for (let i = 0; i < 40; i++) {
+      const a = rand(0, Math.PI * 2), sp = rand(60, 220);
+      B.parts.push({ x: x + rand(-40, 40), y: y + rand(-20, 20), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, life: rand(0.5, 1.1), max: 1.1, size: rand(4, 9), color: 'rgba(120,104,82,0.45)', drag: 2.5 });
+    }
+    ring(x, y, 10, 160, 0.6, 'rgba(243,227,184,0.7)', 4);
+    floatText(x, y - 40, '격돌!', '#ffe08a', 52, true);
+    Sfx.play('impact');
   }
 
   function think(u, dt) {
@@ -575,7 +706,7 @@ const Battle = (() => {
     let d = o.pure ? amt : (amt * 40) / (40 + t.def * (1 + t.buffDef));
     d *= (0.9 + Math.random() * 0.2) * DMG_SCALE;
     let crit = false;
-    if (!o.pure && src && src.kind === 'hero' && Math.random() < 0.08) { d *= 1.6; crit = true; B.slowT = Math.max(B.slowT, 0.07); B.shake = Math.max(B.shake, 3); }
+    if (!o.pure && src && src.kind === 'hero' && Math.random() < 0.08) { d *= 1.6; crit = true; Sfx.play('crit'); B.slowT = Math.max(B.slowT, 0.07); B.shake = Math.max(B.shake, 3); }
     t.hp -= d;
     t.flash = 0.12;
     if (o.stun) t.stun = Math.max(t.stun, t.boss ? o.stun * 0.5 : o.stun);
@@ -625,7 +756,11 @@ const Battle = (() => {
       floatText(t.x, t.y - 34, t.team === 0 ? '퇴각' : '격파', t.team === 0 ? '#ff8f7a' : '#ffe08a', 18, true);
       if (t.team === 1 && t.recruit) B.captured.push(t.hid);
       if (t === B.ctrl) switchCtrl();
-      B.shake = Math.max(B.shake, 5);
+      B.shake = Math.max(B.shake, t.boss ? 12 : 6);
+      B.slowT = Math.max(B.slowT, t.boss ? 0.9 : 0.35);
+      punch(t.boss ? 1 : 0.55, t.x, t.y, t.boss ? 1.4 : 0.8);
+      if (t.boss) { B.flash = Math.max(B.flash, 0.7); ring(t.x, t.y, 10, 260, 0.9, t.color, 6); }
+      Sfx.play('fall', !!t.boss);
     } else {
       burst(t.x, t.y, t.ghost ? 10 : 6, t.ghost ? '#b9c6d8' : '#5b4a3c', 70, 2.4, 0.5, t.ghost);
     }
@@ -700,10 +835,11 @@ const Battle = (() => {
       if (!p.length) return;
       tx = p.reduce((a, u) => a + u.x, 0) / p.length; ty = p.reduce((a, u) => a + u.y, 0) / p.length;
     }
+    if (B.focus && B.focus.t > 0) { B.focus.t -= dt; tx = tx * 0.35 + B.focus.x * 0.65; ty = ty * 0.35 + B.focus.y * 0.65; }
     const k = 1 - Math.exp(-dt * 4);
     B.cam.x += (tx - B.cam.x) * k;
     B.cam.y += (ty - B.cam.y) * k;
-    const Z = VS * (B.zoom || 1);
+    const Z = zoomNow();
     const hw = vw / (2 * Z), hh = vh / (2 * Z);
     B.cam.x = hw * 2 >= W ? W / 2 : clamp(B.cam.x, hw, W - hw);
     B.cam.y = hh * 2 >= H ? H / 2 : clamp(B.cam.y, hh, H - hh);
@@ -827,8 +963,16 @@ const Battle = (() => {
     const ok = fn(u);
     if (ok) {
       s.t = SKILLS[s.id].cd * 1.3;
+      const big = s.hidden || u.boss;
+      Sfx.play('skill', big);
+      punch(big ? 1 : 0.4, u.x, u.y, big ? 1 : 0.5);
       if (s.hidden) cutin(u, SKILLS[s.id].name);
-      else label(u, SKILLS[s.id].name);
+      else {
+        label(u, SKILLS[s.id].name);
+        // 보스 기술은 큰 컷인, 아군 영웅 기술은 짧은 띠 (너무 잦지 않게)
+        if (u.boss && B.t > B.ciT.boss) { B.ciT.boss = B.t + 6; cutin(u, SKILLS[s.id].name); }
+        else if (u.team === 0 && u.kind === 'hero' && B.t > B.ciT.mini) { B.ciT.mini = B.t + 3; cutin(u, SKILLS[s.id].name, true); }
+      }
     }
     return ok;
   }
@@ -846,16 +990,17 @@ const Battle = (() => {
     if (!cast(u, s)) floatText(u.x, u.y - 40, '대상이 없다', '#c9bfa8', 13);
   }
 
-  function cutin(u, name) {
-    B.slowT = 0.85;
-    B.flash = 0.6;
+  function cutin(u, name, mini) {
+    if (B.ffwd) return;
+    if (mini) { B.darken = Math.max(B.darken, 0.35); B.slowT = Math.max(B.slowT, 0.25); }
+    else { B.slowT = 0.85; B.flash = 0.6; B.darken = Math.max(B.darken, 0.6); }
     const el = $('#cutin');
     const d = document.createElement('div');
-    d.className = 'ci' + (u.team === 1 ? ' foe' : '');
+    d.className = 'ci' + (u.team === 1 ? ' foe' : '') + (mini ? ' mini' : '');
     d.style.setProperty('--c', u.color);
     d.innerHTML = `<div class="ci-band"><div class="ci-glyph">${esc(u.glyph)}</div><div class="ci-text"><span class="ci-hero">${esc(u.name)}</span><span class="ci-skill">${esc(name)}</span></div></div>`;
     el.appendChild(d);
-    setTimeout(() => d.remove(), 1500);
+    setTimeout(() => d.remove(), mini ? 1000 : 1500);
   }
 
   const HANGUL = 'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ';
@@ -1699,7 +1844,7 @@ const Battle = (() => {
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
     c.fillStyle = '#08090a'; c.fillRect(0, 0, vw, vh);
     const shx = (Math.random() - 0.5) * B.shake * 2, shy = (Math.random() - 0.5) * B.shake * 2;
-    const Z = VS * (B.zoom || 1);
+    const Z = zoomNow();
     const ox = vw / 2 - B.cam.x * Z + shx, oy = vh / 2 - B.cam.y * Z + shy;
     c.setTransform(DPR * Z, 0, 0, DPR * Z, DPR * ox, DPR * oy);
     c.drawImage(B.ground, 0, 0);
@@ -1816,7 +1961,7 @@ const Battle = (() => {
       const r = hero ? 2.4 : 1.1;
       g.fillRect(u.x * sx - r, u.y * sy - r, r * 2, r * 2);
     }
-    const Z = VS * (B.zoom || 1);
+    const Z = zoomNow();
     g.strokeStyle = 'rgba(232,192,80,0.8)'; g.lineWidth = 1;
     g.strokeRect((B.cam.x - vw / 2 / Z) * sx, (B.cam.y - vh / 2 / Z) * sy, (vw / Z) * sx, (vh / Z) * sy);
   }
@@ -1835,6 +1980,7 @@ const Battle = (() => {
     else if (code === 'Tab') cycleCtrl();
     else if (code === 'Space') togglePause();
     else if (code === 'KeyF') { B.speed = B.speed >= 3 ? 1 : B.speed + 1; prefs.speed = B.speed; syncButtons(); }
+    else if (code === 'KeyM') { Sfx.toggle(); syncButtons(); }
     else if (code === 'KeyR') { B.autoCtrl = !B.autoCtrl; prefs.auto = B.autoCtrl; syncButtons(); }
     else if (/^Digit[1-4]$/.test(code)) setOrder(ORDERS[+code.slice(5) - 1].id);
   }
@@ -1843,7 +1989,7 @@ const Battle = (() => {
     if (!active || !B || B.over) return;
     const r = cv.getBoundingClientRect();
     const sx = e.clientX - r.left, sy = e.clientY - r.top;
-    const Z = VS * (B.zoom || 1);
+    const Z = zoomNow();
     const wx = B.cam.x + (sx - vw / 2) / Z, wy = B.cam.y + (sy - vh / 2) / Z;
     let best = null, bd = 1e9;
     for (const u of B.units) {
@@ -1875,11 +2021,31 @@ const Battle = (() => {
     const name = ORDERS.find((x) => x.id === o).name;
     if (B.ctrl) floatText(B.ctrl.x, B.ctrl.y - 46, name + '!', '#e8c050', 26, true);
   }
+  /* 결판 내기: 남은 전투를 자동으로 끝까지 빠르게 돌린다 */
+  function skipBattle() {
+    if (!B || B.over || B.skipping) return;
+    B.skipping = true; B.paused = false; B.autoCtrl = true;
+    $('#cutin').innerHTML = '';
+    syncButtons();
+    const cur = B;
+    const run = () => {
+      if (B !== cur) return;
+      fastForward(6);
+      if (B.over) { Sfx.play(B.win ? 'win' : 'lose'); B.skipping = false; syncButtons(); return; }
+      setTimeout(run, 16);
+    };
+    run();
+  }
+
   function togglePause() { if (!B || B.over) return; B.paused = !B.paused; syncButtons(); }
   function syncButtons() {
     if (!B) return;
     $('#b-pause').textContent = B.paused ? '계속' : '일시정지';
     $('#b-auto').classList.toggle('on', B.autoCtrl);
+    $('#b-sound').textContent = Sfx.on ? '소리 켜짐' : '소리 꺼짐';
+    $('#b-sound').classList.toggle('on', Sfx.on);
+    $('#b-skip').disabled = !!(B.over || B.skipping);
+    $('#b-skip').textContent = B.skipping ? '결판 내는 중…' : '결판 내기';
     $('#b-auto').textContent = B.autoCtrl ? '자동 전투 켜짐' : '자동 전투';
     $$('#b-speed [data-sp]').forEach((b) => b.classList.toggle('on', +b.dataset.sp === B.speed));
     $$('#b-orders .ord').forEach((b) => b.classList.toggle('on', b.dataset.ord === B.order));
@@ -2002,6 +2168,8 @@ const Battle = (() => {
   function finish(win, retreat) {
     if (!B || B.over) return;
     B.over = true;
+    B.win = win;
+    Sfx.play(win ? 'win' : 'lose');
     const pSol = B.units.filter((u) => u.team === 0 && u.kind === 'soldier' && u.alive).length + B.units.filter((u) => u.team === 0 && u.kind === 'soldier' && u.fled).length;
     const eSol = B.units.filter((u) => u.team === 1 && u.kind === 'soldier' && u.alive && !u.rout).length;
     const sent = B.sent || 0;
@@ -2038,7 +2206,8 @@ const Battle = (() => {
     if (!B) return null;
     if (autoAll) B.autoCtrl = true;
     const n = Math.round(sec * 30);
-    for (let i = 0; i < n && !B.over; i++) step(1 / 30);
+    B.ffwd = true; Sfx.quiet(true);
+    try { for (let i = 0; i < n && !B.over; i++) step(1 / 30); } finally { B.ffwd = false; Sfx.quiet(false); }
     return { over: B.over, t: B.t, ally: B.units.filter((u) => u.team === 0 && u.alive).length, enemy: B.units.filter((u) => u.team === 1 && u.alive).length };
   }
   function state() { return B; }

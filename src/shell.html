@@ -77,7 +77,7 @@
     <div class="b-top">
       <div class="b-title"><b id="b-name">전투</b><span><span id="b-phase"></span> · <span id="b-form"></span></span></div>
       <div class="b-forces"><span>아군 <b id="b-ally">0</b></span><div class="b-bar"><i id="b-bar-ally"></i></div><span>적군 <b id="b-enemy">0</b></span><span class="b-mor">사기 <b id="b-mor-a">0</b> : <b id="b-mor-e">0</b></span></div>
-      <div class="b-btns"><div class="b-speed" id="b-speed" role="group" aria-label="게임 속도"><button data-sp="1">1×</button><button data-sp="2">2×</button><button data-sp="3">3×</button></div><button class="btn sm" id="b-auto">자동 전투</button><button class="btn sm" id="b-pause">일시정지</button><button class="btn sm danger" id="b-retreat">퇴각</button></div>
+      <div class="b-btns"><div class="b-speed" id="b-speed" role="group" aria-label="게임 속도"><button data-sp="1">1×</button><button data-sp="2">2×</button><button data-sp="3">3×</button></div><button class="btn sm b-auto" id="b-auto">자동 전투</button><button class="btn sm" id="b-skip" title="남은 전투를 자동으로 빠르게 끝냅니다">결판 내기</button><button class="btn sm" id="b-sound" title="소리 켜고 끄기 (M)">소리 켜짐</button><button class="btn sm" id="b-pause">일시정지</button><button class="btn sm danger" id="b-retreat">퇴각</button></div>
     </div>
     <div class="b-bottom">
       <div class="b-orders" id="b-orders"></div>
@@ -87,7 +87,7 @@
       <b>전투 안내</b>
       <span>땅을 누르면 이동, 적을 누르면 공격합니다. <kbd>WASD</kbd>로도 움직일 수 있습니다.</span>
       <span><kbd>Q</kbd> 고유 기술 · <kbd>1</kbd>~<kbd>4</kbd> 부대 명령 · <kbd>Tab</kbd> 영웅 바꾸기</span>
-      <span><kbd>F</kbd> 속도 1×·2×·3× · <kbd>R</kbd> 자동 전투 켜고 끄기</span>
+      <span><kbd>F</kbd> 속도 1×·2×·3× · <kbd>R</kbd> 자동 전투 켜고 끄기 · <kbd>M</kbd> 소리</span>
       <span>영웅이 쓰러지면 부대 사기가 떨어집니다. 사기가 버티면 혼불 대장이 지휘를 잇고, 꺾이면 도망칩니다. (눌러서 닫기)</span>
     </div>
     <canvas id="b-mini" aria-label="전장 미니맵"></canvas>
