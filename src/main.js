@@ -62,6 +62,8 @@ function renderTop() {
   const free = freeHeroes().length;
   $('#t-ap').textContent = `행동 ${free}/${G.roster.length}`;
   $('#t-ap').classList.toggle('spent', !free);
+  const mapEl = $('#scr-map');
+  if (mapEl) mapEl.dataset.phase = PHASES[G.phase].id;
 }
 
 /* ---------- 패널 ---------- */
@@ -72,8 +74,52 @@ function renderPanel() {
   else if (UI.tab === 'heroes') body.innerHTML = UI.heroView ? heroDetail(UI.heroView) : heroList();
   else if (UI.tab === 'items') body.innerHTML = itemsView();
   else body.innerHTML = rumorView();
+  renderCmdRail();
 }
 function renderAll() { renderTop(); renderPanel(); MapView.redrawRegions(); }
+const CMD_GLYPH = { agri: "農", comm: "商", wall: "城", loyal: "仁", draft: "兵", train: "鍊", search: "才", move: "運", relocate: "遷", rest: "息", scout: "聞" };
+function renderCmdRail() {
+  const rail = $("#cmdrail");
+  if (!rail) return;
+  const phase = PHASES[G.phase].id;
+  const map = $("#scr-map");
+  if (map) map.dataset.phase = phase;
+  rail.dataset.phase = phase;
+  const sel = UI.sel && UI.sel.type === "city" ? UI.sel.id : null;
+  const seal = $("#cmdrail-seal"), cityEl = $("#cmdrail-city"), noteEl = $("#cmdrail-note"), btns = $("#cmdrail-btns"), picker = $("#cmdrail-picker");
+  if (!sel) {
+    rail.hidden = true;
+    if (btns) btns.innerHTML = "";
+    if (picker) picker.innerHTML = "";
+    return;
+  }
+  rail.hidden = false;
+  const st = G.cities[sel], f = FACTIONS[st.owner], mine = st.owner === "player";
+  if (seal) { seal.textContent = f.glyph; seal.style.setProperty("--c", f.color); }
+  if (cityEl) cityEl.textContent = CITIES[sel].name + (mine ? "" : " · " + f.name);
+  if (mine) {
+    const cmds = isNight() ? ["rest", "scout", "relocate"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "move", "relocate"];
+    if (noteEl) noteEl.textContent = isNight() ? "야간 · 휴식 · 소문 · 기습" : ("내정 · 이 도시 장수에게 맡깁니다 · 행동 가능 " + freeIn(sel).length + "명");
+    let html = cmds.map(function(k) {
+      const on = UI.cmd === k ? ' on' : '';
+      return '<button class="cmd' + on + '" data-cmd="' + k + '"><i class="cmd-glyph">' + (CMD_GLYPH[k] || '令') + '</i><span>' + COMMANDS[k].name + '</span></button>';
+    }).join("");
+    if (isNight() && G.market && G.market.city === sel) html += '<button class="cmd market" data-act="market"><i class="cmd-glyph">市</i><span>비밀 장터</span></button>';
+    else if (!isNight()) html += '<button class="cmd" data-act="shop"><i class="cmd-glyph">市</i><span>장터</span></button>';
+    if (btns) { btns.className = "cmds" + (isNight() ? " night" : ""); btns.innerHTML = html; }
+    if (picker) picker.innerHTML = UI.cmd ? commandPicker(sel) : "";
+  } else {
+    const adj = adjacentToPlayer(sel);
+    const free = neighbors(sel).filter(function(n) { return G.cities[n].owner === "player"; }).reduce(function(a, n) { return a + freeIn(n).length; }, 0);
+    if (noteEl) noteEl.textContent = adj && free ? (isNight() ? "야간 기습 가능" : "출병 가능") : "아직 칠 수 없습니다";
+    if (btns) {
+      btns.className = "cmds";
+      btns.innerHTML = '<button class="btn primary' + (isNight() ? ' raid' : '') + '" data-act="attack" ' + (adj && free ? '' : 'disabled') + '>' + (isNight() ? '야간 기습' : '출병') + '</button>';
+    }
+    if (picker) picker.innerHTML = "";
+  }
+}
+
 
 function overview() {
   const owned = ownedCities().length;
@@ -114,9 +160,7 @@ function cityCard(id) {
       <p class="label">주둔 장수 <span class="muted small">${here.length}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}">${medallion(h, 'sm')}<span>${esc(heroName(h))}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
       <button class="auto-toggle ${st.auto ? 'on' : ''}" data-auto="${id}">${st.auto ? '위임 중 · 턴이 끝날 때 남은 장수가 알아서 내정합니다' : '위임하기 · 턴이 끝날 때 남은 장수가 알아서 내정'}</button>
-      <p class="label">${isNight() ? '야간 명령' : '내정 명령'} <span class="muted small">${isNight() ? '백성이 잠든 밤입니다. 쉬거나, 소문을 캐거나, 이웃 적 도시를 기습하세요.' : '이 도시 장수에게 맡깁니다'}</span></p>
-      <div class="cmds ${isNight() ? 'night' : ''}">${cmds.map((k) => `<button class="cmd ${UI.cmd === k ? 'on' : ''}" data-cmd="${k}">${COMMANDS[k].name}</button>`).join('')}${isNight() ? (G.market && G.market.city === id ? '<button class="cmd market" data-act="market">비밀 장터</button>' : '') : '<button class="cmd" data-act="shop">장터</button>'}</div>
-      ${UI.cmd ? commandPicker(id) : ''}`;
+      <p class="hint">내정과 장터는 위쪽 명령 막대에서 고릅니다.</p>
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);
@@ -130,10 +174,7 @@ function cityCard(id) {
         <div><dt>위험도</dt><dd class="danger">${'◆'.repeat(DANGER[id] || 1)}${'◇'.repeat(3 - (DANGER[id] || 1))}</dd></div>
       </dl>
       <p class="label">지키는 장수</p><div class="foes">${heads.join('') || '<span class="muted">없음 (혼불 대장이 지휘)</span>'}</div>
-      <div class="actions">
-        <button class="btn primary ${isNight() ? 'raid' : ''}" data-act="attack" ${adj && free ? '' : 'disabled'}>${isNight() ? '야간 기습 <small>적 사기 -20 · 성벽 효과 절반 · 지원 부대 없음</small>' : '출병 <small>참가 영웅의 행동 · 영웅당 병사 20</small>'}</button>
-      </div>
-      ${!adj ? '<p class="hint">이웃한 아군 도시가 없어 아직 칠 수 없습니다.</p>' : !free ? '<p class="hint">이웃한 아군 도시에 행동할 수 있는 장수가 없습니다.</p>' : '<p class="hint">이웃한 아군 도시에 있는 장수만 출병할 수 있습니다. 이기면 출병한 장수가 그 도시에 주둔합니다.</p>'}`;
+            ${!adj ? '<p class="hint">이웃한 아군 도시가 없어 아직 칠 수 없습니다.</p>' : !free ? '<p class="hint">이웃한 아군 도시에 행동할 수 있는 장수가 없습니다.</p>' : '<p class="hint">이웃한 아군 도시에 있는 장수만 출병할 수 있습니다. 이기면 출병한 장수가 그 도시에 주둔합니다.</p>'}`;
   }
   const nb = neighbors(id).map((n) => CITIES[n].name).join(', ');
   return `<div class="card city">
@@ -926,6 +967,8 @@ function boot() {
     if (h && window.innerWidth < 860) $('#panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   $('#panel-body').addEventListener('click', onPanelClick);
+  const railEl = $('#cmdrail');
+  if (railEl) railEl.addEventListener('click', onPanelClick);
   $('#tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tab]');
     if (!b) return;
