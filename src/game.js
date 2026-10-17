@@ -97,6 +97,38 @@ function cityHops(a, b) {
   return 99;
 }
 function travelers() { return G.roster.filter((h) => G.heroes[h].travel); }
+function cityCap(id) { return (CITIES[id] && CITIES[id].cap) || 9; }
+function cityPop(id) {
+  return G.roster.filter((h) => {
+    const hh = G.heroes[h];
+    if (hh.travel) return hh.travel.to === id;
+    return hh.city === id;
+  }).length;
+}
+function citiesOverCap() { return ownedCities().filter((c) => cityPop(c) > cityCap(c)); }
+function stationedOrInbound(id) {
+  return G.roster.filter((h) => {
+    const hh = G.heroes[h];
+    if (hh.travel) return hh.travel.to === id;
+    return hh.city === id;
+  });
+}
+function dismissHero(id, asCancel) {
+  if (id === 'hero' || !G.heroes[id]) return { ok: false, msg: '맹주는 해고할 수 없습니다.' };
+  const who = heroName(id);
+  const h = G.heroes[id];
+  const city = h.travel ? h.travel.from : h.city;
+  ['w1', 'w2', 'armor', 'acc0', 'acc1', 'acc2', 'acc3'].forEach((sl) => unequip(id, sl));
+  if (!asCancel && G.cities[city] && G.cities[city].owner === 'player') {
+    const drop = isOfficer(id) ? 8 : 14;
+    G.cities[city].loyal = Math.max(0, G.cities[city].loyal - drop);
+  }
+  G.roster = G.roster.filter((x) => x !== id);
+  delete G.heroes[id];
+  if (G.officers && G.officers[id]) { delete G.officers[id]; delete HEROES[id]; }
+  if (asCancel) return { ok: true, msg: `${who} 등용을 취소했습니다.` };
+  return { ok: true, msg: `${who}을(를) 해고했습니다.${city && CITIES[city] ? ` ${CITIES[city].name} 민심이 떨어졌습니다.` : ''}` };
+}
 function namedCount() { return G.roster.filter((h) => !isOfficer(h)).length; }
 
 function heroName(id) { return id === 'hero' ? G.name : HEROES[id].name; }
@@ -321,19 +353,56 @@ function doCommand(cmd, hid, cityId) {
 }
 
 function neighbors(id) { return ROADS.filter((r) => r.includes(id)).map((r) => (r[0] === id ? r[1] : r[0])); }
-function startRelocate(hid, dest) {
+function startRelocate(hid, dest, opts) {
   const h = G.heroes[hid];
   const from = h.city;
   const hops = Math.max(1, cityHops(from, dest));
+  if (!(opts && opts.skipCap) && cityPop(dest) >= cityCap(dest)) return { ok: false, hops, msg: `${CITIES[dest].name}은(는) 인재 정원이 가득합니다 (${cityPop(dest)}/${cityCap(dest)}).` };
   h.acted = true;
   markNightWork(hid);
   if (hops <= 1) {
     h.city = dest;
     h.travel = null;
-    return { hops, msg: `${heroName(hid)}이(가) ${CITIES[dest].name}(으)로 이동했습니다.` };
+    return { ok: true, hops, msg: `${heroName(hid)}이(가) ${CITIES[dest].name}(으)로 이동했습니다.` };
   }
   h.travel = { from, to: dest, left: hops };
-  return { hops, msg: `${heroName(hid)}이(가) ${CITIES[from].name}에서 ${CITIES[dest].name}(으)로 길을 떠났습니다. ${hops}턴 뒤에 도착합니다.` };
+  return { ok: true, hops, msg: `${heroName(hid)}이(가) ${CITIES[from].name}에서 ${CITIES[dest].name}(으)로 길을 떠났습니다. ${hops}턴 뒤에 도착합니다.` };
+}
+function transferTroops(from, dest, n) {
+  n = Math.max(0, Math.min(n | 0, G.cities[from].troops));
+  if (!n) return 0;
+  const S = G.cities[from], D = G.cities[dest];
+  S.troops -= n;
+  D.train = Math.round((D.train * D.troops + S.train * n) / Math.max(1, D.troops + n));
+  D.troops += n;
+  return n;
+}
+function executeMarch(from, dest, heroIds, troops) {
+  if (!from || !dest || from === dest) return { ok: false, msg: '다른 아군 도시를 고르세요.' };
+  if (!G.cities[dest] || G.cities[dest].owner !== 'player') return { ok: false, msg: '아군 도시로만 보낼 수 있습니다.' };
+  const adj = neighbors(from).includes(dest);
+  const ids = [...new Set(heroIds || [])].filter((h) => G.heroes[h] && G.heroes[h].city === from && !G.heroes[h].acted && !G.heroes[h].travel);
+  let n = Math.max(0, Math.min(troops | 0, G.cities[from].troops));
+  if (!adj) n = 0;
+  if (!ids.length && n <= 0) return { ok: false, msg: '보낼 장수나 병력을 고르세요.' };
+  if (ids.length && cityPop(dest) + ids.length > cityCap(dest)) return { ok: false, msg: `${CITIES[dest].name} 인재 정원이 부족합니다 (${cityPop(dest)}/${cityCap(dest)}).` };
+  let escort = null;
+  if (!ids.length && n) {
+    escort = freeIn(from)[0];
+    if (!escort) return { ok: false, msg: '병력을 보낼 장수가 없습니다.' };
+  }
+  const bits = [];
+  ids.forEach((h) => {
+    const r = startRelocate(h, dest, { skipCap: true });
+    if (r.ok) bits.push(heroName(h));
+  });
+  if (n) transferTroops(from, dest, n);
+  if (escort) { G.heroes[escort].acted = true; markNightWork(escort); }
+  const hops = Math.max(1, cityHops(from, dest));
+  const msg = `${CITIES[from].name} → ${CITIES[dest].name}` +
+    (bits.length ? ` · 장수 ${bits.join(', ')}${hops > 1 ? ` (${hops}턴)` : ''}` : '') +
+    (n ? ` · 병력 ${n}` : !adj && (troops | 0) > 0 ? ' · 병력은 이웃 도시로만 옮깁니다' : '');
+  return { ok: true, msg };
 }
 function tickTravel(wasNight) {
   const arrived = [];

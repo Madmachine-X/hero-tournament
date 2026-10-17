@@ -108,10 +108,12 @@ const Battle = (() => {
   let uid = 0;
   const hud = { cards: [] };
   const ORDERS = [
-    { id: 'follow', name: '따라와', key: '1' },
+    { id: 'form', name: '진형 유지 이동', key: '1' },
     { id: 'charge', name: '돌격', key: '2' },
-    { id: 'hold', name: '대기', key: '3' },
-    { id: 'retreat', name: '후퇴', key: '4' },
+    { id: 'follow', name: '따라와', key: '3' },
+    { id: 'skirmish', name: '각개전투', key: '4' },
+    { id: 'hold', name: '대기', key: '5' },
+    { id: 'retreat', name: '후퇴', key: '6' },
   ];
   const FONT_GLYPH = '"Noto Serif KR", "Song Myung", serif';
   const FONT_BRUSH = '"Nanum Brush Script", "Song Myung", serif';
@@ -211,7 +213,7 @@ const Battle = (() => {
     uid = 0;
     B = {
       cfg, t: 0, units: [], proj: [], fx: [], parts: [], texts: [], timers: [], over: false,
-      order: 'follow', ctrl: null, cam: { x: 560, y: H / 2 }, shake: 0, slowT: 0, moveTo: null, attackTarget: null,
+      order: 'form', ctrl: null, cam: { x: 560, y: H / 2 }, shake: 0, slowT: 0, moveTo: null, attackTarget: null,
       ground: makeGround(cfg.theme || 'field', cfg.seed || 1), mist: [], lost: 0, kills: 0, exp: {}, captured: [],
       holdPos: {}, checkT: 0.5, paused: false, autoCtrl: prefs.auto, speed: prefs.speed, routing: false, flash: 0, darken: 0, phase: G.phase,
     };
@@ -323,6 +325,7 @@ const Battle = (() => {
       }
     });
     B.ctrl = pHeroes[0] || B.units.find((u) => u.team === 0 && u.captain) || null;
+    captureAllyForm();
     const bannerText = cfg.type === 'defend' ? '수성!' : cfg.type === 'duel' ? '결투!' : '출진!';
     B.fx.push({ t: 0, dur: 1.5, layer: 'screen', draw(c, f) {
       const k = f.t / f.dur;
@@ -589,6 +592,23 @@ const Battle = (() => {
   }
 
   const FORM = Array.from({ length: 12 }, (_, i) => { const row = Math.floor(i / 3), col = i % 3; return [-70 - row * 60, (col - 1) * 78 + (row % 2) * 24]; });
+  function captureAllyForm() {
+    const hs = B.units.filter((u) => u.team === 0 && (u.kind === 'hero' || u.captain) && u.alive);
+    if (!hs.length) { B.formCx = 380; B.formCy = H / 2; return; }
+    const cx = hs.reduce((a, u) => a + u.x, 0) / hs.length;
+    const cy = hs.reduce((a, u) => a + u.y, 0) / hs.length;
+    B.formCx = cx; B.formCy = cy;
+    hs.forEach((u) => { u.formHx = u.x - cx; u.formHy = u.y - cy; });
+  }
+  function formOrigin() {
+    const c = B.ctrl && B.ctrl.alive ? B.ctrl : null;
+    if (c && !B.autoCtrl) return { x: c.x - (c.formHx || 0), y: c.y - (c.formHy || 0) };
+    if (B.moveTo) return { x: B.moveTo.x, y: B.moveTo.y };
+    const lead = c || B.units.find((u) => u.team === 0 && (u.kind === 'hero' || u.captain) && u.alive);
+    const t = lead ? nearestFoe(lead, 99999) : null;
+    if (t) return { x: t.x - 260, y: B.formCy != null ? B.formCy : H / 2 };
+    return { x: B.formCx != null ? B.formCx : 380, y: B.formCy != null ? B.formCy : H / 2 };
+  }
   function allyThink(u) {
     const o = u === B.ctrl && B.order === 'follow' ? 'charge' : B.order;
     if (o === 'retreat') {
@@ -603,12 +623,20 @@ const Battle = (() => {
       if (t) engage(u, t); else moveTo(u, hp.x, hp.y);
       return;
     }
-    if (o === 'charge' || !B.ctrl || !B.ctrl.alive) {
-      const t = nearestFoe(u, 99999);
-      if (t) { if (dist(u, t) > 260) marchTo(u, t.x, t.y); else engage(u, t); } else stopU(u);
+    if (o === 'form') {
+      const origin = formOrigin();
+      const ax = origin.x + (u.formHx || 0), ay = origin.y + (u.formHy || 0);
+      const t = nearestFoe(u, Math.max(u.range + 40, 120));
+      if (t && dist(u, t) < u.range + 28) engage(u, t);
+      else if (Math.hypot(ax - u.x, ay - u.y) > 18) marchTo(u, ax, ay);
+      else stopU(u);
       return;
     }
-    // 따라와
+    if (o === 'skirmish' || o === 'charge' || !B.ctrl || !B.ctrl.alive) {
+      const t = nearestFoe(u, 99999);
+      if (t) { if (dist(u, t) > (o === 'skirmish' ? 90 : 260)) marchTo(u, t.x, t.y); else engage(u, t); } else stopU(u);
+      return;
+    }
     const c = B.ctrl;
     const idx = B.units.filter((x) => x.team === 0 && x.kind === 'hero' && x !== c && x.alive).indexOf(u);
     const f = FORM[Math.max(0, idx) % FORM.length];
@@ -646,6 +674,10 @@ const Battle = (() => {
     if (u.tgt && u.tgt.alive && !u.tgt.rout && u.retT > 0) { engage(u, u.tgt); return; }
     u.retT = 0.3 + Math.random() * 0.2;
     u.tgt = null;
+    if (u.team === 0 && (ord === 'charge' || ord === 'skirmish')) {
+      const chase = nearestFoe(u, 99999);
+      if (chase) { u.tgt = chase; engage(u, chase); return; }
+    }
     let t = nearestFoe(u, u.ranged ? u.range + 20 : 85);
     // 지휘관 곁을 크게 벗어나지 않는다 (궁수는 사거리 안에서)
     if (!t && lok) t = nearestFoe(u, ord === 'hold' ? 120 : u.ranged ? u.range + 40 : 170, L);
@@ -2024,7 +2056,7 @@ const Battle = (() => {
     else if (code === 'KeyF') { B.speed = B.speed >= 3 ? 1 : B.speed + 1; prefs.speed = B.speed; syncButtons(); }
     else if (code === 'KeyM') { Sfx.toggle(); syncButtons(); }
     else if (code === 'KeyR') { B.autoCtrl = !B.autoCtrl; prefs.auto = B.autoCtrl; syncButtons(); }
-    else if (/^Digit[1-4]$/.test(code)) setOrder(ORDERS[+code.slice(5) - 1].id);
+    else if (/^Digit[1-6]$/.test(code)) setOrder(ORDERS[+code.slice(5) - 1].id);
   }
 
   function onPointer(e) {
@@ -2059,6 +2091,7 @@ const Battle = (() => {
     if (!B) return;
     B.order = o;
     B.holdPos = {};
+    if (o === 'form') captureAllyForm();
     $$('#b-orders .ord').forEach((b) => b.classList.toggle('on', b.dataset.ord === o));
     const name = ORDERS.find((x) => x.id === o).name;
     if (B.ctrl) floatText(B.ctrl.x, B.ctrl.y - 46, name + '!', '#e8c050', 26, true);

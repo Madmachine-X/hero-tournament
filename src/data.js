@@ -164,11 +164,10 @@ const COMMANDS = {
   loyal: { name: '선정', key: 'loyal', label: '민심', cost: { food: 40 }, desc: '곡식을 풀어 민심을 얻는다. 민심은 세금과 징병에 영향을 준다.', stat: '지력', when: 'day' },
   draft: { name: '징병', key: 'troops', label: '병력', cost: { goldPer: 1.5 }, desc: '혼불 병사를 모은다. 민심이 조금 떨어지고 훈련도가 묽어진다.', stat: '통솔', when: 'day' },
   train: { name: '훈련', key: 'train', label: '훈련', cost: { food: 20 }, desc: '병사를 조련한다. 훈련도가 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
-  move:  { name: '수송', key: 'troops', label: '병력', cost: {}, desc: '이웃한 아군 도시로 병력을 옮긴다.', stat: '', when: 'day' },
+  move:  { name: '병력 이동', key: null, label: '', cost: {}, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다.', stat: '', when: 'any' },
   rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '밤새 쉬며 체력을 모두 회복한다. 쉬지 않고 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
   scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '어둠을 틈타 주막과 장터를 돌며 소문을 모은다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다.', stat: '지력', when: 'night' },
-  search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 찾으면 이 도시에 합류한다.', stat: '지력', when: 'day' },
-  relocate: { name: '이동', key: null, label: '', cost: {}, desc: '영웅을 다른 아군 도시로 보낸다. 이웃은 1턴, 길이 멀수록 그 칸 수만큼 턴을 쓴다. 밤길에도 갈 수 있다.', stat: '', when: 'any' },
+  search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 찾으면 이 도시에 합류한다. 정원이 가득하면 다른 도시로 보내거나 해고·등용 취소를 해야 한다.', stat: '지력', when: 'day' },
 };
 
 /* 진형: 출진 전에 고른다 */
@@ -202,21 +201,21 @@ const HERO_GEAR = {
 
 /* 도시 (현재 지도 좌표) */
 const CITIES = {
-  seoul:     { name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1,
+  seoul:     { name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
                shop: ['w_hwando','w_bisu','w_jangchang','w_gakgung','w_deungpae','a_dopo','a_chalgap','r_ok','r_eun','n_hobak'] },
-  pyongyang: { name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5,
+  pyongyang: { name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
                boss: 'gaesomun', captains: ['고구려 망령장', '고구려 망령장'], theme: 'north',
                shop: ['w_woldo','w_heukgak','a_dujeong','n_hobal'] },
-  gangneung: { name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2,
+  gangneung: { name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
                bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장'], theme: 'mist',
                shop: ['r_honbul','b_bujeok'] },
-  jeonju:    { name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3,
+  jeonju:    { name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
                boss: 'gyeonhwon', captains: ['후백제 망령장'], theme: 'field',
                shop: ['w_ungeom','w_wonbang','b_norigae','r_honbul'] },
-  gyeongju:  { name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5,
+  gyeongju:  { name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
                boss: 'yusin', captains: ['신라 망령장', '화랑 망령'], theme: 'field',
                shop: ['w_hakuseon','a_suui','n_yeomju','b_bujeok'] },
-  tongyeong: { name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3,
+  tongyeong: { name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
                bossGeneric: '수귀 대장', bossSkill: 'tide', captains: ['망령 수군장'], theme: 'coast',
                shop: ['w_heukgak','a_dujeong'] },
 };

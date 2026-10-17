@@ -348,7 +348,9 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .b-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
   padding: 24px var(--gut-r) max(12px, env(safe-area-inset-bottom, 0px)) var(--gut-l); background: linear-gradient(0deg, rgba(6,6,7,0.9), transparent); pointer-events: none; }
 .b-bottom > * { pointer-events: auto; }
-.b-orders { display: grid; grid-template-columns: repeat(2, auto); gap: 4px; }
+.b-orders { display: grid; grid-template-columns: repeat(3, auto); gap: 4px; }
+.troop-slide { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; font-size: 0.86rem; }
+.troop-slide input[type="range"] { width: 100%; accent-color: var(--gold); }
 .ord { background: rgba(20,19,16,0.9); border: 1px solid var(--line-2); border-radius: 3px; padding: 6px 10px; cursor: pointer; font-family: var(--f-display); font-size: 0.92rem; display: flex; gap: 6px; align-items: center; }
 .ord kbd { font-size: 0.7rem; padding: 0 4px; }
 .ord.on { border-color: var(--gold); color: var(--gold); background: rgba(40,32,14,0.9); }
@@ -431,7 +433,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   .b-forces .b-bar { width: 80px; }
   .b-btns { margin-left: 0; }
   .b-bottom { flex-direction: column-reverse; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
-  .b-orders { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .b-orders { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ord { justify-content: center; padding: 8px 2px; min-width: 0; }
   .ord kbd { display: none; }
   .b-heroes { flex: none; }

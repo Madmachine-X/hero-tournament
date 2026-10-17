@@ -354,7 +354,9 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .b-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
   padding: 24px var(--gut-r) max(12px, env(safe-area-inset-bottom, 0px)) var(--gut-l); background: linear-gradient(0deg, rgba(6,6,7,0.9), transparent); pointer-events: none; }
 .b-bottom > * { pointer-events: auto; }
-.b-orders { display: grid; grid-template-columns: repeat(2, auto); gap: 4px; }
+.b-orders { display: grid; grid-template-columns: repeat(3, auto); gap: 4px; }
+.troop-slide { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; font-size: 0.86rem; }
+.troop-slide input[type="range"] { width: 100%; accent-color: var(--gold); }
 .ord { background: rgba(20,19,16,0.9); border: 1px solid var(--line-2); border-radius: 3px; padding: 6px 10px; cursor: pointer; font-family: var(--f-display); font-size: 0.92rem; display: flex; gap: 6px; align-items: center; }
 .ord kbd { font-size: 0.7rem; padding: 0 4px; }
 .ord.on { border-color: var(--gold); color: var(--gold); background: rgba(40,32,14,0.9); }
@@ -437,7 +439,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   .b-forces .b-bar { width: 80px; }
   .b-btns { margin-left: 0; }
   .b-bottom { flex-direction: column-reverse; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
-  .b-orders { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .b-orders { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ord { justify-content: center; padding: 8px 2px; min-width: 0; }
   .ord kbd { display: none; }
   .b-heroes { flex: none; }
@@ -616,7 +618,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
     <div id="b-tip" hidden>
       <b>전투 안내</b>
       <span>땅을 누르면 이동, 적을 누르면 공격합니다. <kbd>WASD</kbd>로도 움직일 수 있습니다.</span>
-      <span><kbd>Q</kbd> 고유 기술 · <kbd>1</kbd>~<kbd>4</kbd> 부대 명령 · <kbd>Tab</kbd> 영웅 바꾸기</span>
+      <span><kbd>Q</kbd> 고유 기술 · <kbd>1</kbd>~<kbd>6</kbd> 부대 명령 · <kbd>Tab</kbd> 영웅 바꾸기</span>
       <span><kbd>F</kbd> 속도 1×·2×·3× · <kbd>R</kbd> 자동 전투 켜고 끄기 · <kbd>M</kbd> 소리</span>
       <span>영웅이 쓰러지면 부대 사기가 떨어집니다. 사기가 버티면 혼불 대장이 지휘를 잇고, 꺾이면 도망칩니다. (눌러서 닫기)</span>
     </div>
@@ -810,11 +812,10 @@ const COMMANDS = {
   loyal: { name: '선정', key: 'loyal', label: '민심', cost: { food: 40 }, desc: '곡식을 풀어 민심을 얻는다. 민심은 세금과 징병에 영향을 준다.', stat: '지력', when: 'day' },
   draft: { name: '징병', key: 'troops', label: '병력', cost: { goldPer: 1.5 }, desc: '혼불 병사를 모은다. 민심이 조금 떨어지고 훈련도가 묽어진다.', stat: '통솔', when: 'day' },
   train: { name: '훈련', key: 'train', label: '훈련', cost: { food: 20 }, desc: '병사를 조련한다. 훈련도가 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
-  move:  { name: '수송', key: 'troops', label: '병력', cost: {}, desc: '이웃한 아군 도시로 병력을 옮긴다.', stat: '', when: 'day' },
+  move:  { name: '병력 이동', key: null, label: '', cost: {}, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다.', stat: '', when: 'any' },
   rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '밤새 쉬며 체력을 모두 회복한다. 쉬지 않고 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
   scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '어둠을 틈타 주막과 장터를 돌며 소문을 모은다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다.', stat: '지력', when: 'night' },
-  search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 찾으면 이 도시에 합류한다.', stat: '지력', when: 'day' },
-  relocate: { name: '이동', key: null, label: '', cost: {}, desc: '영웅을 다른 아군 도시로 보낸다. 이웃은 1턴, 길이 멀수록 그 칸 수만큼 턴을 쓴다. 밤길에도 갈 수 있다.', stat: '', when: 'any' },
+  search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 찾으면 이 도시에 합류한다. 정원이 가득하면 다른 도시로 보내거나 해고·등용 취소를 해야 한다.', stat: '지력', when: 'day' },
 };
 
 /* 진형: 출진 전에 고른다 */
@@ -848,21 +849,21 @@ const HERO_GEAR = {
 
 /* 도시 (현재 지도 좌표) */
 const CITIES = {
-  seoul:     { name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1,
+  seoul:     { name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
                shop: ['w_hwando','w_bisu','w_jangchang','w_gakgung','w_deungpae','a_dopo','a_chalgap','r_ok','r_eun','n_hobak'] },
-  pyongyang: { name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5,
+  pyongyang: { name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
                boss: 'gaesomun', captains: ['고구려 망령장', '고구려 망령장'], theme: 'north',
                shop: ['w_woldo','w_heukgak','a_dujeong','n_hobal'] },
-  gangneung: { name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2,
+  gangneung: { name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
                bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장'], theme: 'mist',
                shop: ['r_honbul','b_bujeok'] },
-  jeonju:    { name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3,
+  jeonju:    { name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
                boss: 'gyeonhwon', captains: ['후백제 망령장'], theme: 'field',
                shop: ['w_ungeom','w_wonbang','b_norigae','r_honbul'] },
-  gyeongju:  { name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5,
+  gyeongju:  { name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
                boss: 'yusin', captains: ['신라 망령장', '화랑 망령'], theme: 'field',
                shop: ['w_hakuseon','a_suui','n_yeomju','b_bujeok'] },
-  tongyeong: { name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3,
+  tongyeong: { name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
                bossGeneric: '수귀 대장', bossSkill: 'tide', captains: ['망령 수군장'], theme: 'coast',
                shop: ['w_heukgak','a_dujeong'] },
 };
@@ -1007,6 +1008,38 @@ function cityHops(a, b) {
   return 99;
 }
 function travelers() { return G.roster.filter((h) => G.heroes[h].travel); }
+function cityCap(id) { return (CITIES[id] && CITIES[id].cap) || 9; }
+function cityPop(id) {
+  return G.roster.filter((h) => {
+    const hh = G.heroes[h];
+    if (hh.travel) return hh.travel.to === id;
+    return hh.city === id;
+  }).length;
+}
+function citiesOverCap() { return ownedCities().filter((c) => cityPop(c) > cityCap(c)); }
+function stationedOrInbound(id) {
+  return G.roster.filter((h) => {
+    const hh = G.heroes[h];
+    if (hh.travel) return hh.travel.to === id;
+    return hh.city === id;
+  });
+}
+function dismissHero(id, asCancel) {
+  if (id === 'hero' || !G.heroes[id]) return { ok: false, msg: '맹주는 해고할 수 없습니다.' };
+  const who = heroName(id);
+  const h = G.heroes[id];
+  const city = h.travel ? h.travel.from : h.city;
+  ['w1', 'w2', 'armor', 'acc0', 'acc1', 'acc2', 'acc3'].forEach((sl) => unequip(id, sl));
+  if (!asCancel && G.cities[city] && G.cities[city].owner === 'player') {
+    const drop = isOfficer(id) ? 8 : 14;
+    G.cities[city].loyal = Math.max(0, G.cities[city].loyal - drop);
+  }
+  G.roster = G.roster.filter((x) => x !== id);
+  delete G.heroes[id];
+  if (G.officers && G.officers[id]) { delete G.officers[id]; delete HEROES[id]; }
+  if (asCancel) return { ok: true, msg: `${who} 등용을 취소했습니다.` };
+  return { ok: true, msg: `${who}을(를) 해고했습니다.${city && CITIES[city] ? ` ${CITIES[city].name} 민심이 떨어졌습니다.` : ''}` };
+}
 function namedCount() { return G.roster.filter((h) => !isOfficer(h)).length; }
 
 function heroName(id) { return id === 'hero' ? G.name : HEROES[id].name; }
@@ -1231,19 +1264,56 @@ function doCommand(cmd, hid, cityId) {
 }
 
 function neighbors(id) { return ROADS.filter((r) => r.includes(id)).map((r) => (r[0] === id ? r[1] : r[0])); }
-function startRelocate(hid, dest) {
+function startRelocate(hid, dest, opts) {
   const h = G.heroes[hid];
   const from = h.city;
   const hops = Math.max(1, cityHops(from, dest));
+  if (!(opts && opts.skipCap) && cityPop(dest) >= cityCap(dest)) return { ok: false, hops, msg: `${CITIES[dest].name}은(는) 인재 정원이 가득합니다 (${cityPop(dest)}/${cityCap(dest)}).` };
   h.acted = true;
   markNightWork(hid);
   if (hops <= 1) {
     h.city = dest;
     h.travel = null;
-    return { hops, msg: `${heroName(hid)}이(가) ${CITIES[dest].name}(으)로 이동했습니다.` };
+    return { ok: true, hops, msg: `${heroName(hid)}이(가) ${CITIES[dest].name}(으)로 이동했습니다.` };
   }
   h.travel = { from, to: dest, left: hops };
-  return { hops, msg: `${heroName(hid)}이(가) ${CITIES[from].name}에서 ${CITIES[dest].name}(으)로 길을 떠났습니다. ${hops}턴 뒤에 도착합니다.` };
+  return { ok: true, hops, msg: `${heroName(hid)}이(가) ${CITIES[from].name}에서 ${CITIES[dest].name}(으)로 길을 떠났습니다. ${hops}턴 뒤에 도착합니다.` };
+}
+function transferTroops(from, dest, n) {
+  n = Math.max(0, Math.min(n | 0, G.cities[from].troops));
+  if (!n) return 0;
+  const S = G.cities[from], D = G.cities[dest];
+  S.troops -= n;
+  D.train = Math.round((D.train * D.troops + S.train * n) / Math.max(1, D.troops + n));
+  D.troops += n;
+  return n;
+}
+function executeMarch(from, dest, heroIds, troops) {
+  if (!from || !dest || from === dest) return { ok: false, msg: '다른 아군 도시를 고르세요.' };
+  if (!G.cities[dest] || G.cities[dest].owner !== 'player') return { ok: false, msg: '아군 도시로만 보낼 수 있습니다.' };
+  const adj = neighbors(from).includes(dest);
+  const ids = [...new Set(heroIds || [])].filter((h) => G.heroes[h] && G.heroes[h].city === from && !G.heroes[h].acted && !G.heroes[h].travel);
+  let n = Math.max(0, Math.min(troops | 0, G.cities[from].troops));
+  if (!adj) n = 0;
+  if (!ids.length && n <= 0) return { ok: false, msg: '보낼 장수나 병력을 고르세요.' };
+  if (ids.length && cityPop(dest) + ids.length > cityCap(dest)) return { ok: false, msg: `${CITIES[dest].name} 인재 정원이 부족합니다 (${cityPop(dest)}/${cityCap(dest)}).` };
+  let escort = null;
+  if (!ids.length && n) {
+    escort = freeIn(from)[0];
+    if (!escort) return { ok: false, msg: '병력을 보낼 장수가 없습니다.' };
+  }
+  const bits = [];
+  ids.forEach((h) => {
+    const r = startRelocate(h, dest, { skipCap: true });
+    if (r.ok) bits.push(heroName(h));
+  });
+  if (n) transferTroops(from, dest, n);
+  if (escort) { G.heroes[escort].acted = true; markNightWork(escort); }
+  const hops = Math.max(1, cityHops(from, dest));
+  const msg = `${CITIES[from].name} → ${CITIES[dest].name}` +
+    (bits.length ? ` · 장수 ${bits.join(', ')}${hops > 1 ? ` (${hops}턴)` : ''}` : '') +
+    (n ? ` · 병력 ${n}` : !adj && (troops | 0) > 0 ? ' · 병력은 이웃 도시로만 옮깁니다' : '');
+  return { ok: true, msg };
 }
 function tickTravel(wasNight) {
   const arrived = [];
@@ -2020,10 +2090,12 @@ const Battle = (() => {
   let uid = 0;
   const hud = { cards: [] };
   const ORDERS = [
-    { id: 'follow', name: '따라와', key: '1' },
+    { id: 'form', name: '진형 유지 이동', key: '1' },
     { id: 'charge', name: '돌격', key: '2' },
-    { id: 'hold', name: '대기', key: '3' },
-    { id: 'retreat', name: '후퇴', key: '4' },
+    { id: 'follow', name: '따라와', key: '3' },
+    { id: 'skirmish', name: '각개전투', key: '4' },
+    { id: 'hold', name: '대기', key: '5' },
+    { id: 'retreat', name: '후퇴', key: '6' },
   ];
   const FONT_GLYPH = '"Noto Serif KR", "Song Myung", serif';
   const FONT_BRUSH = '"Nanum Brush Script", "Song Myung", serif';
@@ -2123,7 +2195,7 @@ const Battle = (() => {
     uid = 0;
     B = {
       cfg, t: 0, units: [], proj: [], fx: [], parts: [], texts: [], timers: [], over: false,
-      order: 'follow', ctrl: null, cam: { x: 560, y: H / 2 }, shake: 0, slowT: 0, moveTo: null, attackTarget: null,
+      order: 'form', ctrl: null, cam: { x: 560, y: H / 2 }, shake: 0, slowT: 0, moveTo: null, attackTarget: null,
       ground: makeGround(cfg.theme || 'field', cfg.seed || 1), mist: [], lost: 0, kills: 0, exp: {}, captured: [],
       holdPos: {}, checkT: 0.5, paused: false, autoCtrl: prefs.auto, speed: prefs.speed, routing: false, flash: 0, darken: 0, phase: G.phase,
     };
@@ -2235,6 +2307,7 @@ const Battle = (() => {
       }
     });
     B.ctrl = pHeroes[0] || B.units.find((u) => u.team === 0 && u.captain) || null;
+    captureAllyForm();
     const bannerText = cfg.type === 'defend' ? '수성!' : cfg.type === 'duel' ? '결투!' : '출진!';
     B.fx.push({ t: 0, dur: 1.5, layer: 'screen', draw(c, f) {
       const k = f.t / f.dur;
@@ -2501,6 +2574,23 @@ const Battle = (() => {
   }
 
   const FORM = Array.from({ length: 12 }, (_, i) => { const row = Math.floor(i / 3), col = i % 3; return [-70 - row * 60, (col - 1) * 78 + (row % 2) * 24]; });
+  function captureAllyForm() {
+    const hs = B.units.filter((u) => u.team === 0 && (u.kind === 'hero' || u.captain) && u.alive);
+    if (!hs.length) { B.formCx = 380; B.formCy = H / 2; return; }
+    const cx = hs.reduce((a, u) => a + u.x, 0) / hs.length;
+    const cy = hs.reduce((a, u) => a + u.y, 0) / hs.length;
+    B.formCx = cx; B.formCy = cy;
+    hs.forEach((u) => { u.formHx = u.x - cx; u.formHy = u.y - cy; });
+  }
+  function formOrigin() {
+    const c = B.ctrl && B.ctrl.alive ? B.ctrl : null;
+    if (c && !B.autoCtrl) return { x: c.x - (c.formHx || 0), y: c.y - (c.formHy || 0) };
+    if (B.moveTo) return { x: B.moveTo.x, y: B.moveTo.y };
+    const lead = c || B.units.find((u) => u.team === 0 && (u.kind === 'hero' || u.captain) && u.alive);
+    const t = lead ? nearestFoe(lead, 99999) : null;
+    if (t) return { x: t.x - 260, y: B.formCy != null ? B.formCy : H / 2 };
+    return { x: B.formCx != null ? B.formCx : 380, y: B.formCy != null ? B.formCy : H / 2 };
+  }
   function allyThink(u) {
     const o = u === B.ctrl && B.order === 'follow' ? 'charge' : B.order;
     if (o === 'retreat') {
@@ -2515,12 +2605,20 @@ const Battle = (() => {
       if (t) engage(u, t); else moveTo(u, hp.x, hp.y);
       return;
     }
-    if (o === 'charge' || !B.ctrl || !B.ctrl.alive) {
-      const t = nearestFoe(u, 99999);
-      if (t) { if (dist(u, t) > 260) marchTo(u, t.x, t.y); else engage(u, t); } else stopU(u);
+    if (o === 'form') {
+      const origin = formOrigin();
+      const ax = origin.x + (u.formHx || 0), ay = origin.y + (u.formHy || 0);
+      const t = nearestFoe(u, Math.max(u.range + 40, 120));
+      if (t && dist(u, t) < u.range + 28) engage(u, t);
+      else if (Math.hypot(ax - u.x, ay - u.y) > 18) marchTo(u, ax, ay);
+      else stopU(u);
       return;
     }
-    // 따라와
+    if (o === 'skirmish' || o === 'charge' || !B.ctrl || !B.ctrl.alive) {
+      const t = nearestFoe(u, 99999);
+      if (t) { if (dist(u, t) > (o === 'skirmish' ? 90 : 260)) marchTo(u, t.x, t.y); else engage(u, t); } else stopU(u);
+      return;
+    }
     const c = B.ctrl;
     const idx = B.units.filter((x) => x.team === 0 && x.kind === 'hero' && x !== c && x.alive).indexOf(u);
     const f = FORM[Math.max(0, idx) % FORM.length];
@@ -2558,6 +2656,10 @@ const Battle = (() => {
     if (u.tgt && u.tgt.alive && !u.tgt.rout && u.retT > 0) { engage(u, u.tgt); return; }
     u.retT = 0.3 + Math.random() * 0.2;
     u.tgt = null;
+    if (u.team === 0 && (ord === 'charge' || ord === 'skirmish')) {
+      const chase = nearestFoe(u, 99999);
+      if (chase) { u.tgt = chase; engage(u, chase); return; }
+    }
     let t = nearestFoe(u, u.ranged ? u.range + 20 : 85);
     // 지휘관 곁을 크게 벗어나지 않는다 (궁수는 사거리 안에서)
     if (!t && lok) t = nearestFoe(u, ord === 'hold' ? 120 : u.ranged ? u.range + 40 : 170, L);
@@ -3936,7 +4038,7 @@ const Battle = (() => {
     else if (code === 'KeyF') { B.speed = B.speed >= 3 ? 1 : B.speed + 1; prefs.speed = B.speed; syncButtons(); }
     else if (code === 'KeyM') { Sfx.toggle(); syncButtons(); }
     else if (code === 'KeyR') { B.autoCtrl = !B.autoCtrl; prefs.auto = B.autoCtrl; syncButtons(); }
-    else if (/^Digit[1-4]$/.test(code)) setOrder(ORDERS[+code.slice(5) - 1].id);
+    else if (/^Digit[1-6]$/.test(code)) setOrder(ORDERS[+code.slice(5) - 1].id);
   }
 
   function onPointer(e) {
@@ -3971,6 +4073,7 @@ const Battle = (() => {
     if (!B) return;
     B.order = o;
     B.holdPos = {};
+    if (o === 'form') captureAllyForm();
     $$('#b-orders .ord').forEach((b) => b.classList.toggle('on', b.dataset.ord === o));
     const name = ORDERS.find((x) => x.id === o).name;
     if (B.ctrl) floatText(B.ctrl.x, B.ctrl.y - 46, name + '!', '#e8c050', 26, true);
@@ -4441,7 +4544,7 @@ const MapView = (() => {
 'use strict';
 /* ===== 화면 흐름, 전략 UI, 영웅/장비/상점 ===== */
 const UI = {
-  tab: 'info', sel: null, heroView: null, equipSlot: null, cmd: null, cmdHero: null,
+  tab: 'info', sel: null, heroView: null, equipSlot: null, cmd: null, cmdHero: null, cmdParty: null, cmdTroops: null,
   formation: (() => { try { return localStorage.getItem('chyw-form') || 'eorin'; } catch (e) { return 'eorin'; } })(),
   forms: (() => { try { return JSON.parse(localStorage.getItem('chyw-hero-forms') || '{}') || {}; } catch (e) { return {}; } })(),
 };
@@ -4531,7 +4634,7 @@ function renderPanel() {
   renderCmdRail();
 }
 function renderAll() { renderTop(); renderPanel(); MapView.redrawRegions(); }
-const CMD_GLYPH = { agri: "農", comm: "商", wall: "城", loyal: "仁", draft: "兵", train: "鍊", search: "才", move: "運", relocate: "遷", rest: "息", scout: "聞" };
+const CMD_GLYPH = { agri: "農", comm: "商", wall: "城", loyal: "仁", draft: "兵", train: "鍊", search: "才", move: "移", rest: "息", scout: "聞" };
 function renderCmdRail() {
   const rail = $("#cmdrail");
   if (!rail) return;
@@ -4552,7 +4655,7 @@ function renderCmdRail() {
   if (seal) { seal.textContent = f.glyph; seal.style.setProperty("--c", f.color); }
   if (cityEl) cityEl.textContent = CITIES[sel].name + (mine ? "" : " · " + f.name);
   if (mine) {
-    const cmds = isNight() ? ["rest", "scout", "relocate"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "move", "relocate"];
+    const cmds = isNight() ? ["rest", "scout", "move"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "move"];
     if (noteEl) noteEl.textContent = isNight() ? "야간 · 휴식 · 소문 · 기습" : ("내정 · 이 도시 장수에게 맡깁니다 · 행동 가능 " + freeIn(sel).length + "명");
     let html = cmds.map(function(k) {
       const on = UI.cmd === k ? ' on' : '';
@@ -4564,6 +4667,7 @@ function renderCmdRail() {
     if (btns) { btns.className = "cmds" + (isNight() ? " night" : ""); btns.innerHTML = html; }
     if (picker) picker.innerHTML = UI.cmd ? commandPicker(sel) : "";
     placeCmdPicker();
+    bindMarchPicker();
   } else {
     const adj = adjacentToPlayer(sel);
     const free = neighbors(sel).filter(function(n) { return G.cities[n].owner === "player"; }).reduce(function(a, n) { return a + freeIn(n).length; }, 0);
@@ -4592,13 +4696,22 @@ function placeCmdPicker() {
   left = Math.max(0, Math.min(left, Math.max(0, avail - box.offsetWidth)));
   box.style.marginLeft = Math.round(left) + "px";
 }
+function bindMarchPicker() {
+  const r = $('#cmdrail-picker [data-troops]');
+  if (!r) return;
+  r.addEventListener('input', () => {
+    UI.cmdTroops = +r.value;
+    const n = $('#cmdrail-picker [data-troopn]');
+    if (n) n.textContent = r.value;
+  });
+}
 
 function overview() {
   const owned = ownedCities().length;
   const rows = Object.keys(CITIES).map((id) => {
     const st = G.cities[id], f = FACTIONS[st.owner];
     const here = st.owner === 'player' ? heroesIn(id).length : 0;
-    return `<button class="row" data-city="${id}"><span class="chip" style="--c:${f.color}">${f.glyph}</span><span class="row-main">${CITIES[id].name}</span><span class="row-sub">${st.owner === 'player' ? `아군 · 장수 ${here}${here < 2 ? ' ⚠' : ''}${st.auto ? ' · 위임' : ''}` : f.name} · 병력 ${st.troops}</span></button>`;
+    return `<button class="row" data-city="${id}"><span class="chip" style="--c:${f.color}">${f.glyph}</span><span class="row-main">${CITIES[id].name}</span><span class="row-sub">${st.owner === 'player' ? `아군 · 장수 ${cityPop(id)}/${cityCap(id)}${here < 2 ? ' ⚠' : ''}${st.auto ? ' · 위임' : ''}` : f.name} · 병력 ${st.troops}</span></button>`;
   }).join('');
   const gIn = ownedCities().reduce((a, c) => a + cityGold(c), 0), fIn = ownedCities().reduce((a, c) => a + cityFood(c), 0);
   return `<div class="card">
@@ -4610,7 +4723,7 @@ function overview() {
   </div>
   ${phaseCard()}
   <div class="list">${rows}</div>
-  <p class="hint">영웅은 머무는 도시에서만 일합니다. 도시마다 2~3명을 두고, 모자라면 인재 탐색이나 이동으로 채우세요. ⚠ 표시는 장수가 2명보다 적은 도시입니다.</p>`;
+  <p class="hint">영웅은 머무는 도시에서만 일합니다. 도시마다 인재 정원이 있고, 2~3명은 두는 것이 좋습니다. 모자라면 인재 탐색이나 이동으로 채우세요. ⚠ 표시는 장수가 2명보다 적은 도시입니다.</p>`;
 }
 
 function statBar(label, v, max = 100) {
@@ -4622,14 +4735,14 @@ function cityCard(id) {
   const mine = st.owner === 'player';
   let body = '';
   if (mine) {
-    const cmds = isNight() ? ['rest', 'scout', 'relocate'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'move', 'relocate'];
+    const cmds = isNight() ? ['rest', 'scout', 'move'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'move'];
     const here = heroesIn(id);
     body = `<div class="sbars">${statBar('농업', st.agri)}${statBar('상업', st.comm)}${statBar('성벽', st.wall)}${statBar('민심', st.loyal)}${statBar('훈련', st.train)}</div>
       <dl class="kv small">
         <div><dt>병력</dt><dd>${st.troops} / 400</dd></div>
         <div><dt>매일 아침</dt><dd>금 +${cityGold(id)} · 군량 +${cityFood(id)}</dd></div>
       </dl>
-      <p class="label">주둔 장수 <span class="muted small">${here.length}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}</span></p>
+      <p class="label">주둔 장수 <span class="muted small">${cityPop(id)} / ${cityCap(id)}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}${cityPop(id) > cityCap(id) ? ' · 정원 초과' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${G.heroes[h].tired ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${G.heroes[h].tired ? ' · 피로' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${G.heroes[h].tired ? ' · 피로' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
       <p class="hint">내정·장터·위임은 위쪽 명령 막대에서 고릅니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
@@ -4661,20 +4774,27 @@ function cityCard(id) {
 function commandPicker(cityId) {
   const cmd = UI.cmd, meta = COMMANDS[cmd], st = G.cities[cityId];
   const free = freeIn(cityId);
-  if (cmd === 'relocate' && UI.cmdHero) {
+  if (cmd === 'move') {
+    if (!UI.cmdParty) UI.cmdParty = new Set();
+    if (UI.cmdTroops == null) UI.cmdTroops = Math.floor(st.troops / 2);
+    UI.cmdTroops = Math.max(0, Math.min(UI.cmdTroops | 0, st.troops));
     const dests = ownedCities().filter((d) => d !== cityId);
-    return `<div class="picker"><p class="label">${esc(heroName(UI.cmdHero))}을(를) 어디로 보낼까요? 길이 멀수록 턴을 더 씁니다.</p>
-      ${dests.length ? dests.map((d) => { const hops = Math.max(1, cityHops(cityId, d)); return `<div class="move-row"><b>${CITIES[d].name}</b><span class="muted small">장수 ${heroesIn(d).length}명 · ${hops}턴</span><button class="btn sm" data-reloc="${d}">${hops === 1 ? '보내기' : hops + '턴'}</button></div>`; }).join('') : '<p class="muted small">다른 아군 도시가 없습니다.</p>'}
-      <button class="btn ghost sm" data-act="cmdcancel">취소</button></div>`;
-  }
-  if (cmd === 'move' && UI.cmdHero) {
-    const dests = neighbors(cityId).filter((n) => G.cities[n].owner === 'player');
-    const half = Math.floor(st.troops / 2);
-    return `<div class="picker"><p class="label">${esc(heroName(UI.cmdHero))}이(가) 병력을 옮깁니다</p>
-      ${dests.length ? dests.map((d) => `<div class="move-row"><b>${CITIES[d].name}</b><span class="muted small">병력 ${G.cities[d].troops}</span>
-        <button class="btn sm" data-move="${d}" data-n="50" ${st.troops >= 50 ? '' : 'disabled'}>50</button>
-        <button class="btn sm" data-move="${d}" data-n="${half}" ${half > 0 ? '' : 'disabled'}>절반 ${half}</button>
-        <button class="btn sm" data-move="${d}" data-n="${st.troops}" ${st.troops > 0 ? '' : 'disabled'}>전부</button></div>`).join('') : '<p class="muted small">이웃한 아군 도시가 없습니다.</p>'}
+    const going = UI.cmdParty.size;
+    const heroBtns = free.map((h) => `<button class="pick-hero cmdpick${UI.cmdParty.has(h) ? ' on' : ''}" data-marchh="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">함께 보냄</span></span><em class="gold">${UI.cmdParty.has(h) ? '선택' : '대기'}</em></button>`).join('');
+    return `<div class="picker"><p class="label">병력 이동 <span class="muted small">${meta.desc}</span></p>
+      <p class="muted small">장수는 여러 명 고를 수 있습니다. 병력은 이웃 도시로만 옮기며, 기본값은 절반입니다.</p>
+      ${heroBtns || '<p class="muted small">이 도시에 이번 턴 떠날 수 있는 장수가 없습니다.</p>'}
+      <label class="troop-slide"><span>병력 <b data-troopn>${UI.cmdTroops}</b> / ${st.troops} <span class="muted small">기본 절반 ${Math.floor(st.troops / 2)}</span></span>
+        <input type="range" min="0" max="${st.troops}" step="1" value="${UI.cmdTroops}" data-troops ${st.troops ? '' : 'disabled'}></label>
+      ${dests.length ? dests.map((d) => {
+        const hops = Math.max(1, cityHops(cityId, d));
+        const adj = neighbors(cityId).includes(d);
+        const room = cityCap(d) - cityPop(d);
+        const full = going > 0 && going > room;
+        const can = (going > 0 && !full) || (UI.cmdTroops > 0 && adj);
+        return `<div class="move-row"><b>${CITIES[d].name}</b><span class="muted small">${cityPop(d)}/${cityCap(d)} · ${hops}턴${adj ? ' · 병력 가능' : ''}</span>
+          <button class="btn sm" data-march="${d}" ${can ? '' : 'disabled'}>${full ? '정원' : '보내기'}</button></div>`;
+      }).join('') : '<p class="muted small">다른 아군 도시가 없습니다.</p>'}
       <button class="btn ghost sm" data-act="cmdcancel">취소</button></div>`;
   }
   const rows = free.map((h) => {
@@ -4682,7 +4802,7 @@ function commandPicker(cityId) {
     let eff = '', cost = { gold: 0, food: 0 };
     if (cmd === 'rest') eff = `체력 ${Math.round(G.heroes[h].hp * 100)}% → 100% · 피로 없음`;
     else if (cmd === 'scout') eff = '소문 듣기';
-    else if (cmd === 'move' || cmd === 'relocate') eff = '';
+    else if (cmd === 'move') eff = '';
     else if (cmd === 'search') { cost = commandCost(cmd, h, cityId); eff = `발견 확률 ${commandGain(cmd, h, cityId)}%`; }
     else {
       const g = commandGain(cmd, h, cityId);
@@ -4698,6 +4818,60 @@ function commandPicker(cityId) {
     ${rows.length ? rows.map((r) => `<button class="pick-hero cmdpick" data-doer="${r.h}" ${r.ok ? '' : 'disabled'}>${medallion(r.h)}<span><b>${esc(heroName(r.h))}</b><span class="muted small">${r.key ? `${meta.stat} ${r.key} · ` : ''}${r.costTxt || '비용 없음'}</span></span><em class="gold">${r.eff}</em></button>`).join('')
       : '<p class="muted small">이 도시에 이번 턴 행동할 수 있는 장수가 없습니다.</p>'}
     <button class="btn ghost sm" data-act="cmdcancel">닫기</button></div>`;
+}
+
+function promptCapIfNeeded(freshId) {
+  const over = citiesOverCap();
+  if (!over.length) { renderAll(); saveGame(); return; }
+  const city = over[0];
+  const here = stationedOrInbound(city);
+  const fresh = freshId && here.includes(freshId) ? freshId : null;
+  EventQ.push(() => showCapModal(city, fresh));
+}
+function showCapModal(cityId, freshId) {
+  const draw = () => {
+    const pop = cityPop(cityId), cap = cityCap(cityId);
+    if (pop <= cap) { closeModal(); promptCapIfNeeded(freshId); return; }
+    const here = stationedOrInbound(cityId);
+    const rooms = ownedCities().filter((d) => d !== cityId && cityPop(d) < cityCap(d));
+    const rows = here.map((hid) => {
+      const hh = G.heroes[hid];
+      const isFresh = hid === freshId;
+      const fireBtn = hid === 'hero' ? '' : `<button class="btn sm" data-capfire="${hid}">해고</button>`;
+      const cancelBtn = isFresh && hid !== 'hero' ? `<button class="btn ghost sm" data-capcancel="${hid}">등용 취소</button>` : '';
+      const send = rooms.map((d) => `<button class="btn sm" data-caph="${hid}" data-capto="${d}">${CITIES[d].name}</button>`).join('');
+      return `<div class="move-row">${medallion(hid, 'sm')}<b>${esc(heroName(hid))}</b><span class="muted small">Lv ${hh.level}${isFresh ? ' · 새로 합류' : ''}${hh.travel ? ' · 오는 길' : ''}</span>${send || '<span class="muted small">보낼 도시 없음</span>'}${cancelBtn}${fireBtn}</div>`;
+    }).join('');
+    openModal(`<div class="modal-head warn"><h3 class="h-display">${CITIES[cityId].name} 인재 정원</h3></div>
+      <p>${CITIES[cityId].name}은(는) ${cap}명까지 둘 수 있습니다. 지금은 ${pop}명입니다. 다른 도시로 보내거나, 해고하거나, 방금 등용한 인재의 등용을 취소하세요. 해고하면 민심이 떨어집니다.</p>
+      ${rows}
+      <p class="muted small">맹주는 해고할 수 없습니다. 정원을 맞출 때까지 창을 닫을 수 없습니다.</p>`, (card) => {
+      card.onclick = (e) => {
+        const b = e.target.closest('button');
+        if (!b || b.disabled) return;
+        if (b.dataset.capto) {
+          const hid = b.dataset.caph, dest = b.dataset.capto;
+          if (!G.heroes[hid] || cityPop(dest) >= cityCap(dest)) return;
+          const hh = G.heroes[hid];
+          if (hh.travel) hh.travel.to = dest; else { hh.city = dest; hh.travel = null; }
+          toast(`${heroName(hid)}을(를) ${CITIES[dest].name}(으)로 보냈습니다.`);
+          logEvent(`${heroName(hid)} ${CITIES[cityId].name} → ${CITIES[dest].name} (정원)`);
+          saveGame(); draw(); return;
+        }
+        if (b.dataset.capfire) {
+          const r = dismissHero(b.dataset.capfire, false);
+          toast(r.msg, 'warn'); if (r.ok) logEvent(r.msg);
+          saveGame(); draw(); return;
+        }
+        if (b.dataset.capcancel) {
+          const r = dismissHero(b.dataset.capcancel, true);
+          toast(r.msg); if (r.ok) logEvent(r.msg);
+          saveGame(); draw();
+        }
+      };
+    });
+  };
+  draw();
 }
 
 function placeCard(id) {
@@ -4842,35 +5016,36 @@ function onPanelClick(e) {
   const id = UI.sel && UI.sel.id;
   if (b.dataset.auto) { const c = G.cities[b.dataset.auto]; c.auto = !c.auto; toast(c.auto ? `${CITIES[b.dataset.auto].name}을(를) 위임했습니다. 턴이 끝날 때 남은 장수가 내정합니다.` : '위임을 풀었습니다.'); saveGame(); renderAll(); return; }
   if (b.dataset.heroGo) { UI.tab = 'heroes'; UI.heroView = b.dataset.heroGo; UI.equipSlot = null; renderPanel(); return; }
-  if (b.dataset.reloc) {
-    const r = startRelocate(UI.cmdHero, b.dataset.reloc);
-    toast(r.msg); logEvent(r.msg);
-    UI.cmd = null; UI.cmdHero = null; saveGame(); renderAll(); return;
+  if (b.dataset.cmd) {
+    const next = UI.cmd === b.dataset.cmd ? null : b.dataset.cmd;
+    UI.cmd = next; UI.cmdHero = null; UI.cmdParty = new Set();
+    UI.cmdTroops = next === 'move' && id ? Math.floor(G.cities[id].troops / 2) : null;
+    renderPanel(); return;
   }
-  if (b.dataset.cmd) { UI.cmd = UI.cmd === b.dataset.cmd ? null : b.dataset.cmd; UI.cmdHero = null; renderPanel(); return; }
+  if (b.dataset.marchh) {
+    if (!UI.cmdParty) UI.cmdParty = new Set();
+    const h = b.dataset.marchh;
+    if (UI.cmdParty.has(h)) UI.cmdParty.delete(h); else UI.cmdParty.add(h);
+    renderCmdRail(); return;
+  }
+  if (b.dataset.march) {
+    const r = executeMarch(id, b.dataset.march, [...(UI.cmdParty || [])], UI.cmdTroops | 0);
+    toast(r.msg, r.ok ? '' : 'warn');
+    if (r.ok) { logEvent(r.msg); UI.cmd = null; UI.cmdHero = null; UI.cmdParty = new Set(); UI.cmdTroops = null; saveGame(); renderAll(); }
+    return;
+  }
   if (b.dataset.doer) {
-    const h = b.dataset.doer;
-    if (UI.cmd === 'move' || UI.cmd === 'relocate') { UI.cmdHero = h; renderPanel(); return; }
-    const r = doCommand(UI.cmd, h, id);
+    const r = doCommand(UI.cmd, b.dataset.doer, id);
     toast(r.msg, r.ok ? (r.found ? 'gold' : '') : 'warn');
     if (r.ok) { logEvent(r.msg); saveGame(); }
-    renderAll(); return;
-  }
-  if (b.dataset.move) {
-    const n = Math.min(+b.dataset.n, G.cities[id].troops);
-    G.cities[id].troops -= n;
-    const d = G.cities[b.dataset.move];
-    d.train = Math.round((d.train * d.troops + G.cities[id].train * n) / Math.max(1, d.troops + n));
-    d.troops += n;
-    G.heroes[UI.cmdHero].acted = true; markNightWork(UI.cmdHero);
-    const msg = `${heroName(UI.cmdHero)}이(가) 병력 ${n}을 ${CITIES[b.dataset.move].name}(으)로 옮겼습니다.`;
-    toast(msg); logEvent(msg);
-    UI.cmd = null; UI.cmdHero = null; saveGame(); renderAll(); return;
+    renderAll();
+    if (r.found) promptCapIfNeeded(r.found);
+    return;
   }
   const act = b.dataset.act;
   if (!act) return;
   if (act === 'desel') { UI.sel = null; UI.cmd = null; MapView.setSel(null); renderPanel(); }
-  else if (act === 'cmdcancel') { UI.cmd = null; UI.cmdHero = null; renderPanel(); }
+  else if (act === 'cmdcancel') { UI.cmd = null; UI.cmdHero = null; UI.cmdParty = new Set(); UI.cmdTroops = null; renderPanel(); }
   else if (act === 'heroback') { UI.heroView = null; UI.equipSlot = null; renderPanel(); }
   else if (act === 'unequip') { unequip(UI.heroView, UI.equipSlot); UI.equipSlot = null; saveGame(); renderPanel(); }
   else if (act === 'shop') openShop();
@@ -5081,11 +5256,12 @@ function chooseGarrison(cityId, srcId, party, done) {
   const stay = new Set(party.slice(0, Math.min(3, Math.max(2, Math.ceil(party.length / 2)))));
   const draw = () => {
     const back = party.length - stay.size, srcLeft = heroesIn(srcId).filter((h) => !party.includes(h)).length + back;
+    const overStay = stay.size > cityCap(cityId), overSrc = srcLeft > cityCap(srcId);
     openModal(`<div class="modal-head"><h3 class="h-display">${CITIES[cityId].name} 주둔 장수</h3></div>
-      <p class="muted">새 도시를 다스릴 장수를 고르세요. 고르지 않은 장수는 ${CITIES[srcId].name}(으)로 돌아갑니다. 도시마다 2~3명이 있어야 내정이 돌아갑니다.</p>
+      <p class="muted">새 도시를 다스릴 장수를 고르세요. 고르지 않은 장수는 ${CITIES[srcId].name}(으)로 돌아갑니다. 정원은 ${CITIES[cityId].name} ${cityCap(cityId)}명, ${CITIES[srcId].name} ${cityCap(srcId)}명입니다.</p>
       <div class="party">${party.map((h) => { const s = computeStats(h); return `<button class="pick-hero ${stay.has(h) ? 'on' : ''}" data-g="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 무 ${s.str} · 통 ${s.lea} · 지 ${s.int}</span></span><em class="small ${stay.has(h) ? 'gold' : 'muted'}">${stay.has(h) ? '주둔' : '귀환'}</em></button>`; }).join('')}</div>
-      <p class="muted small">${CITIES[cityId].name} ${stay.size}명 · ${CITIES[srcId].name} ${srcLeft}명${stay.size < 2 || srcLeft < 2 ? ' <span style="color:#f0b45a">· 2명 미만인 도시는 내정이 느려집니다</span>' : ''}</p>
-      <div class="actions"><button class="btn primary" data-gok ${stay.size ? '' : 'disabled'}>정하기</button></div>`, (card) => {
+      <p class="muted small">${CITIES[cityId].name} ${stay.size}/${cityCap(cityId)} · ${CITIES[srcId].name} ${srcLeft}/${cityCap(srcId)}${stay.size < 2 || srcLeft < 2 ? ' <span style="color:#f0b45a">· 2명 미만인 도시는 내정이 느려집니다</span>' : ''}${overStay || overSrc ? ' <span style="color:#f08b72">· 정원을 넘었습니다</span>' : ''}</p>
+      <div class="actions"><button class="btn primary" data-gok ${stay.size && !overStay && !overSrc ? '' : 'disabled'}>정하기</button></div>`, (card) => {
       card.onclick = (e) => {
         const b = e.target.closest('button'); if (!b || b.disabled) return;
         if (b.dataset.g) { const h = b.dataset.g; if (stay.has(h)) stay.delete(h); else stay.add(h); draw(); return; }
@@ -5131,7 +5307,7 @@ function captureCity(cityId, res) {
     if (reveal.length) setTimeout(() => toast(`새 소문: ${reveal.map((p) => PLACES[p].name).join(', ')}`, 'violet'), 700);
     n();
   });
-  const run = () => { const f = seq.shift(); if (f) f(run); else { renderAll(); saveGame(); if (ownedCities().length === 6) setTimeout(finale, 900); } };
+  const run = () => { const f = seq.shift(); if (f) f(run); else { renderAll(); saveGame(); promptCapIfNeeded(turn); if (ownedCities().length === 6) setTimeout(finale, 900); } };
   setTimeout(run, 1200);
 }
 
@@ -5198,7 +5374,7 @@ function finishEvent(evId) {
   const isHero = /합류/.test(msg);
   EventQ.push(() => openModal(`<div class="reward">${isHero ? medallion(newHero, 'xl') : '<span class="seal big gold">寶</span>'}
     <p class="reward-msg">${esc(msg)}</p><button class="btn primary" data-close>확인</button></div>`,
-    (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; }, 'narrow'));
+    (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) { closeModal(); if (isHero) promptCapIfNeeded(newHero); } }; }, 'narrow'));
 }
 
 /* ---------- 턴 ---------- */
@@ -5235,11 +5411,12 @@ function endTurn() {
     });
   }
   G.roster.forEach((h) => { G.heroes[h].hp = Math.min(1, G.heroes[h].hp + 0.1); G.heroes[h].acted = !!G.heroes[h].travel; });
-  UI.cmd = null; UI.cmdHero = null;
+  UI.cmd = null; UI.cmdHero = null; UI.cmdParty = new Set(); UI.cmdTroops = null;
   renderAll(); saveGame();
   const tiredN = G.roster.filter((id) => G.heroes[id].tired).length;
   toast(`${G.day}일차 ${phaseName()}${extra}${isNight() ? ' · 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다' : ''}${wasNight && tiredN ? ` · 피로 ${tiredN}명 (능력치 -20%)` : ''}`);
   if (arrived.length) setTimeout(() => toast(arrived.map((id) => `${heroName(id)} ${CITIES[G.heroes[id].city].name} 도착`).join(' · '), 'gold'), 450);
+  if (arrived.length) promptCapIfNeeded();
   maybeEnemyAttack();
   if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; marketNotice(); }
 }
@@ -5346,6 +5523,7 @@ function loseCity(tgt, src, occupy = 30) {
   logEvent(`${CITIES[tgt].name}을(를) 빼앗겼다.`);
   toast(`${CITIES[tgt].name}을(를) 빼앗겼습니다.${back ? ` 남은 병사는 ${CITIES[back].name}(으)로 물러났습니다.` : ''}`, 'warn');
   renderAll(); saveGame();
+  promptCapIfNeeded();
   if (!ownedCities().length) {
     openModal(`<div class="reward"><span class="seal big">亡</span><p class="reward-msg">모든 도시를 잃었다. 혼은 다시 황천 나루로 돌아간다.</p>
       <button class="btn primary" data-restart>처음부터</button></div>`, (card) => { card.onclick = (e) => { if (e.target.closest('[data-restart]')) { closeModal(); clearSave(); startNew(); } }; }, 'narrow');
@@ -5446,17 +5624,18 @@ function howTo() {
       <ul><li><kbd>클릭</kbd> 땅을 누르면 이동, 적을 누르면 공격, 아군 영웅을 누르면 그 영웅을 조종</li>
       <li><kbd>W A S D</kbd> 또는 방향키로 직접 이동</li>
       <li><kbd>Q</kbd> 고유 기술 · <kbd>E</kbd> 숨겨진 특수기 (고유 무기 장착 시)</li>
-      <li><kbd>1</kbd> 따라와 · <kbd>2</kbd> 돌격 · <kbd>3</kbd> 대기 · <kbd>4</kbd> 후퇴</li>
+      <li><kbd>1</kbd> 진형 유지 이동 · <kbd>2</kbd> 돌격 · <kbd>3</kbd> 따라와 · <kbd>4</kbd> 각개전투 · <kbd>5</kbd> 대기 · <kbd>6</kbd> 후퇴</li>
       <li><kbd>Tab</kbd> 조종할 영웅 바꾸기 · <kbd>Space</kbd> 일시정지</li>
       <li><kbd>F</kbd> 속도 1×·2×·3× · <kbd>R</kbd> 자동 전투 (화면 위 버튼으로도 가능)</li></ul>
       <p class="muted small">조종하지 않는 영웅은 부대 명령을 따르며 기술을 알아서 씁니다. 화면 아래 영웅 카드의 버튼으로도 기술을 쓸 수 있습니다.</p>
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다.</li>
-      <li>오전·오후: 개간·상업·성벽·선정·징병·훈련·인재 탐색·수송 같은 내정과 출병, 장터.</li>
-      <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음), 소문 탐색, 야간 기습(초반 5초 허둥, 적 사기 -8, 성벽 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
+      <li>오전·오후: 개간·상업·성벽·선정·징병·훈련·인재 탐색·병력 이동 같은 내정과 출병, 장터.</li>
+      <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음), 소문 탐색, 병력 이동, 야간 기습(초반 5초 허둥, 적 사기 -8, 성벽 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
       <li>매일 아침 상업에서 금, 농업에서 군량이 들어오고 병사들이 군량을 먹습니다. 출병에는 병사당 군량 0.5가 듭니다.</li>
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
+      <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
       <li>숨겨진 장소는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,
   (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; });
@@ -5467,7 +5646,7 @@ function boot() {
   Dialog.init();
   Battle.init();
   MapView.init((h) => {
-    if (!h || !UI.sel || h.id !== UI.sel.id) { UI.cmd = null; UI.cmdHero = null; }
+    if (!h || !UI.sel || h.id !== UI.sel.id) { UI.cmd = null; UI.cmdHero = null; UI.cmdParty = new Set(); UI.cmdTroops = null; }
     UI.sel = h; UI.tab = 'info';
     renderPanel();
     if (h && window.innerWidth < 860) $('#panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
