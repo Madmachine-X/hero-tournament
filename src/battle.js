@@ -944,22 +944,30 @@ const Battle = (() => {
     } });
   }
   function glyphFx(x, y, g, color, size, dur, rise = 30) {
+    const fxName = (g === '藥' || g === '回生') ? 'heal' : (g === '虎' || g === '白虎') ? 'tiger' : (g === '縛') ? 'rope' : 'hangul';
     B.fx.push({ t: 0, dur, layer: 'top', draw(c, f) {
       const k = f.t / f.dur;
-      c.globalAlpha = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
-      c.font = `900 ${size * (0.9 + k * 0.2)}px ${FONT_GLYPH}`;
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.shadowColor = color; c.shadowBlur = 24; c.fillStyle = color;
-      c.fillText(g, x, y - k * rise);
-      c.shadowBlur = 0; c.globalAlpha = 1;
+      const a = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
+      const yy = y - k * rise;
+      const sz = size * (1.8 + k * 0.4);
+      if (!Art.blitFx(c, fxName, x, yy, sz, sz, 0, 1, a)) {
+        c.globalAlpha = a;
+        c.font = `900 ${size * (0.9 + k * 0.2)}px ${FONT_GLYPH}`;
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.shadowColor = color; c.shadowBlur = 24; c.fillStyle = color;
+        c.fillText(g, x, yy);
+        c.shadowBlur = 0; c.globalAlpha = 1;
+      }
     } });
   }
   function slashFx(x, y, a, color, r) {
-    B.fx.push({ t: 0, dur: 0.18, layer: 'top', draw(c, f) {
+    B.fx.push({ t: 0, dur: 0.22, layer: 'top', draw(c, f) {
       const k = f.t / f.dur;
-      c.globalAlpha = 1 - k; c.strokeStyle = color; c.lineWidth = 3 * (1 - k) + 1;
-      c.beginPath(); c.arc(x - Math.cos(a) * 6, y - Math.sin(a) * 6, r, a - 1.1 + k * 0.6, a + 0.4 + k * 0.6); c.stroke();
-      c.globalAlpha = 1;
+      if (!Art.blitFx(c, 'slash', x, y, r * 2.2, r * 2.2, a, 1, 1 - k)) {
+        c.globalAlpha = 1 - k; c.strokeStyle = color; c.lineWidth = 3 * (1 - k) + 1;
+        c.beginPath(); c.arc(x - Math.cos(a) * 6, y - Math.sin(a) * 6, r, a - 1.1 + k * 0.6, a + 0.4 + k * 0.6); c.stroke();
+        c.globalAlpha = 1;
+      }
     } });
   }
   const easeOut = (k) => 1 - Math.pow(1 - k, 3);
@@ -1024,7 +1032,8 @@ const Battle = (() => {
     const d = document.createElement('div');
     d.className = 'ci' + (u.team === 1 ? ' foe' : '') + (mini ? ' mini' : '');
     d.style.setProperty('--c', u.color);
-    d.innerHTML = `<div class="ci-band"><div class="ci-glyph">${esc(u.glyph)}</div><div class="ci-text"><span class="ci-hero">${esc(u.name)}</span><span class="ci-skill">${esc(name)}</span></div></div>`;
+    const face = u.hid ? `<img class="ci-face" src="img/portraits/${u.hid}.jpg" alt="">` : `<div class="ci-glyph">${esc(u.glyph)}</div>`;
+    d.innerHTML = `<div class="ci-band">${face}<div class="ci-text"><span class="ci-hero">${esc(u.name)}</span><span class="ci-skill">${esc(name)}</span></div></div>`;
     el.appendChild(d);
     setTimeout(() => d.remove(), mini ? 1000 : 1500);
   }
@@ -1045,13 +1054,10 @@ const Battle = (() => {
       if (!t.boss) B.fx.push({ t: 0, dur: 0.3, upd(dt, f) { const k = f.t / f.dur; t.x = sx + (ex - sx) * k; t.y = sy + (ey - sy) * k; } });
       B.fx.push({ t: 0, dur: 0.9, layer: 'top', draw(c, f) {
         const k = f.t / f.dur;
-        c.globalAlpha = 1 - k * k; c.strokeStyle = '#d23c2c'; c.lineWidth = 2.5;
-        c.beginPath();
-        for (let i = 0; i <= 20; i++) {
-          const q = i / 20, x = u.x + (t.x - u.x) * q, y = u.y + (t.y - u.y) * q + Math.sin(q * 18 + B.t * 20) * 4 * (1 - q);
-          if (i) c.lineTo(x, y); else c.moveTo(x, y);
-        }
-        c.stroke(); c.globalAlpha = 1;
+        const mx = (u.x + t.x) / 2, my = (u.y + t.y) / 2;
+        const ang = Math.atan2(t.y - u.y, t.x - u.x);
+        const len = dist(u, t);
+        Art.blitFx(c, 'rope', mx, my, Math.max(80, len), 28, ang, 1, 1 - k * k);
       } });
       glyphFx(t.x, t.y - 24, '縛', '#e0503c', 26, 1.1);
       return true;
@@ -1280,9 +1286,11 @@ const Battle = (() => {
         }, draw(c, f) {
           const k = f.t / f.dur;
           const x = tx - 280 * (1 - k), y = ty - 560 * (1 - k);
-          const g = c.createRadialGradient(x, y, 2, x, y, 26);
-          g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, 'rgba(160,210,255,0.9)'); g.addColorStop(1, 'rgba(120,170,255,0)');
-          c.fillStyle = g; c.beginPath(); c.arc(x, y, 26, 0, Math.PI * 2); c.fill();
+          if (!Art.blitFx(c, 'meteor', x, y, 70, 110, 0.5, 1, 0.95)) {
+            const g = c.createRadialGradient(x, y, 2, x, y, 26);
+            g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, 'rgba(160,210,255,0.9)'); g.addColorStop(1, 'rgba(120,170,255,0)');
+            c.fillStyle = g; c.beginPath(); c.arc(x, y, 26, 0, Math.PI * 2); c.fill();
+          }
         } });
       });
       return true;
@@ -1475,13 +1483,8 @@ const Battle = (() => {
     const ox = u.x, oy = u.y;
     B.fx.push({ t: 0, dur: 0.6, layer: 'top', draw(c, f) {
       const k = f.t / f.dur;
-      for (let i = 0; i < 3; i++) {
-        const r = range * Math.min(1, k * 1.3 - i * 0.12);
-        if (r <= 0) continue;
-        c.globalAlpha = (1 - k) * (0.9 - i * 0.2); c.strokeStyle = color; c.lineWidth = 7 - i * 2;
-        c.beginPath(); c.arc(ox, oy, r, a - 0.7, a + 0.7); c.stroke();
-      }
-      c.globalAlpha = 1;
+      const d = range * Math.min(1, k * 1.15);
+      Art.blitFx(c, 'wave', ox + Math.cos(a) * d * 0.45, oy + Math.sin(a) * d * 0.45, range * 1.1, range * 0.55, a, 1, 1 - k);
     } });
     for (let i = 0; i < 26; i++) {
       const aa = a + rand(-0.7, 0.7), s = rand(200, 420);
@@ -1499,9 +1502,7 @@ const Battle = (() => {
       const x = q * q * sx + 2 * q * k * cx + k * k * tx, y = q * q * sy + 2 * q * k * cy + k * k * ty;
       const dx = 2 * q * (cx - sx) + 2 * k * (tx - cx), dy = 2 * q * (cy - sy) + 2 * k * (ty - cy);
       const a = Math.atan2(dy, dx);
-      c.strokeStyle = color; c.lineWidth = 2;
-      c.beginPath(); c.moveTo(x - Math.cos(a) * 14, y - Math.sin(a) * 14); c.lineTo(x, y); c.stroke();
-      c.fillStyle = '#fff3d6'; c.beginPath(); c.arc(x, y, 1.6, 0, Math.PI * 2); c.fill();
+      Art.blitFx(c, 'arrows', x, y, 36, 18, a, 1, 0.95);
     } });
   }
 
@@ -1543,17 +1544,15 @@ const Battle = (() => {
   function sealFx(x, y, r, color, g) {
     B.fx.push({ t: 0, dur: 1.4, layer: 'ground', draw(c, f) {
       const k = f.t / f.dur;
-      c.globalAlpha = (k < 0.2 ? k / 0.2 : 1 - (k - 0.2) / 0.8) * 0.8;
-      c.strokeStyle = color; c.lineWidth = 3;
-      c.beginPath(); c.arc(x, y, r * easeOut(Math.min(1, k * 2)), 0, Math.PI * 2); c.stroke();
-      c.beginPath(); c.arc(x, y, r * 0.86 * easeOut(Math.min(1, k * 2)), 0, Math.PI * 2); c.stroke();
-      c.font = `900 ${r * 0.9}px ${FONT_GLYPH}`; c.fillStyle = color; c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.globalAlpha *= 0.35; c.fillText(g, x, y); c.globalAlpha = 1;
+      const a = (k < 0.2 ? k / 0.2 : 1 - (k - 0.2) / 0.8) * 0.9;
+      const rr = r * easeOut(Math.min(1, k * 2));
+      Art.blitFx(c, 'seal', x, y, rr * 2, rr * 2, k * 0.4, 1, a);
     } });
   }
 
   /* ---------- 그림 ---------- */
   function drawTurtle(c, s, t) {
+    if (Art.blitFx(c, 'turtle', s.x, s.y, 220, 110, 0, s.dir, 0.95)) return;
     c.save();
     c.translate(s.x, s.y);
     c.scale(s.dir, 1);
@@ -1592,6 +1591,7 @@ const Battle = (() => {
   }
 
   function drawHorseman(c, x, y, dir, color, t) {
+    if (Art.blitFx(c, 'cavalry', x, y, 90, 56, 0, dir, 0.92)) return;
     c.save();
     c.translate(x, y); c.scale(dir, 1);
     c.globalAlpha = 0.85;
@@ -1698,7 +1698,7 @@ const Battle = (() => {
         c.beginPath(); c.ellipse(u.x, u.y + 8, u.r + 5, (u.r + 5) * 0.45, 0, 0, Math.PI * 2); c.stroke();
       }
       if (u.orbit > 0) {
-        for (let i = 0; i < 5; i++) { const a = u.orbitA + (i / 5) * Math.PI * 2; drawSword(c, u.x + Math.cos(a) * 46, u.y - 10 + Math.sin(a) * 40, a + Math.PI / 2, '#ffd0d0', 20); }
+        Art.blitFx(c, 'swords', u.x, u.y - 8, 90, 90, u.orbitA, 1, 0.9);
       }
       if (u.flash > 0) c.filter = 'brightness(2.6)';
       Sprites.hero(c, u, t);
@@ -1734,6 +1734,7 @@ const Battle = (() => {
   }
 
   function drawTiger(c, u, t) {
+    if (Art.blitFx(c, 'tiger', u.x, u.y, 100, 64, u.face, 1, 0.95)) return;
     c.save(); c.translate(u.x, u.y); c.rotate(u.face);
     const g = c.createRadialGradient(0, 0, 4, 0, 0, 50);
     g.addColorStop(0, 'rgba(200,225,255,0.4)'); g.addColorStop(1, 'rgba(200,225,255,0)');
@@ -1896,23 +1897,24 @@ const Battle = (() => {
         const gx = Math.cos(p.a), gy = Math.sin(p.a);
         const ang = Math.atan2(gy * tot - Math.cos(k * Math.PI) * Math.PI * arcH, gx * tot);
         c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(p.x - 2, p.y - 0.5, 4, 1);
-        c.strokeStyle = p.team === 0 ? '#e6dcc4' : '#c9a9a0'; c.lineWidth = 1.4;
-        c.beginPath(); c.moveTo(p.x - Math.cos(ang) * 11, p.y - hgt - Math.sin(ang) * 11); c.lineTo(p.x, p.y - hgt); c.stroke();
+        Art.blitFx(c, 'arrows', p.x, p.y - hgt, 32, 16, ang, 1, 0.95);
       } else if (p.type === 'orb') {
-        c.globalCompositeOperation = 'lighter';
-        const g = c.createRadialGradient(p.x, p.y, 1, p.x, p.y, 13);
-        g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, p.color); g.addColorStop(1, 'rgba(0,0,0,0)');
-        c.fillStyle = g; c.beginPath(); c.arc(p.x, p.y, 13, 0, Math.PI * 2); c.fill();
-        c.globalCompositeOperation = 'source-over';
+        if (!Art.blitFx(c, 'orbs', p.x, p.y, 28, 28, B.t * 4, 1, 0.95)) {
+          c.globalCompositeOperation = 'lighter';
+          const g = c.createRadialGradient(p.x, p.y, 1, p.x, p.y, 13);
+          g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, p.color); g.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = g; c.beginPath(); c.arc(p.x, p.y, 13, 0, Math.PI * 2); c.fill();
+          c.globalCompositeOperation = 'source-over';
+        }
       } else if (p.type === 'cres') {
-        c.save(); c.translate(p.x, p.y); c.rotate(p.a);
-        c.globalCompositeOperation = 'lighter';
-        c.shadowColor = p.color; c.shadowBlur = p.big ? 30 : 16;
-        c.fillStyle = hexA(p.color, 0.85);
-        c.beginPath(); c.arc(0, 0, p.size, -1.25, 1.25); c.arc(-p.size * 0.35, 0, p.size * 0.82, 1.15, -1.15, true); c.fill();
-        c.fillStyle = 'rgba(255,255,255,0.8)';
-        c.beginPath(); c.arc(0, 0, p.size, -0.9, 0.9); c.arc(-p.size * 0.15, 0, p.size * 0.92, 0.85, -0.85, true); c.fill();
-        c.restore();
+        if (!Art.blitFx(c, 'slash', p.x, p.y, p.size * 2.4, p.size * 2.4, p.a, 1, 0.9)) {
+          c.save(); c.translate(p.x, p.y); c.rotate(p.a);
+          c.globalCompositeOperation = 'lighter';
+          c.shadowColor = p.color; c.shadowBlur = p.big ? 30 : 16;
+          c.fillStyle = hexA(p.color, 0.85);
+          c.beginPath(); c.arc(0, 0, p.size, -1.25, 1.25); c.arc(-p.size * 0.35, 0, p.size * 0.82, 1.15, -1.15, true); c.fill();
+          c.restore();
+        }
       }
     }
     for (const f of B.fx) if (f.layer === 'top' && f.draw && f.t >= 0) f.draw(c, f);

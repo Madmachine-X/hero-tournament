@@ -394,6 +394,8 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   animation: ciIn 1.45s cubic-bezier(.2,.9,.2,1) forwards; }
 .ci.foe .ci-band { flex-direction: row-reverse; padding-left: 0; padding-right: max(8%, var(--gut-r)); background: linear-gradient(270deg, rgba(8,7,6,0.96) 0%, color-mix(in srgb, var(--c) 28%, rgba(8,7,6,0.94)) 55%, rgba(8,7,6,0) 100%); animation-name: ciInR; }
 .ci-glyph { font-family: var(--f-glyph); font-weight: 900; font-size: 6.4rem; line-height: 1; color: var(--c); text-shadow: 0 0 40px var(--c); transform: skewY(3deg); }
+.ci-face { width: 92px; height: 92px; object-fit: cover; border: 2px solid var(--c); box-shadow: 0 0 18px var(--c); transform: skewY(3deg); }
+.ci.mini .ci-face { width: 52px; height: 52px; }
 .ci-text { display: flex; flex-direction: column; transform: skewY(3deg); }
 .ci.foe .ci-text { align-items: flex-end; }
 .ci-hero { font-family: var(--f-display); font-size: 1.1rem; color: var(--bone); letter-spacing: 0.2em; }
