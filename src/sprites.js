@@ -21,9 +21,13 @@ const Art = (() => {
     donguibogam: 'heal', guguep: 'heal', gyeolsa: 'heal', ochon: 'heal', bunsin: 'orbs',
   };
 
-  HERO_IDS.forEach((id) => { const p = new Image(); p.src = `img/portraits/${id}.jpg`; portraits[id] = p; });
-  SHEET_IDS.forEach((id) => { const im = new Image(); im.src = `img/sheets/${id}.jpg`; sheets[id] = im; });
-  FX_IDS.forEach((id) => { const im = new Image(); im.src = `img/fx/${id}.jpg`; fx[id] = im; });
+  function loadImg(map, id, src) {
+    if (map[id]) return map[id];
+    const im = new Image();
+    im.src = src;
+    map[id] = im;
+    return im;
+  }
 
   function ok(im) { return !!(im && im.complete && im.naturalWidth); }
 
@@ -71,10 +75,19 @@ const Art = (() => {
   }
 
   function sheetOf(id) {
-    if (id && sheets[id]) return keyedImg('sheet', id, sheets);
-    return keyedImg('sheet', 'generic', sheets);
+    const sid = id && SHEET_IDS.indexOf(id) >= 0 ? id : 'generic';
+    loadImg(sheets, sid, `img/sheets/${sid}.jpg`);
+    return keyedImg('sheet', sid, sheets) || (sid !== 'generic' ? sheetOf('generic') : null);
   }
-  function fxOf(id) { return keyedImg('fx', id, fx); }
+  function fxOf(id) {
+    if (!id) return null;
+    loadImg(fx, id, `img/fx/${id}.jpg`);
+    return keyedImg('fx', id, fx);
+  }
+  function warm() {
+    SHEET_IDS.forEach((id) => loadImg(sheets, id, `img/sheets/${id}.jpg`));
+    FX_IDS.forEach((id) => loadImg(fx, id, `img/fx/${id}.jpg`));
+  }
 
   function frameOf(u, t) {
     if (u.swing > 0) return u.swing > 0.08 ? 2 : 3;
@@ -135,7 +148,7 @@ const Art = (() => {
 
   function skillFx(id) { return SKILL_FX[id] || 'slash'; }
 
-  return { portraits, ok, drawActor, blitFx, skillFx, fxOf, sheetOf };
+  return { portraits, ok, drawActor, blitFx, skillFx, fxOf, sheetOf, warm };
 })();
 
 const Sprites = (() => {

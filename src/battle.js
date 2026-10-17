@@ -206,6 +206,7 @@ const Battle = (() => {
 
   /* ---------- 시작 ---------- */
   function start(cfg) {
+    if (typeof Art !== 'undefined' && Art.warm) Art.warm();
     resize();
     uid = 0;
     B = {

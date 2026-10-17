@@ -628,7 +628,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   <!-- 대화 -->
   <div id="dialog" hidden>
     <div class="dlg-box">
-      <div id="dlg-face" class="medal lg"><img id="dlg-face-img" alt=""><span id="dlg-glyph"></span></div>
+      <div id="dlg-face" class="medal lg"><img id="dlg-face-img" alt="" width="256" height="256" decoding="async"><span id="dlg-glyph"></span></div>
       <div class="dlg-main">
         <div id="dlg-name"></div>
         <p id="dlg-text"></p>
@@ -1667,9 +1667,13 @@ const Art = (() => {
     donguibogam: 'heal', guguep: 'heal', gyeolsa: 'heal', ochon: 'heal', bunsin: 'orbs',
   };
 
-  HERO_IDS.forEach((id) => { const p = new Image(); p.src = `img/portraits/${id}.jpg`; portraits[id] = p; });
-  SHEET_IDS.forEach((id) => { const im = new Image(); im.src = `img/sheets/${id}.jpg`; sheets[id] = im; });
-  FX_IDS.forEach((id) => { const im = new Image(); im.src = `img/fx/${id}.jpg`; fx[id] = im; });
+  function loadImg(map, id, src) {
+    if (map[id]) return map[id];
+    const im = new Image();
+    im.src = src;
+    map[id] = im;
+    return im;
+  }
 
   function ok(im) { return !!(im && im.complete && im.naturalWidth); }
 
@@ -1717,10 +1721,19 @@ const Art = (() => {
   }
 
   function sheetOf(id) {
-    if (id && sheets[id]) return keyedImg('sheet', id, sheets);
-    return keyedImg('sheet', 'generic', sheets);
+    const sid = id && SHEET_IDS.indexOf(id) >= 0 ? id : 'generic';
+    loadImg(sheets, sid, `img/sheets/${sid}.jpg`);
+    return keyedImg('sheet', sid, sheets) || (sid !== 'generic' ? sheetOf('generic') : null);
   }
-  function fxOf(id) { return keyedImg('fx', id, fx); }
+  function fxOf(id) {
+    if (!id) return null;
+    loadImg(fx, id, `img/fx/${id}.jpg`);
+    return keyedImg('fx', id, fx);
+  }
+  function warm() {
+    SHEET_IDS.forEach((id) => loadImg(sheets, id, `img/sheets/${id}.jpg`));
+    FX_IDS.forEach((id) => loadImg(fx, id, `img/fx/${id}.jpg`));
+  }
 
   function frameOf(u, t) {
     if (u.swing > 0) return u.swing > 0.08 ? 2 : 3;
@@ -1781,7 +1794,7 @@ const Art = (() => {
 
   function skillFx(id) { return SKILL_FX[id] || 'slash'; }
 
-  return { portraits, ok, drawActor, blitFx, skillFx, fxOf, sheetOf };
+  return { portraits, ok, drawActor, blitFx, skillFx, fxOf, sheetOf, warm };
 })();
 
 const Sprites = (() => {
@@ -2000,6 +2013,7 @@ const Battle = (() => {
 
   /* ---------- 시작 ---------- */
   function start(cfg) {
+    if (typeof Art !== 'undefined' && Art.warm) Art.warm();
     resize();
     uid = 0;
     B = {
@@ -4370,7 +4384,7 @@ function closeModal() {
 
 function medallion(id, size = '') {
   const d = HEROES[id];
-  return `<span class="medal ${size}" style="--c:${d.color}"><img src="img/portraits/${id}.jpg" alt="" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
+  return `<span class="medal ${size}" style="--c:${d.color}"><img src="img/portraits/${id}.jpg" alt="" width="256" height="256" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
 }
 function itemLine(it) {
   const bits = [];
