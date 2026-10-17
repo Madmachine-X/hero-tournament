@@ -69,10 +69,13 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 .x:hover { color: var(--bone); border-color: var(--gold); }
 
 /* 메달(영웅 초상) */
-.medal { --c: var(--soul); display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex: none;
+.medal { --c: var(--soul); display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex: none; overflow: hidden; position: relative;
   background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c) 32%, #141210), #0c0b0a 72%);
   border: 2px solid var(--c); box-shadow: 0 0 0 3px #0c0b0a, 0 0 0 4px color-mix(in srgb, var(--c) 45%, transparent), 0 0 18px color-mix(in srgb, var(--c) 30%, transparent); }
 .medal span { font-family: var(--f-glyph); font-weight: 900; color: var(--c); font-size: 1.25rem; line-height: 1; }
+.medal img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.medal img.ok { opacity: 1; }
+.medal img.ok + span { display: none; }
 .medal.sm { width: 26px; height: 26px; box-shadow: none; border-width: 1.5px; }
 .medal.sm span { font-size: 0.8rem; }
 .medal.lg { width: 64px; height: 64px; }
@@ -124,7 +127,7 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 [data-scene="seoul"] .story-bg { background: radial-gradient(ellipse at 50% 60%, rgba(150,140,120,0.14), transparent 60%), linear-gradient(180deg, #121212, #0a0a0b); }
 
 /* ---------- 전략 지도 ---------- */
-#scr-map { display: grid; grid-template-rows: auto 1fr; background: var(--ink); }
+#scr-map { display: grid; grid-template-rows: auto auto 1fr; background: var(--ink); }
 .topbar { display: flex; align-items: center; gap: 14px 22px; flex-wrap: wrap; padding: 10px var(--gut-r) 10px var(--gut-l); padding-top: max(10px, env(safe-area-inset-top, 0px));
   background: linear-gradient(180deg, #16140f, #100f0c); border-bottom: 1px solid var(--line); }
 .brand { display: flex; flex-direction: column; line-height: 1.2; }
@@ -407,6 +410,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 /* ---------- 좁은 화면 ---------- */
 @media (max-width: 860px) {
   #scr-map { display: block; overflow-y: auto; }
+  #cmdrail { position: sticky; top: 0; z-index: 4; }
   .mapbody { display: flex; flex-direction: column; }
   #mapwrap { height: 62vh; min-height: 340px; }
   #panel { border-left: 0; border-top: 1px solid var(--line); }
@@ -453,6 +457,48 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .cmds.night .cmd { border-color: #34437a; }
 .btn.raid { background: linear-gradient(180deg, #24305e, #141b3a); border-color: #4a5fa8; color: #dfe7ff; }
 
+
+/* ---------- 상단 내정 막대 / 지도 장식 ---------- */
+#scr-map[data-phase="morning"] { --phase: #f0dfae; }
+#scr-map[data-phase="noon"] { --phase: #f2a76a; }
+#scr-map[data-phase="night"] { --phase: #9fb6ff; }
+.phase-orb { width: 18px; height: 18px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, #fff6d4, #d9ab4a 42%, #5a4314 78%);
+  box-shadow: 0 0 10px rgba(217,171,74,0.45); }
+#scr-map[data-phase="noon"] .phase-orb { background: radial-gradient(circle at 35% 30%, #ffe7c2, #e0812f 50%, #5a2a12 80%); }
+#scr-map[data-phase="night"] .phase-orb { background: radial-gradient(circle at 32% 28%, #e8eeff, #7a89c8 46%, #1a2248 78%); box-shadow: 0 0 12px rgba(159,182,255,0.4); }
+#cmdrail { position: relative; overflow: hidden;
+  border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #16140f, #100f0c); }
+.cmdrail-wash { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--phase, #d9ab4a) 16%, transparent), transparent 42%, color-mix(in srgb, var(--phase, #d9ab4a) 10%, transparent)); }
+#cmdrail[data-phase="night"] { background: linear-gradient(180deg, #12182a, #0c1020); }
+.cmdrail-inner { position: relative; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px var(--gut-r) 10px var(--gut-l); }
+.cmdrail-meta { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+.cmdrail-seal { --c: var(--gold); display: inline-grid; place-items: center; width: 38px; height: 38px;
+  border: 2px solid var(--c); color: var(--c); font-family: var(--f-glyph); font-weight: 900; font-size: 1.15rem;
+  border-radius: 5px; transform: rotate(-6deg); background: color-mix(in srgb, var(--c) 12%, #0d0c0b); flex: none; }
+.cmdrail-meta b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 1.05rem; }
+.cmdrail-meta span { display: block; color: var(--dim); font-size: 0.78rem; }
+#cmdrail-btns.cmds { flex: 1; min-width: 280px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+#cmdrail .cmd { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; padding: 6px 4px; }
+#cmdrail .cmd .cmd-glyph { font-family: var(--f-glyph); font-weight: 900; font-size: 1.05rem; line-height: 1; color: var(--gold); opacity: 0.9; }
+#cmdrail .cmd.on .cmd-glyph { color: #fff4d6; }
+#cmdrail-picker { position: relative; padding: 0 var(--gut-r) 10px var(--gut-l); }
+#cmdrail-picker:empty { display: none; }
+#cmdrail-picker .picker { margin: 0; background: rgba(18,17,14,0.92); }
+#mapwrap .map-fx { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+#mapwrap canvas { position: relative; z-index: 0; }
+#mapwrap .legend { z-index: 2; }
+.map-vignette { position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 42%, transparent 45%, rgba(8,7,6,0.55) 100%); }
+.map-ink { position: absolute; inset: -10%; opacity: 0.18;
+  background: repeating-linear-gradient(-18deg, transparent 0 18px, rgba(217,171,74,0.08) 18px 19px); }
+.map-wisp { position: absolute; left: var(--x); bottom: -20px; width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--phase, #7fd3e6) 80%, #fff) 0%, transparent 70%);
+  filter: blur(1px); animation: rise var(--d) linear infinite; opacity: 0.55; transform: scale(var(--s)); }
+#scr-map[data-phase="night"] .map-vignette { background: radial-gradient(ellipse at 50% 40%, rgba(20,28,60,0.15), rgba(4,6,14,0.7) 80%); }
+
 </style>
 
 <div id="app">
@@ -489,6 +535,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
       <div class="brand"><b>천하제일 영웅대회</b><span>1막 · 고향의 혼</span></div>
       <div class="res">
         <span class="r"><i>날</i><b id="t-day">1일차</b></span>
+        <span class="phase-orb" id="t-orb" aria-hidden="true"></span>
         <span class="r phase" id="t-phase" data-phase="day">낮</span>
         <span class="r"><i>금</i><b id="t-gold">0</b></span>
         <span class="r"><i>군량</i><b id="t-food">0</b></span>
@@ -503,8 +550,31 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
         <button class="btn primary" id="btn-end">턴 넘기기</button>
       </div>
     </header>
+    <div id="cmdrail" hidden>
+      <div class="cmdrail-wash" aria-hidden="true"></div>
+      <div class="cmdrail-inner">
+        <div class="cmdrail-meta">
+          <span class="cmdrail-seal" id="cmdrail-seal">令</span>
+          <div>
+            <b id="cmdrail-city">도시를 고르면 내정이 열립니다</b>
+            <span id="cmdrail-note">지도의 아군 도시를 고르세요.</span>
+          </div>
+        </div>
+        <div id="cmdrail-btns" class="cmds"></div>
+      </div>
+      <div id="cmdrail-picker"></div>
+    </div>
     <div class="mapbody">
-      <div id="mapwrap"><canvas id="map" aria-label="한반도 전략 지도"></canvas>
+      <div id="mapwrap">
+        <div class="map-fx" aria-hidden="true">
+          <span class="map-vignette"></span>
+          <span class="map-ink"></span>
+          <span class="map-wisp" style="--x:12%;--d:13s;--s:.8"></span>
+          <span class="map-wisp" style="--x:38%;--d:18s;--s:.55"></span>
+          <span class="map-wisp" style="--x:67%;--d:11s;--s:1"></span>
+          <span class="map-wisp" style="--x:86%;--d:16s;--s:.7"></span>
+        </div>
+        <canvas id="map" aria-label="한반도 전략 지도"></canvas>
         <div class="legend">
           <span><i style="--c:#7fd3e6"></i>아군</span><span><i style="--c:#c8323c"></i>연개소문</span><span><i style="--c:#e0812f"></i>견훤</span>
           <span><i style="--c:#d2ad3c"></i>김유신</span><span><i style="--c:#8b95a6"></i>무명혼</span><span><i style="--c:#5a7cc0"></i>바다 망령</span>
@@ -546,7 +616,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   <!-- 대화 -->
   <div id="dialog" hidden>
     <div class="dlg-box">
-      <div id="dlg-face" class="medal lg"><span id="dlg-glyph"></span></div>
+      <div id="dlg-face" class="medal lg"><img id="dlg-face-img" alt=""><span id="dlg-glyph"></span></div>
       <div class="dlg-main">
         <div id="dlg-name"></div>
         <p id="dlg-text"></p>
@@ -1187,7 +1257,7 @@ const Dialog = (() => {
   function speaker(who) {
     if (!who || who === 'narr') return SPEAKERS.narr;
     if (SPEAKERS[who]) return SPEAKERS[who];
-    if (HEROES[who]) return { name: who === 'hero' ? G.name : HEROES[who].name, glyph: HEROES[who].glyph, color: HEROES[who].color };
+    if (HEROES[who]) return { id: who, name: who === 'hero' ? G.name : HEROES[who].name, glyph: HEROES[who].glyph, color: HEROES[who].color };
     return SPEAKERS.narr;
   }
   const fill = (s) => String(s).replace(/\{name\}/g, G ? G.name : '무명');
@@ -1209,6 +1279,20 @@ const Dialog = (() => {
     const face = $('#dlg-face');
     face.hidden = !sp.glyph;
     face.style.setProperty('--c', sp.color);
+    const faceImg = $('#dlg-face-img');
+    if (faceImg) {
+      if (sp.id && HEROES[sp.id]) {
+        faceImg.hidden = false;
+        faceImg.classList.remove('ok');
+        faceImg.onload = () => faceImg.classList.add('ok');
+        faceImg.onerror = () => faceImg.classList.remove('ok');
+        faceImg.src = `img/portraits/${sp.id}.jpg`;
+      } else {
+        faceImg.hidden = true;
+        faceImg.removeAttribute('src');
+        faceImg.classList.remove('ok');
+      }
+    }
     $('#dlg-glyph').textContent = sp.glyph || '';
     $('#dlg-name').textContent = sp.name || '';
     $('#dlg-name').style.color = sp.color;
@@ -1504,6 +1588,40 @@ const EVENTS = {
 
 'use strict';
 /* ===== 전장 그림: 영웅 캐릭터와 혼불 졸병 ===== */
+const Art = (() => {
+  const portraits = Object.create(null);
+  const chars = Object.create(null);
+  const keyed = Object.create(null);
+  (typeof HERO_ORDER !== 'undefined' ? HERO_ORDER : []).forEach((id) => {
+    const p = new Image(); p.src = `img/portraits/${id}.jpg`; portraits[id] = p;
+    const c = new Image(); c.src = `img/chars/${id}.jpg`; chars[id] = c;
+  });
+  function ok(im) { return !!(im && im.complete && im.naturalWidth); }
+  function keyedChar(id) {
+    if (keyed[id]) return keyed[id];
+    const im = chars[id];
+    if (!ok(im)) return null;
+    const w = im.naturalWidth, h = im.naturalHeight;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const x = cv.getContext('2d');
+    x.drawImage(im, 0, 0);
+    const img = x.getImageData(0, 0, w, h);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const span = Math.max(r, g, b) - Math.min(r, g, b);
+      if (lum < 22 && span < 18) d[i + 3] = 0;
+      else if (lum < 38 && span < 22) d[i + 3] = Math.round(d[i + 3] * ((lum - 22) / 16));
+    }
+    x.putImageData(img, 0, 0);
+    keyed[id] = cv;
+    return cv;
+  }
+  return { portraits, chars, ok, keyedChar };
+})();
+
 const Sprites = (() => {
   /* 영웅마다 모자, 옷, 갑옷, 등 뒤 소품, 탈것이 다르다 */
   const LOOKS = {
@@ -1541,8 +1659,35 @@ const Sprites = (() => {
     return `#${[f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
   }
 
+  function painted(c, u, t) {
+    const spr = Art.keyedChar(u.hid);
+    if (!spr) return false;
+    const moving = Math.hypot(u.vx, u.vy) > 5 && u.stun <= 0;
+    const dir = Math.cos(u.face) >= 0 ? 1 : -1;
+    const sw = u.swing > 0 ? Math.sin((u.swing / 0.2) * Math.PI) : 0;
+    const ph = t * 13 + u.bob;
+    const bob = moving ? Math.abs(Math.sin(ph)) * 1.8 : Math.sin(t * 2.2 + u.bob) * 0.6;
+    const sc = (u.boss ? 1.12 : 1) * ((LOOKS[u.hid] || {}).small ? 0.9 : 1) * ((LOOKS[u.hid] || {}).mount ? 1.18 : 1);
+    const h = 58 * sc;
+    const w = h * (spr.width / spr.height);
+    c.save();
+    c.translate(u.x + dir * sw * 4, u.y + 10);
+    c.scale(dir, 1);
+    if (u.stun > 0) c.rotate(Math.sin(t * 20) * 0.05);
+    c.translate(0, -bob);
+    c.drawImage(spr, -w / 2, -h, w, h);
+    if (u.flash > 0) {
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.4;
+      c.drawImage(spr, -w / 2, -h, w, h);
+    }
+    c.restore();
+    return true;
+  }
+
   /* ---------- 영웅 ---------- */
   function hero(c, u, t, opts = {}) {
+    if (!u.generic && painted(c, u, t)) return;
     const L = lookOf(u);
     const moving = Math.hypot(u.vx, u.vy) > 5 && u.stun <= 0;
     const dir = Math.cos(u.face) >= 0 ? 1 : -1;
@@ -4355,7 +4500,7 @@ function closeModal() { $('#modal').hidden = true; }
 
 function medallion(id, size = '') {
   const d = HEROES[id];
-  return `<span class="medal ${size}" style="--c:${d.color}"><span>${esc(d.glyph)}</span></span>`;
+  return `<span class="medal ${size}" style="--c:${d.color}"><img src="img/portraits/${id}.jpg" alt="" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
 }
 function itemLine(it) {
   const bits = [];
@@ -4382,6 +4527,8 @@ function renderTop() {
   const free = freeHeroes().length;
   $('#t-ap').textContent = `행동 ${free}/${G.roster.length}`;
   $('#t-ap').classList.toggle('spent', !free);
+  const mapEl = $('#scr-map');
+  if (mapEl) mapEl.dataset.phase = PHASES[G.phase].id;
 }
 
 /* ---------- 패널 ---------- */
@@ -4392,8 +4539,52 @@ function renderPanel() {
   else if (UI.tab === 'heroes') body.innerHTML = UI.heroView ? heroDetail(UI.heroView) : heroList();
   else if (UI.tab === 'items') body.innerHTML = itemsView();
   else body.innerHTML = rumorView();
+  renderCmdRail();
 }
 function renderAll() { renderTop(); renderPanel(); MapView.redrawRegions(); }
+const CMD_GLYPH = { agri: "農", comm: "商", wall: "城", loyal: "仁", draft: "兵", train: "鍊", search: "才", move: "運", relocate: "遷", rest: "息", scout: "聞" };
+function renderCmdRail() {
+  const rail = $("#cmdrail");
+  if (!rail) return;
+  const phase = PHASES[G.phase].id;
+  const map = $("#scr-map");
+  if (map) map.dataset.phase = phase;
+  rail.dataset.phase = phase;
+  const sel = UI.sel && UI.sel.type === "city" ? UI.sel.id : null;
+  const seal = $("#cmdrail-seal"), cityEl = $("#cmdrail-city"), noteEl = $("#cmdrail-note"), btns = $("#cmdrail-btns"), picker = $("#cmdrail-picker");
+  if (!sel) {
+    rail.hidden = true;
+    if (btns) btns.innerHTML = "";
+    if (picker) picker.innerHTML = "";
+    return;
+  }
+  rail.hidden = false;
+  const st = G.cities[sel], f = FACTIONS[st.owner], mine = st.owner === "player";
+  if (seal) { seal.textContent = f.glyph; seal.style.setProperty("--c", f.color); }
+  if (cityEl) cityEl.textContent = CITIES[sel].name + (mine ? "" : " · " + f.name);
+  if (mine) {
+    const cmds = isNight() ? ["rest", "scout", "relocate"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "move", "relocate"];
+    if (noteEl) noteEl.textContent = isNight() ? "야간 · 휴식 · 소문 · 기습" : ("내정 · 이 도시 장수에게 맡깁니다 · 행동 가능 " + freeIn(sel).length + "명");
+    let html = cmds.map(function(k) {
+      const on = UI.cmd === k ? ' on' : '';
+      return '<button class="cmd' + on + '" data-cmd="' + k + '"><i class="cmd-glyph">' + (CMD_GLYPH[k] || '令') + '</i><span>' + COMMANDS[k].name + '</span></button>';
+    }).join("");
+    if (isNight() && G.market && G.market.city === sel) html += '<button class="cmd market" data-act="market"><i class="cmd-glyph">市</i><span>비밀 장터</span></button>';
+    else if (!isNight()) html += '<button class="cmd" data-act="shop"><i class="cmd-glyph">市</i><span>장터</span></button>';
+    if (btns) { btns.className = "cmds" + (isNight() ? " night" : ""); btns.innerHTML = html; }
+    if (picker) picker.innerHTML = UI.cmd ? commandPicker(sel) : "";
+  } else {
+    const adj = adjacentToPlayer(sel);
+    const free = neighbors(sel).filter(function(n) { return G.cities[n].owner === "player"; }).reduce(function(a, n) { return a + freeIn(n).length; }, 0);
+    if (noteEl) noteEl.textContent = adj && free ? (isNight() ? "야간 기습 가능" : "출병 가능") : "아직 칠 수 없습니다";
+    if (btns) {
+      btns.className = "cmds";
+      btns.innerHTML = '<button class="btn primary' + (isNight() ? ' raid' : '') + '" data-act="attack" ' + (adj && free ? '' : 'disabled') + '>' + (isNight() ? '야간 기습' : '출병') + '</button>';
+    }
+    if (picker) picker.innerHTML = "";
+  }
+}
+
 
 function overview() {
   const owned = ownedCities().length;
@@ -4434,9 +4625,7 @@ function cityCard(id) {
       <p class="label">주둔 장수 <span class="muted small">${here.length}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}">${medallion(h, 'sm')}<span>${esc(heroName(h))}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
       <button class="auto-toggle ${st.auto ? 'on' : ''}" data-auto="${id}">${st.auto ? '위임 중 · 턴이 끝날 때 남은 장수가 알아서 내정합니다' : '위임하기 · 턴이 끝날 때 남은 장수가 알아서 내정'}</button>
-      <p class="label">${isNight() ? '야간 명령' : '내정 명령'} <span class="muted small">${isNight() ? '백성이 잠든 밤입니다. 쉬거나, 소문을 캐거나, 이웃 적 도시를 기습하세요.' : '이 도시 장수에게 맡깁니다'}</span></p>
-      <div class="cmds ${isNight() ? 'night' : ''}">${cmds.map((k) => `<button class="cmd ${UI.cmd === k ? 'on' : ''}" data-cmd="${k}">${COMMANDS[k].name}</button>`).join('')}${isNight() ? (G.market && G.market.city === id ? '<button class="cmd market" data-act="market">비밀 장터</button>' : '') : '<button class="cmd" data-act="shop">장터</button>'}</div>
-      ${UI.cmd ? commandPicker(id) : ''}`;
+      <p class="hint">내정과 장터는 위쪽 명령 막대에서 고릅니다.</p>
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);
@@ -4450,10 +4639,7 @@ function cityCard(id) {
         <div><dt>위험도</dt><dd class="danger">${'◆'.repeat(DANGER[id] || 1)}${'◇'.repeat(3 - (DANGER[id] || 1))}</dd></div>
       </dl>
       <p class="label">지키는 장수</p><div class="foes">${heads.join('') || '<span class="muted">없음 (혼불 대장이 지휘)</span>'}</div>
-      <div class="actions">
-        <button class="btn primary ${isNight() ? 'raid' : ''}" data-act="attack" ${adj && free ? '' : 'disabled'}>${isNight() ? '야간 기습 <small>적 사기 -20 · 성벽 효과 절반 · 지원 부대 없음</small>' : '출병 <small>참가 영웅의 행동 · 영웅당 병사 20</small>'}</button>
-      </div>
-      ${!adj ? '<p class="hint">이웃한 아군 도시가 없어 아직 칠 수 없습니다.</p>' : !free ? '<p class="hint">이웃한 아군 도시에 행동할 수 있는 장수가 없습니다.</p>' : '<p class="hint">이웃한 아군 도시에 있는 장수만 출병할 수 있습니다. 이기면 출병한 장수가 그 도시에 주둔합니다.</p>'}`;
+            ${!adj ? '<p class="hint">이웃한 아군 도시가 없어 아직 칠 수 없습니다.</p>' : !free ? '<p class="hint">이웃한 아군 도시에 행동할 수 있는 장수가 없습니다.</p>' : '<p class="hint">이웃한 아군 도시에 있는 장수만 출병할 수 있습니다. 이기면 출병한 장수가 그 도시에 주둔합니다.</p>'}`;
   }
   const nb = neighbors(id).map((n) => CITIES[n].name).join(', ');
   return `<div class="card city">
@@ -5246,6 +5432,8 @@ function boot() {
     if (h && window.innerWidth < 860) $('#panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   $('#panel-body').addEventListener('click', onPanelClick);
+  const railEl = $('#cmdrail');
+  if (railEl) railEl.addEventListener('click', onPanelClick);
   $('#tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tab]');
     if (!b) return;

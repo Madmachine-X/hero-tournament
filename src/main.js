@@ -35,7 +35,7 @@ function closeModal() { $('#modal').hidden = true; }
 
 function medallion(id, size = '') {
   const d = HEROES[id];
-  return `<span class="medal ${size}" style="--c:${d.color}"><span>${esc(d.glyph)}</span></span>`;
+  return `<span class="medal ${size}" style="--c:${d.color}"><img src="img/portraits/${id}.jpg" alt="" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
 }
 function itemLine(it) {
   const bits = [];

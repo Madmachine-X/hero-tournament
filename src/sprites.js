@@ -1,5 +1,39 @@
 'use strict';
 /* ===== 전장 그림: 영웅 캐릭터와 혼불 졸병 ===== */
+const Art = (() => {
+  const portraits = Object.create(null);
+  const chars = Object.create(null);
+  const keyed = Object.create(null);
+  (typeof HERO_ORDER !== 'undefined' ? HERO_ORDER : []).forEach((id) => {
+    const p = new Image(); p.src = `img/portraits/${id}.jpg`; portraits[id] = p;
+    const c = new Image(); c.src = `img/chars/${id}.jpg`; chars[id] = c;
+  });
+  function ok(im) { return !!(im && im.complete && im.naturalWidth); }
+  function keyedChar(id) {
+    if (keyed[id]) return keyed[id];
+    const im = chars[id];
+    if (!ok(im)) return null;
+    const w = im.naturalWidth, h = im.naturalHeight;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const x = cv.getContext('2d');
+    x.drawImage(im, 0, 0);
+    const img = x.getImageData(0, 0, w, h);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const span = Math.max(r, g, b) - Math.min(r, g, b);
+      if (lum < 22 && span < 18) d[i + 3] = 0;
+      else if (lum < 38 && span < 22) d[i + 3] = Math.round(d[i + 3] * ((lum - 22) / 16));
+    }
+    x.putImageData(img, 0, 0);
+    keyed[id] = cv;
+    return cv;
+  }
+  return { portraits, chars, ok, keyedChar };
+})();
+
 const Sprites = (() => {
   /* 영웅마다 모자, 옷, 갑옷, 등 뒤 소품, 탈것이 다르다 */
   const LOOKS = {
@@ -37,8 +71,35 @@ const Sprites = (() => {
     return `#${[f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
   }
 
+  function painted(c, u, t) {
+    const spr = Art.keyedChar(u.hid);
+    if (!spr) return false;
+    const moving = Math.hypot(u.vx, u.vy) > 5 && u.stun <= 0;
+    const dir = Math.cos(u.face) >= 0 ? 1 : -1;
+    const sw = u.swing > 0 ? Math.sin((u.swing / 0.2) * Math.PI) : 0;
+    const ph = t * 13 + u.bob;
+    const bob = moving ? Math.abs(Math.sin(ph)) * 1.8 : Math.sin(t * 2.2 + u.bob) * 0.6;
+    const sc = (u.boss ? 1.12 : 1) * ((LOOKS[u.hid] || {}).small ? 0.9 : 1) * ((LOOKS[u.hid] || {}).mount ? 1.18 : 1);
+    const h = 58 * sc;
+    const w = h * (spr.width / spr.height);
+    c.save();
+    c.translate(u.x + dir * sw * 4, u.y + 10);
+    c.scale(dir, 1);
+    if (u.stun > 0) c.rotate(Math.sin(t * 20) * 0.05);
+    c.translate(0, -bob);
+    c.drawImage(spr, -w / 2, -h, w, h);
+    if (u.flash > 0) {
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.4;
+      c.drawImage(spr, -w / 2, -h, w, h);
+    }
+    c.restore();
+    return true;
+  }
+
   /* ---------- 영웅 ---------- */
   function hero(c, u, t, opts = {}) {
+    if (!u.generic && painted(c, u, t)) return;
     const L = lookOf(u);
     const moving = Math.hypot(u.vx, u.vy) > 5 && u.stun <= 0;
     const dir = Math.cos(u.face) >= 0 ? 1 : -1;

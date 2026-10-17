@@ -63,10 +63,13 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 .x:hover { color: var(--bone); border-color: var(--gold); }
 
 /* 메달(영웅 초상) */
-.medal { --c: var(--soul); display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex: none;
+.medal { --c: var(--soul); display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex: none; overflow: hidden; position: relative;
   background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c) 32%, #141210), #0c0b0a 72%);
   border: 2px solid var(--c); box-shadow: 0 0 0 3px #0c0b0a, 0 0 0 4px color-mix(in srgb, var(--c) 45%, transparent), 0 0 18px color-mix(in srgb, var(--c) 30%, transparent); }
 .medal span { font-family: var(--f-glyph); font-weight: 900; color: var(--c); font-size: 1.25rem; line-height: 1; }
+.medal img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.medal img.ok { opacity: 1; }
+.medal img.ok + span { display: none; }
 .medal.sm { width: 26px; height: 26px; box-shadow: none; border-width: 1.5px; }
 .medal.sm span { font-size: 0.8rem; }
 .medal.lg { width: 64px; height: 64px; }

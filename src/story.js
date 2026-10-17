@@ -6,7 +6,7 @@ const Dialog = (() => {
   function speaker(who) {
     if (!who || who === 'narr') return SPEAKERS.narr;
     if (SPEAKERS[who]) return SPEAKERS[who];
-    if (HEROES[who]) return { name: who === 'hero' ? G.name : HEROES[who].name, glyph: HEROES[who].glyph, color: HEROES[who].color };
+    if (HEROES[who]) return { id: who, name: who === 'hero' ? G.name : HEROES[who].name, glyph: HEROES[who].glyph, color: HEROES[who].color };
     return SPEAKERS.narr;
   }
   const fill = (s) => String(s).replace(/\{name\}/g, G ? G.name : '무명');
@@ -28,6 +28,20 @@ const Dialog = (() => {
     const face = $('#dlg-face');
     face.hidden = !sp.glyph;
     face.style.setProperty('--c', sp.color);
+    const faceImg = $('#dlg-face-img');
+    if (faceImg) {
+      if (sp.id && HEROES[sp.id]) {
+        faceImg.hidden = false;
+        faceImg.classList.remove('ok');
+        faceImg.onload = () => faceImg.classList.add('ok');
+        faceImg.onerror = () => faceImg.classList.remove('ok');
+        faceImg.src = `img/portraits/${sp.id}.jpg`;
+      } else {
+        faceImg.hidden = true;
+        faceImg.removeAttribute('src');
+        faceImg.classList.remove('ok');
+      }
+    }
     $('#dlg-glyph').textContent = sp.glyph || '';
     $('#dlg-name').textContent = sp.name || '';
     $('#dlg-name').style.color = sp.color;
