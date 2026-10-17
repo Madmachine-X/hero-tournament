@@ -34,7 +34,7 @@ function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 
 function newGame() {
   G = {
-    v: 5, name: '무명', day: 1, phase: 0, gold: 600, food: 900, karma: 0,
+    v: 6, name: '무명', day: 1, phase: 0, gold: 600, food: 900, karma: 0,
     cities: {}, roster: [], heroes: {}, inv: ['r_ok', 'w_deungpae'], keys: [],
     places: [], done: {}, seen: {}, log: [], stats: { battles: 0, wins: 0 },
     stage: 'prologue', attackDay: 0, officers: {}, offSeq: 0, joinCity: 'seoul',
@@ -68,7 +68,7 @@ function makeOfficer(kind, level, city, title) {
   const name = SURNAMES[Math.floor(Math.random() * SURNAMES.length)] + GIVEN[Math.floor(Math.random() * GIVEN.length)];
   G.officers[id] = {
     name, title: title || (civil ? '망령 문관' : '망령 무관'), glyph: name[0], color, era: '저승', stats,
-    unit: civil ? 'archer' : 'melee', skill: civil ? 'ghostfire' : 'gyeokryeo', hidden: null, weapon: null, officer: true,
+    job: civil ? 'sage' : 'sword', unit: civil ? 'archer' : 'melee', skill: civil ? 'ghostfire' : 'gyeokryeo', hidden: null, weapon: null, officer: true,
     bio: civil ? '이름이 역사에 남지 않은 관리의 혼. 장부와 셈에 밝다.' : '이름이 역사에 남지 않은 무관의 혼. 칼을 놓은 적이 없다.',
     gear: civil ? { w1: 'w_hakuseon', armor: 'a_dopo' } : { w1: 'w_hwando', w2: 'w_deungpae', armor: 'a_chalgap' },
     look: civil ? { hat: 'gat', hatColor: '#141414', robe: color, trim: '#e6dcc4', longRobe: true, beard: Math.random() < 0.6 }
@@ -140,7 +140,7 @@ function addHero(id, lv, city) {
   }
   const gear = HERO_GEAR[id] || {};
   const home = city || (G.joinCity && G.cities[G.joinCity] && G.cities[G.joinCity].owner === 'player' ? G.joinCity : ownedCities()[0] || 'seoul');
-  G.heroes[id] = { level: lv, exp: 0, hp: 1, acted: false, tired: false, nightWork: false, city: home, equip: { w1: gear.w1 || null, w2: gear.w2 || null, armor: gear.armor || null, acc: [null, null, null, null] } };
+  G.heroes[id] = { level: lv, exp: 0, hp: 1, acted: false, tired: false, nightWork: false, city: home, job: (HEROES[id] && HEROES[id].job) || 'sword', equip: { w1: gear.w1 || null, w2: gear.w2 || null, armor: gear.armor || null, acc: [null, null, null, null] } };
   ['w1', 'w2', 'armor'].forEach((k) => { if (gear[k] && ITEMS[gear[k]].unique) G.seen[gear[k]] = true; });
   if (!G.roster.includes(id)) G.roster.push(id);
 }
@@ -184,8 +184,90 @@ function markNightWork(hid) {
   if (h && isNight()) h.nightWork = true;
 }
 
+function jobIdOf(hid) {
+  if (G && G.heroes && G.heroes[hid] && JOBS[G.heroes[hid].job]) return G.heroes[hid].job;
+  if (HEROES[hid] && JOBS[HEROES[hid].job]) return HEROES[hid].job;
+  return 'sword';
+}
+function heroJob(hid) { return JOBS[jobIdOf(hid)] || JOBS.sword; }
+function jobWepText(jid) { return (JOBS[jid].wtypes || []).map((t) => WTYPE_LABEL[t] || t).join('·'); }
+function jobAllowsHero(jid, hid) {
+  const n = JOBS[jid];
+  if (!n) return false;
+  if (n.unique || n.hero) return n.hero === hid;
+  if (n.heroes && n.heroes.includes(hid)) return true;
+  if (isOfficer(hid) && n.shared && n.tier === 1) return true;
+  return false;
+}
+function availablePromos(hid) {
+  const h = G.heroes[hid];
+  if (!h) return [];
+  const cur = heroJob(hid);
+  const d = HEROES[hid] || {};
+  return (cur.next || []).filter((jid) => {
+    const n = JOBS[jid];
+    if (!jobAllowsHero(jid, hid)) return false;
+    if ((n.needLv || 0) > h.level) return false;
+    if (n.needWeapon && d.weapon && !ownsItem(d.weapon)) return false;
+    return true;
+  });
+}
+function canWield(hid, itemId) {
+  const it = ITEMS[itemId];
+  if (!it || it.slot !== 'weapon') return true;
+  if (it.owner) return it.owner === hid;
+  const types = heroJob(hid).wtypes || [];
+  return types.includes(it.wtype);
+}
+function stripMisfitWeapons(hid) {
+  const e = G.heroes[hid].equip;
+  ['w1', 'w2'].forEach((sl) => {
+    const id = e[sl];
+    if (id && !canWield(hid, id)) { G.inv.push(id); e[sl] = null; }
+  });
+}
+function promoteJob(hid, jid) {
+  if (!availablePromos(hid).includes(jid)) return { ok: false, msg: '아직 이 직업을 얻을 수 없습니다.' };
+  G.heroes[hid].job = jid;
+  stripMisfitWeapons(hid);
+  return { ok: true, msg: `${heroName(hid)}이(가) 「${JOBS[jid].name}」(으)로 승급했습니다.` };
+}
+function jobNeedHint(hid, jid) {
+  const n = JOBS[jid], h = G.heroes[hid], d = HEROES[hid] || {};
+  const bits = [];
+  if ((n.needLv || 0) > (h ? h.level : 0)) bits.push(`Lv ${n.needLv}`);
+  if (n.needWeapon && d.weapon && !ownsItem(d.weapon)) bits.push(`「${ITEMS[d.weapon].name}」`);
+  return bits.length ? bits.join(' · ') + ' 필요' : '';
+}
+function nextJobHints(hid) {
+  const cur = heroJob(hid);
+  return (cur.next || []).filter((jid) => jobAllowsHero(jid, hid)).map((jid) => {
+    const n = JOBS[jid];
+    return { id: jid, name: n.name, unique: !!n.unique, shared: !!n.shared, ready: availablePromos(hid).includes(jid), need: jobNeedHint(hid, jid) };
+  });
+}
+function ensureJobs() {
+  if (!G || !G.heroes) return;
+  G.roster.forEach((id) => {
+    const h = G.heroes[id];
+    if (!h) return;
+    if (!JOBS[h.job]) h.job = (HEROES[id] && HEROES[id].job) || 'sword';
+    stripMisfitWeapons(id);
+  });
+}
+function ensureCities() {
+  if (!G || !G.cities) return;
+  for (const id in CITIES) {
+    if (G.cities[id]) continue;
+    const c = CITIES[id];
+    G.cities[id] = { owner: c.owner, agri: c.agri, comm: c.comm, wall: c.wall, loyal: c.loyal, troops: c.troops, train: c.train, boss: c.boss || null };
+  }
+  if (!G.foeFound) G.foeFound = {};
+}
+
 function statsFrom(id, level, equip, tired) {
   const d = HEROES[id];
+  const job = heroJob(id);
   const base = {};
   for (const k in d.stats) base[k] = d.stats[k] + (level - 1);
   const w1 = ITEMS[equip.w1];
@@ -202,14 +284,17 @@ function statsFrom(id, level, equip, tired) {
   if (style === '양손무기') atk *= 1.1;
   if (style === '검방') def *= 1.15;
   if (ranged) atk *= 0.85;
+  atk *= job.atk || 1;
+  def *= job.def || 1;
   const maxHp = Math.round(160 + vit * 13 + level * 15 + b.hp);
   const sp = Math.round(10 + int * 2);
-  const spd = Math.round(78 + agi * 1.6);
+  let spd = Math.round(78 + agi * 1.6);
+  spd = Math.round(spd * (job.spd || 1));
   const range = ranged ? 150 : w1 && (w1.wtype === 'spear' || w1.wtype === 'glaive') ? 30 : 20;
   const cdr = Math.min(40, b.cdr);
   const squad = 3 + Math.floor(lea / 4);
   const hiddenOn = !!(d.weapon && (equip.w1 === d.weapon || equip.w2 === d.weapon));
-  return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, range, ranged, cdr, squad, style, hiddenOn, tired: !!tired };
+  return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, range, ranged, cdr, squad, style, hiddenOn, tired: !!tired, job: job.name, jobId: jobIdOf(id), unit: job.unit };
 }
 function computeStats(id) { const h = G.heroes[id]; return statsFrom(id, h.level, h.equip, !!h.tired); }
 
@@ -230,6 +315,10 @@ function equipItem(hid, slot, itemId) {
   const e = G.heroes[hid].equip;
   const it = ITEMS[itemId];
   if (!slotAccepts(slot, itemId)) return '그 칸에는 장착할 수 없습니다.';
+  if (it.slot === 'weapon' && !canWield(hid, itemId)) {
+    if (it.owner && it.owner !== hid) return `${HEROES[it.owner].name}만 찰 수 있는 무기입니다.`;
+    return `${heroJob(hid).name}은(는) ${WTYPE_LABEL[it.wtype] || it.wtype}을(를) 찰 수 없습니다.`;
+  }
   if (slot === 'w2') {
     const w1 = ITEMS[e.w1];
     if (w1 && w1.hands === 2) return '양손무기를 들고 있어 보조 무기를 쓸 수 없습니다.';
@@ -269,7 +358,10 @@ function commandGain(cmd, hid, cityId) {
   if (cmd === 'loyal') return 2 + Math.floor(s.int / 7);
   if (cmd === 'train') return 3 + Math.floor((s.str + s.lea) / 11);
   if (cmd === 'draft') return Math.max(0, Math.min(20 + s.lea * 2, 400 - c.troops));
-  if (cmd === 'search') return Math.round(Math.min(85, 25 + s.int * 2 + c.loyal * 0.2));
+  if (cmd === 'search') {
+    const found = c.owner === 'player' ? G.roster.length : ((G.foeFound && G.foeFound[c.owner]) || 0);
+    return Math.round(Math.max(10, Math.min(85, 25 + s.int * 2 + c.loyal * 0.2 - found * 3.5)));
+  }
   return 0;
 }
 function commandCost(cmd, hid, cityId) {
@@ -466,6 +558,7 @@ function enemyForce(cityId, opts = {}) {
     if (sst.boss && Math.random() < 0.35) heroes.push({ id: sst.boss, level: src.level + 2, boss: true, recruit: false });
     heroes.push({ generic: true, name: (src.captains && src.captains[0]) || '망령장', level: src.level + 1, faction: owner, skill: 'ghostfire' });
     if (src.bossGeneric) heroes.push({ generic: true, name: src.bossGeneric, level: src.level + 2, faction: owner, skill: src.bossSkill, boss: true });
+    addFoundCaptains(heroes, sst, owner, src.level);
     addExtraCaptains(heroes, opts.party, owner, src.level + 1);
     const send = Math.max(20, Math.round(sst.troops * 0.6));
     return { heroes, soldiers: send, level: src.level, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: sst.train, send };
@@ -474,10 +567,16 @@ function enemyForce(cityId, opts = {}) {
   if (c.bossGeneric && st.owner === CITIES[cityId].owner) heroes.push({ generic: true, name: c.bossGeneric, level: lv + 2, faction: owner, skill: c.bossSkill, boss: true });
   (c.captains || []).forEach((n) => heroes.push({ generic: true, name: n, level: lv + 1, faction: owner, skill: 'ghostfire' }));
   if (!heroes.length) heroes.push({ generic: true, name: '망령장', level: lv + 1, faction: owner, skill: 'ghostfire' });
+  addFoundCaptains(heroes, st, owner, lv);
   addExtraCaptains(heroes, opts.party, owner, lv + 1);
   return { heroes, soldiers: Math.max(10, st.troops), level: lv, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: st.train };
 }
 
+function addFoundCaptains(heroes, st, owner, level) {
+  const n = Math.min(4, st.found || 0);
+  const names = { goguryeo: '고구려 신진장', baekje: '후백제 신진장', silla: '신라 신진장', ghost: '무명 신진장', sea: '탐라 신진장' };
+  for (let i = 0; i < n; i++) heroes.push({ generic: true, name: (names[owner] || '신진 망령장') + (n > 1 ? ' ' + (i + 1) : ''), level: level + 1, faction: owner, skill: i % 2 ? 'tide' : 'ghostfire' });
+}
 /* 아군이 많이 출전하면 적도 장수를 더 내보낸다 */
 function addExtraCaptains(heroes, party, owner, level) {
   const extra = Math.max(0, Math.round(((party || 3) - 4) * 0.5));

@@ -13,7 +13,7 @@ function setHeroForm(h, f) {
   try { localStorage.setItem('chyw-hero-forms', JSON.stringify(UI.forms)); localStorage.setItem('chyw-form', f); } catch (err) {}
 }
 const SLOT_LABEL = { w1: '무기 1', w2: '무기 2', armor: '갑옷', acc0: '장신구 1', acc1: '장신구 2', acc2: '장신구 3', acc3: '장신구 4' };
-const DANGER = { gangneung: 1, jeonju: 2, tongyeong: 2, pyongyang: 3, gyeongju: 3, seoul: 1 };
+const DANGER = { gangneung: 1, jeonju: 2, tongyeong: 2, pyongyang: 3, gyeongju: 3, seoul: 1, hamheung: 3, jeju: 2 };
 
 function showScreen(id) {
   $$('.screen').forEach((s) => { s.hidden = s.id !== id; });
@@ -173,9 +173,9 @@ function overview() {
   const gIn = ownedCities().reduce((a, c) => a + cityGold(c), 0), fIn = ownedCities().reduce((a, c) => a + cityFood(c), 0);
   return `<div class="card">
     <p class="eyebrow">1막 · 고향의 혼</p>
-    <h3 class="h-display">한반도 여섯 도시를 차지하라</h3>
-    <div class="progress"><i style="width:${(owned / 6) * 100}%"></i></div>
-    <p class="muted">${owned} / 6 도시 · 이름난 영웅 ${namedCount()} / 13 · 장수 ${G.roster.length}명 · 숨겨진 장소 ${G.places.length}곳</p>
+    <h3 class="h-display">한반도의 도시를 차지하라</h3>
+    <div class="progress"><i style="width:${(owned / Object.keys(CITIES).length) * 100}%"></i></div>
+    <p class="muted">${owned} / ${Object.keys(CITIES).length} 도시 · 이름난 영웅 ${namedCount()} / 13 · 장수 ${G.roster.length}명 · 숨겨진 장소 ${G.places.length}곳</p>
     <dl class="kv small"><div><dt>매일 아침 금</dt><dd>+${gIn}</dd></div><div><dt>매일 아침 군량</dt><dd>+${fIn} / 병사 먹이 -${foodUpkeep()}</dd></div></dl>
   </div>
   ${phaseCard()}
@@ -362,7 +362,7 @@ function heroList() {
     const road = h.travel ? `<em class="spent">이동 ${h.travel.left}턴</em>` : (h.acted ? '<em class="spent">행동 완료</em>' : '<em class="free">행동 가능</em>');
     return `<button class="hero-row" data-hero="${id}">
       ${medallion(id)}
-      <span class="hr-main"><b>${esc(heroName(id))}</b><span class="muted">${d.title} · Lv ${h.level} · 무${computeStats(id).str} 통${computeStats(id).lea} 지${computeStats(id).int}</span>
+      <span class="hr-main"><b>${esc(heroName(id))}</b><span class="muted">${heroJob(id).name} · Lv ${h.level} · 무${computeStats(id).str} 통${computeStats(id).lea} 지${computeStats(id).int}</span>
         <span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></span>
       <span class="hr-side">${h.tired ? '<em class="tired">피로</em>' : ''}${road}${s.style}${s.hiddenOn ? '<em class="gold">특수기</em>' : ''}</span>
     </button>`;
@@ -376,6 +376,15 @@ function heroList() {
   const missing = 13 - namedCount();
   return `${groups}
     ${missing ? `<p class="hint">아직 만나지 못한 이름난 영웅이 ${missing}명 있습니다. 야간에 소문 탐색을 하면 숨겨진 장소를 들을 수 있습니다.</p>` : ''}`;
+}
+
+function jobBlock(id) {
+  const job = heroJob(id);
+  const hints = nextJobHints(id);
+  const chips = hints.map((j) => `<button class="job-chip ${j.ready ? 'ready' : ''} ${j.unique ? 'uniq' : ''}" data-job="${j.id}" ${j.ready ? '' : 'disabled'}>${esc(j.name)}${j.need ? ` · ${esc(j.need)}` : j.ready ? ' · 승급' : ''}</button>`).join('');
+  return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '기본 병과' : job.unique ? '고유 특수 직업' : job.shared ? '공유 특수 직업' : '특수 직업'} · ${jobWepText(jobIdOf(id))}</span></p>
+    <p class="job-now">${esc(job.name)}</p>
+    ${chips ? `<div class="job-next">${chips}</div>` : job.tier >= 2 ? '<p class="muted small">더 올릴 직업이 없습니다.</p>' : ''}`;
 }
 
 function heroDetail(id) {
@@ -399,7 +408,7 @@ function heroDetail(id) {
   if (UI.equipSlot) {
     const sl = UI.equipSlot;
     const cur = getSlot(h.equip, sl);
-    const cands = [...new Set(G.inv)].filter((iid) => slotAccepts(sl, iid));
+    const cands = [...new Set(G.inv)].filter((iid) => slotAccepts(sl, iid) && (ITEMS[iid].slot !== 'weapon' || canWield(id, iid)));
     const w1two = sl === 'w2' && ITEMS[h.equip.w1] && ITEMS[h.equip.w1].hands === 2;
     picker = `<div class="picker"><p class="label">${SLOT_LABEL[sl]}에 장착할 물건</p>
       ${w1two ? '<p class="hint">무기 1에 양손무기를 들고 있어 비워 둡니다. 한손무기로 바꾸면 쌍무기나 검방을 쓸 수 있습니다.</p>' : ''}
@@ -409,9 +418,10 @@ function heroDetail(id) {
   }
   return `<div class="hero-detail">
     <button class="back" data-act="heroback">← 영웅 목록</button>
-    <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title}</p><h3 class="h-display">${esc(heroName(id))}</h3>
+    <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title} · ${heroJob(id).name}</p><h3 class="h-display">${esc(heroName(id))}</h3>
       <p class="muted">Lv ${h.level} · 경험 ${h.exp}/${needExp(h.level)}${h.tired ? ' · 피로 (능력치 -20%)' : ''}${h.travel ? ` · ${CITIES[h.travel.from].name} → ${CITIES[h.travel.to].name} (${h.travel.left}턴)` : ''}</p><span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></div></div>
     <p class="bio">${esc(d.bio)}</p>
+    ${jobBlock(id)}
     <div class="stats">
       <div><span>무력</span><b>${s.str}</b></div><div><span>통솔</span><b>${s.lea}</b></div><div><span>지력</span><b>${s.int}</b></div>
       <div><span>민첩</span><b>${s.agi}</b></div><div><span>체력</span><b>${s.vit}</b></div>
@@ -426,7 +436,7 @@ function heroDetail(id) {
     <p class="label">기술</p>
     <div class="skill"><b>${sk.name}</b><span class="tag">고유 기술</span><p>${sk.desc}</p></div>
     ${hiddenHtml}
-    <p class="label">장비 <span class="muted small">무기 2에는 한손무기(쌍무기)나 방패(검방)를 낍니다. 장신구는 종류 상관없이 4개까지.</span></p>
+    <p class="label">장비 <span class="muted small">${heroJob(id).name}은(는) ${jobWepText(jobIdOf(id))}만 찹니다. 고유 무기는 주인만. 무기 2는 한손무기나 방패.</span></p>
     <div class="slots">${slots}</div>
     ${picker}
   </div>`;
@@ -469,6 +479,12 @@ function onPanelClick(e) {
     const msg = equipItem(UI.heroView, UI.equipSlot, b.dataset.equip);
     if (msg) toast(msg, msg.includes('특수기') ? 'gold' : '');
     UI.equipSlot = null; saveGame(); renderPanel(); return;
+  }
+  if (b.dataset.job) {
+    const r = promoteJob(UI.heroView, b.dataset.job);
+    toast(r.msg, r.ok ? 'gold' : 'warn');
+    if (r.ok) { logEvent(r.msg); saveGame(); }
+    renderPanel(); return;
   }
   const id = UI.sel && UI.sel.id;
   if (b.dataset.auto) { const c = G.cities[b.dataset.auto]; c.auto = !c.auto; toast(c.auto ? `${CITIES[b.dataset.auto].name}을(를) 위임했습니다. 턴이 끝날 때 남은 장수가 내정합니다.` : '위임을 풀었습니다.'); saveGame(); renderAll(); return; }
@@ -637,7 +653,7 @@ function choosePartyThen(title, cb, onCancel, opts = {}) {
       ${opts.formation && opts.enemyCity ? `<p class="muted small">적은 ${FORMATIONS[FACTION_FORMATION[G.cities[opts.enemyCity].owner]].name}으로 맞섭니다.</p>` : ''}
       <div class="party">${pool.map((h) => { const s = computeStats(h), hp = G.heroes[h].hp, on = picked.has(h), hf = heroFormOf(h);
         const chips = on && opts.formation ? `<span class="hero-forms">${Object.keys(FORMATIONS).map((k) => `<button type="button" class="form-chip ${hf === k ? 'on' : ''}" data-hform="${h}" data-form="${k}">${FORMATIONS[k].name}</button>`).join('')}</span>` : '';
-        return `<div class="pick-hero ${on ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 통솔 ${s.lea} (사기 ${Math.round(clamp(30 + s.lea * 2.5, 10, 100))}) · ${s.style}${G.heroes[h].tired ? ' · 피로 -20%' : ''}${on && opts.formation ? ` · 혼불 ${FORMATIONS[hf].name}` : ''}</span><span class="bar"><i style="width:${Math.round(hp * 100)}%"></i></span></span>${s.hiddenOn ? '<em class="gold small">특수기</em>' : ''}${chips}</div>`; }).join('') || '<p class="muted small">고를 수 있는 영웅이 없습니다.</p>'}</div>
+        return `<div class="pick-hero ${on ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · ${s.job} · 통솔 ${s.lea} (사기 ${Math.round(clamp(30 + s.lea * 2.5, 10, 100))}) · ${s.style}${G.heroes[h].tired ? ' · 피로 -20%' : ''}${on && opts.formation ? ` · 혼불 ${FORMATIONS[hf].name}` : ''}</span><span class="bar"><i style="width:${Math.round(hp * 100)}%"></i></span></span>${s.hiddenOn ? '<em class="gold small">특수기</em>' : ''}${chips}</div>`; }).join('') || '<p class="muted small">고를 수 있는 영웅이 없습니다.</p>'}</div>
       <p class="muted small">출전 병력 ${sent}명 (쓸 수 있는 병력 ${troops})${foodCost ? ` · 군량 ${foodCost} 소모` : ''}${!picked.size && opts.allowEmpty ? ' · 영웅 없이 나가면 혼불 대장이 지휘합니다' : ''}</p>
       ${short ? '<p class="hint" style="color:#f08b72">군량이 모자랍니다. 개간으로 군량을 늘리거나 인원을 줄이세요.</p>' : ''}
       <div class="actions"><button class="btn primary" data-go ${(picked.size || opts.allowEmpty) && !short && (sent > 0 || picked.size) ? '' : 'disabled'}>출진</button></div>`, (card) => {
@@ -672,9 +688,10 @@ function applyBattle(res, party, markActed = true) {
     if (isNight()) markNightWork(h);
     const lv = grantExp(h, (res.win ? 60 : 20) + (res.exp[h] || 0));
     if (lv.length) ups.push(`${heroName(h)} Lv ${lv[lv.length - 1]}`);
+    if (availablePromos(h).length) ups.push(`${heroName(h)} 직업 승급 가능`);
   });
   if (res.win) G.stats.wins++;
-  if (ups.length) setTimeout(() => toast('레벨 업: ' + ups.join(', '), 'gold'), 400);
+  if (ups.length) setTimeout(() => toast(ups.join(', '), 'gold'), 400);
 }
 
 function launchAttack(cityId) {
@@ -764,14 +781,21 @@ function captureCity(cityId, res) {
   renderAll();
 
   const seq = [];
-  if (cityId === 'gangneung') { giveItem('k_sansam'); seq.push((n) => Dialog.play(SCRIPT.gangneung, n)); }
-  if (cityId === 'tongyeong') seq.push((n) => Dialog.play(SCRIPT.tongyeong, () => { addHero('sunsin', null, 'tongyeong'); G.heroes.sunsin.acted = true; toast('이순신이 합류했습니다.', 'gold'); n(); }));
-  if (boss && BOSS_LINES[boss]) seq.push((n) => bossChoice(boss, n));
+  if (cityId === 'gangneung' && !G.done.cap_gangneung) {
+    G.done.cap_gangneung = true;
+    giveItem('k_sansam');
+    seq.push((n) => Dialog.play(SCRIPT.gangneung, n));
+  }
+  if (cityId === 'tongyeong' && !G.done.cap_tongyeong && !G.roster.includes('sunsin')) {
+    G.done.cap_tongyeong = true;
+    seq.push((n) => Dialog.play(SCRIPT.tongyeong, () => { addHero('sunsin', null, 'tongyeong'); G.heroes.sunsin.acted = true; toast('이순신이 합류했습니다.', 'gold'); n(); }));
+  }
+  if (boss && BOSS_LINES[boss] && !G.roster.includes(boss) && !G.done['rec_' + boss] && !G.done['rel_' + boss]) seq.push((n) => bossChoice(boss, n));
   seq.push((n) => {
     toast(`${CITIES[cityId].name} 점령 · 금 ${gold}, 군량 ${food}, ${drops.map((d) => ITEMS[d].name).join(', ')} · ${HEROES[turn].name} 투항`, 'gold');
     n();
   });
-  const run = () => { const f = seq.shift(); if (f) f(run); else { renderAll(); saveGame(); promptCapIfNeeded(turn); if (ownedCities().length === 6) setTimeout(finale, 900); } };
+  const run = () => { const f = seq.shift(); if (f) f(run); else { renderAll(); saveGame(); promptCapIfNeeded(turn); if (ownedCities().length >= Object.keys(CITIES).length) setTimeout(finale, 900); } };
   setTimeout(run, 1200);
 }
 
@@ -856,7 +880,7 @@ function endTurn() {
   if (Dialog.active() || !$('#modal').hidden) return;
   const autoLog = [];
   ownedCities().forEach((c) => { if (G.cities[c].auto) autoLog.push(...autoDomestic(c)); });
-  if (autoLog.length) { autoLog.forEach(logEvent); setTimeout(() => toast(`위임 내정 ${autoLog.length}건 · 소문 탭 기록에서 볼 수 있습니다`), 300); }
+  if (autoLog.length) { autoLog.forEach(logEvent); setTimeout(() => toast(`위임 내정 ${autoLog.length}건 · 탐색 탭 기록에서 볼 수 있습니다`), 300); }
   const wasNight = isNight();
   G.phase = (G.phase + 1) % PHASES.length;
   let extra = '';
@@ -907,6 +931,17 @@ function enemyDomestic() {
     st.train = Math.min(90, st.train + 2);
     if (Math.random() < 0.3) st.wall = Math.min(90, st.wall + 2);
     notes.push(`${FACTIONS[st.owner].name}이(가) ${CITIES[id].name}에서 병사를 모았다 (병력 ${st.troops})`);
+    if (cmdAllowed('search') && Math.random() < 0.5 && (st.found || 0) < 4) {
+      G.foeFound = G.foeFound || {};
+      const found = G.foeFound[st.owner] || 0;
+      const fakeInt = 10 + lv * 3;
+      const chance = Math.max(10, Math.min(85, 25 + fakeInt * 2 + st.loyal * 0.2 - found * 3.5));
+      if (Math.random() * 100 < chance) {
+        st.found = (st.found || 0) + 1;
+        G.foeFound[st.owner] = found + 1;
+        notes.push(`${FACTIONS[st.owner].name}이(가) ${CITIES[id].name}에서 인재를 찾았다`);
+      }
+    }
   }
   if (notes.length) { const n = pick(notes); logEvent('적 동향: ' + n); setTimeout(() => toast('적 동향 · ' + n, 'violet'), 900); }
 }
@@ -1084,8 +1119,11 @@ function continueGame() {
   G = s;
   if (G.stage === 'act1' && G.v === 3) { G.phase = [0, 0, 1, 2][G.phase] || 0; G.v = 4; }
   if (G.stage === 'act1' && G.v === 4) G.v = 5;
-  if (G.stage !== 'act1' || G.v !== 5) { startNew(); return; }
+  if (G.stage !== 'act1' || G.v < 5) { startNew(); return; }
   registerOfficers();
+  ensureJobs();
+  ensureCities();
+  G.v = 6;
   showScreen('scr-map');
   renderAll();
   toast(`${G.day}일차 ${phaseName()} · 이어서 시작합니다`);
@@ -1109,7 +1147,9 @@ function howTo() {
       <li>매일 아침 상업에서 금, 농업에서 군량이 들어오고 병사들이 군량을 먹습니다. 출병에는 병사당 군량 0.5가 듭니다.</li>
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
-      <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
+      <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
+      <li>영웅은 병과에 맞는 무기만 찹니다. 검병·활병·창병·기마병·책사에서 시작해, 레벨 5에 특수 직업, 레벨 8과 고유 무기로 고유 직업으로 승급합니다. 세종·광개토대왕처럼 한 사람뿐인 직업도 있습니다.</li>
+      <li>인재 탐색은 장수가 늘수록 발견 확률이 떨어집니다. 적 세력도 낮에 인재를 찾습니다.</li>
       <li>숨겨진 장소는 야간 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,
   (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; });

@@ -237,7 +237,7 @@ const Battle = (() => {
     pHeroes.forEach((h) => {
       const n = Math.min(SQUAD, pool);
       pool -= n;
-      const ut = HEROES[h.hid].unit;
+      const ut = (computeStats(h.hid).unit) || HEROES[h.hid].unit;
       for (let k = 0; k < n; k++) {
         let st = 'melee';
         if (ut === 'archer') st = k % 2 ? 'archer' : 'melee';

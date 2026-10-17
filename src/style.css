@@ -286,6 +286,12 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .hero-forms { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; margin: 0 0 0 56px; }
 .form-chip { font-size: 0.72rem; padding: 3px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--ink); color: var(--ash); cursor: pointer; font-family: var(--f-display); }
 .form-chip.on { border-color: var(--gold); color: var(--gold); background: rgba(217,171,74,0.12); }
+.job-now { font-family: var(--f-display); margin: 0 0 6px; color: var(--gold); }
+.job-next { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px; }
+.job-chip { font-size: 0.78rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--ink); color: var(--ash); cursor: pointer; font-family: var(--f-display); }
+.job-chip.ready { border-color: var(--gold); color: var(--gold); cursor: pointer; }
+.job-chip.uniq.ready { background: rgba(217,171,74,0.12); }
+.job-chip:disabled { opacity: 0.7; cursor: default; }
 .reward { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .reward-msg { font-size: 1.05rem; margin: 6px 0; }
 .reward .kv { width: 100%; text-align: left; }
