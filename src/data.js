@@ -248,11 +248,6 @@ const PLACES = {
                  hint: '별을 보던 대 아래 무언가 묻혀 있다. 별과 인연이 있는 장수가 밤에 찾아야 한다.', events: ['ev_gamchan_bow'] },
 };
 
-const CITY_REVEALS = {
-  gangneung: ['gyeongpo'], jeonju: ['hwangsan', 'hwalbin'], tongyeong: ['hansan', 'jirisan'],
-  pyongyang: ['salsu', 'anhak'], gyeongju: ['cheomseong'],
-};
-
 const SPEAKERS = {
   narr:     { name: '', glyph: '', color: '#a59d8a' },
   yeomra:   { name: '염라대왕', glyph: '閻', color: '#e0503c' },

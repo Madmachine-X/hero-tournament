@@ -375,7 +375,7 @@ function heroList() {
   const groups = roadHtml + Object.keys(byCity).map((c) => `<p class="label">${CITIES[c] ? CITIES[c].name : c} <span class="muted small">${byCity[c].length}명</span></p><div class="list">${byCity[c].map(row).join('')}</div>`).join('');
   const missing = 13 - namedCount();
   return `${groups}
-    ${missing ? `<p class="hint">아직 만나지 못한 이름난 영웅이 ${missing}명 있습니다. 도시를 차지하고 소문을 따라가 보세요.</p>` : ''}`;
+    ${missing ? `<p class="hint">아직 만나지 못한 이름난 영웅이 ${missing}명 있습니다. 야간에 소문 탐색을 하면 숨겨진 장소를 들을 수 있습니다.</p>` : ''}`;
 }
 
 function heroDetail(id) {
@@ -453,7 +453,7 @@ function rumorView() {
     return `<button class="row rumor-row ${done ? 'done' : ''}" data-place="${id}"><span class="chip violet">${done ? '✓' : '?'}</span><span class="row-main">${p.name}<span class="muted small">${esc(p.hint)}</span></span></button>`;
   }).join('');
   const log = G.log.slice(0, 12).map((l) => `<li><span class="muted">${l.day}일 ${PHASES[l.phase].name}</span> ${esc(l.text)}</li>`).join('');
-  return `<p class="label">들은 소문</p><div class="list">${places}</div>
+  return `<p class="label">들은 소문</p><div class="list">${places || '<p class="muted small">아직 들은 소문이 없습니다. 야간에 소문 탐색을 하면 숨겨진 장소가 들립니다.</p>'}</div>
     ${log ? `<p class="label">기록</p><ul class="log">${log}</ul>` : ''}`;
 }
 
@@ -547,7 +547,7 @@ const MARKET_GEAR = ['m_gamtu', 'm_yeouiju', 'm_gatkkeun', 'm_heukdo', 'a_yongri
 const MARKET_DEALS = [
   { id: 'food', name: '군량 암거래', desc: '군량 300을 몰래 들여온다.', price: 180 },
   { id: 'merc', name: '떠돌이 혼불 용병', desc: '장터가 선 도시에 병사 30명이 합류한다 (훈련 50).', price: 200 },
-  { id: 'spy', name: '밀정의 지도', desc: '아직 모르는 숨겨진 장소 하나를 알려 준다.', price: 150 },
+  { id: 'spy', name: '밀정의 보고', desc: '이웃한 적 도시 하나의 병력·훈련·성벽을 알려 준다.', price: 150 },
   { id: 'elixir', name: '환혼단', desc: '모든 영웅의 체력을 가득 채운다.', price: 160 },
 ];
 function maybeMarket() {
@@ -597,7 +597,11 @@ function openMarket() {
         G.gold -= d.price; m.bought.push(d.id);
         if (d.id === 'food') G.food += 300;
         if (d.id === 'merc') { const c = G.cities[m.city]; if (c.owner === 'player') { c.train = Math.round((c.train * c.troops + 50 * 30) / (c.troops + 30)); c.troops += 30; } }
-        if (d.id === 'spy') { const hid = Object.keys(PLACES).filter((p) => !G.places.includes(p)); if (hid.length) { const p = pick(hid); G.places.push(p); toast(`밀정의 지도: ${PLACES[p].name}`, 'violet'); } else G.gold += d.price; }
+        if (d.id === 'spy') {
+          const foes = ownedCities().flatMap((c) => neighbors(c)).filter((n, i, a) => a.indexOf(n) === i && G.cities[n].owner !== 'player');
+          if (foes.length) { const f = pick(foes); G.cities[f].scouted = G.day; toast(`밀정: ${CITIES[f].name} 병력 ${G.cities[f].troops}, 훈련 ${G.cities[f].train}, 성벽 ${G.cities[f].wall}`, 'gold'); }
+          else G.gold += d.price;
+        }
         if (d.id === 'elixir') G.roster.forEach((h) => { G.heroes[h].hp = 1; });
         toast(`${d.name} 거래를 마쳤습니다.`, 'gold');
         logEvent(`비밀 장터: ${d.name}`);
@@ -746,9 +750,6 @@ function captureCity(cityId, res) {
   if (lv >= 4) drops.push(pick(LOOT));
   if (cityId === 'pyongyang' || cityId === 'gyeongju') drops.push(Math.random() < 0.5 ? 'a_yongrin' : 'a_dujeong');
   drops.forEach(giveItem);
-  const reveal = (CITY_REVEALS[cityId] || []).slice();
-  if (ownedCities().length >= 2 && !G.places.includes('jiphyeon')) reveal.push('jiphyeon');
-  reveal.forEach((p) => { if (!G.places.includes(p)) G.places.push(p); });
   G.joinCity = cityId;
   const turn = makeOfficer(Math.random() < 0.5 ? 'civil' : 'mil', Math.max(2, lv + 1), cityId, '투항한 관리');
   G.heroes[turn].acted = true;
@@ -761,7 +762,6 @@ function captureCity(cityId, res) {
   if (boss && BOSS_LINES[boss]) seq.push((n) => bossChoice(boss, n));
   seq.push((n) => {
     toast(`${CITIES[cityId].name} 점령 · 금 ${gold}, 군량 ${food}, ${drops.map((d) => ITEMS[d].name).join(', ')} · ${HEROES[turn].name} 투항`, 'gold');
-    if (reveal.length) setTimeout(() => toast(`새 소문: ${reveal.map((p) => PLACES[p].name).join(', ')}`, 'violet'), 700);
     n();
   });
   const run = () => { const f = seq.shift(); if (f) f(run); else { renderAll(); saveGame(); promptCapIfNeeded(turn); if (ownedCities().length === 6) setTimeout(finale, 900); } };
@@ -1093,7 +1093,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>숨겨진 장소는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
+      <li>숨겨진 장소는 야간 소문 탐색으로만 들을 수 있습니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,
   (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; });
 }

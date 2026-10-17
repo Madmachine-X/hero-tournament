@@ -36,7 +36,7 @@ function newGame() {
   G = {
     v: 5, name: '무명', day: 1, phase: 0, gold: 600, food: 900, karma: 0,
     cities: {}, roster: [], heroes: {}, inv: ['r_ok', 'w_deungpae'], keys: [],
-    places: ['nakseongdae'], done: {}, seen: {}, log: [], stats: { battles: 0, wins: 0 },
+    places: [], done: {}, seen: {}, log: [], stats: { battles: 0, wins: 0 },
     stage: 'prologue', attackDay: 0, officers: {}, offSeq: 0, joinCity: 'seoul',
   };
   for (const id in CITIES) {
@@ -285,9 +285,11 @@ function scoutRumor(hid, cityId) {
   const s = computeStats(hid), who = heroName(hid);
   const luck = Math.random() * 100 + s.int * 1.2;
   const hidden = Object.keys(PLACES).filter((p) => !G.places.includes(p));
-  if (luck > 70 && hidden.length) {
-    const near = hidden.filter((p) => PLACES[p].region === cityId || neighbors(cityId).includes(PLACES[p].region));
-    const p = pick(near.length ? near : hidden);
+  const owned = ownedCities();
+  const tied = hidden.filter((p) => owned.includes(PLACES[p].region));
+  const near = hidden.filter((p) => PLACES[p].region === cityId || neighbors(cityId).includes(PLACES[p].region));
+  if (hidden.length && luck > (tied.length ? 45 : 70)) {
+    const p = pick(tied.length ? tied : near.length ? near : hidden);
     G.places.push(p);
     return { ok: true, found: true, msg: `${who}이(가) 주막에서 숨겨진 장소의 소문을 들었습니다: ${PLACES[p].name} · "${PLACES[p].hint}"` };
   }
