@@ -814,7 +814,7 @@ const COMMANDS = {
   train: { name: '훈련', key: 'train', label: '훈련', cost: { food: 20 }, desc: '병사를 조련한다. 훈련도가 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
   move:  { name: '병력 이동', key: null, label: '', cost: {}, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다.', stat: '', when: 'any' },
   rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '밤새 쉬며 체력을 모두 회복한다. 쉬지 않고 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
-  scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '어둠을 틈타 주막과 장터를 돌며 소문을 모은다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다.', stat: '지력', when: 'night' },
+  scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '어둠을 틈타 주막과 장터를 돌며 소문을 모은다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다. 고유 무기의 소문은 그 장군이 직접 들을 때만 이어진다.', stat: '지력', when: 'night' },
   search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 찾으면 이 도시에 합류한다. 정원이 가득하면 다른 도시로 보내거나 해고·등용 취소를 해야 한다.', stat: '지력', when: 'day' },
 };
 
@@ -1186,11 +1186,26 @@ function commandCost(cmd, hid, cityId) {
 function isNight() { return G.phase === NIGHT; }
 function cmdAllowed(cmd) { const w = COMMANDS[cmd].when || 'day'; return w === 'any' || (w === 'night') === isNight(); }
 
-/* 야간 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다 */
+function publicPlaceEvents(id) {
+  return PLACES[id].events.filter((ev) => !EVENTS[ev].scoutBy && !G.done[ev] && (!EVENTS[ev].after || G.done[EVENTS[ev].after]));
+}
+function pendingWeaponScout(hid) {
+  return Object.keys(EVENTS).find((id) => {
+    const ev = EVENTS[id];
+    if (ev.scoutBy !== hid || G.done[id]) return false;
+    if (ev.after && !G.done[ev.after]) return false;
+    const pid = Object.keys(PLACES).find((p) => PLACES[p].events.includes(id));
+    if (pid && G.cities[PLACES[pid].region].owner !== 'player') return false;
+    return true;
+  });
+}
+/* 야간 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다. 고유 무기는 그 장군이 직접 들을 때만 이어진다. */
 function scoutRumor(hid, cityId) {
+  const wev = pendingWeaponScout(hid);
+  if (wev) return { ok: true, event: wev, msg: `${heroName(hid)}이(가) 고유 무기의 소문을 따라갔습니다.` };
   const s = computeStats(hid), who = heroName(hid);
   const luck = Math.random() * 100 + s.int * 1.2;
-  const hidden = Object.keys(PLACES).filter((p) => !G.places.includes(p));
+  const hidden = Object.keys(PLACES).filter((p) => !G.places.includes(p) && publicPlaceEvents(p).length);
   const owned = ownedCities();
   const tied = hidden.filter((p) => owned.includes(PLACES[p].region));
   const near = hidden.filter((p) => PLACES[p].region === cityId || neighbors(cityId).includes(PLACES[p].region));
@@ -1644,6 +1659,7 @@ const EVENTS = {
     reward: () => { addHero('sejong'); return '세종대왕이 합류했습니다.'; },
   },
   ev_sejong_brush: {
+    scoutBy: 'sejong',
     after: 'ev_sejong',
     need: () => {
       if (!G.roster.includes('sejong')) return '집현전은 고요하다.';
@@ -1657,6 +1673,7 @@ const EVENTS = {
     reward: () => { giveItem('u_sejong'); return '「어필」을 얻었습니다. 세종대왕에게 장착하면 숨겨진 특수기가 열립니다.'; },
   },
   ev_jeokpae: {
+    scoutBy: 'gangrim',
     need: () => {
       if (!G.roster.includes('gangrim')) return '호수는 조용하다.';
       if (G.phase !== NIGHT) return '아직 달이 뜨지 않았다. 야간에 오자.';
@@ -1705,6 +1722,7 @@ const EVENTS = {
     reward: () => { G.keys = G.keys.filter((k) => k !== 'k_sansam'); addHero('heojun'); return '허준이 합류했습니다.'; },
   },
   ev_sunsin_sword: {
+    scoutBy: 'sunsin',
     need: () => {
       if (!G.roster.includes('sunsin')) return '바위에 꽂힌 칼은 꿈쩍도 하지 않는다. 주인이 따로 있다.';
       if (G.phase !== 0) return '안개가 걷혀 칼이 보이지 않는다. 오전에 오자.';
@@ -1718,6 +1736,7 @@ const EVENTS = {
     reward: () => { giveItem('u_sunsin'); return '「이순신의 장검」을 얻었습니다. 이순신에게 장착하면 「거북선 출격」이 열립니다.'; },
   },
   ev_eulji_fan: {
+    scoutBy: 'eulji',
     need: () => G.roster.includes('eulji') ? null : '부채가 물살에 흔들린다. 그 계책을 아는 자가 필요하다.',
     lines: [
       { who: 'narr', text: '살수 강가에 깃부채 하나가 떠밀려 와 있다.' },
@@ -1741,6 +1760,7 @@ const EVENTS = {
     reward: () => { addHero('gwanggaeto'); return '광개토대왕이 「호태왕의 철창」을 들고 합류했습니다.'; },
   },
   ev_gamchan_bow: {
+    scoutBy: 'gamchan',
     need: () => {
       if (!G.roster.includes('gamchan')) return '별빛이 무언가를 가리키지만, 읽을 줄 아는 장수가 없다.';
       if (G.phase !== NIGHT) return '별이 보이지 않는다. 야간에 오자.';
@@ -4926,7 +4946,7 @@ function heroDetail(id) {
     const hs = SKILLS[d.hidden], wpn = ITEMS[d.weapon];
     if (s.hiddenOn) hiddenHtml = `<div class="skill hid on"><b>${hs.name}</b><span class="tag gold">발동 중</span><p>${hs.desc}</p></div>`;
     else if (G.seen[d.weapon]) hiddenHtml = `<div class="skill hid"><b>${hs.name}</b><span class="tag">봉인</span><p>${hs.desc}</p><p class="muted small">「${wpn.name}」을(를) 장착하면 열립니다.</p></div>`;
-    else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">어딘가에 이 영웅의 고유 무기가 잠들어 있다.</p></div>`;
+    else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">이 영웅에게 야간 소문 탐색을 시키면 고유 무기의 소문을 들을 수 있다.</p></div>`;
   }
   const slots = ['w1', 'w2', 'armor', 'acc0', 'acc1', 'acc2', 'acc3'].map((sl) => {
     const iid = getSlot(h.equip, sl), it = ITEMS[iid];
@@ -5033,6 +5053,13 @@ function onPanelClick(e) {
   }
   if (b.dataset.doer) {
     const r = doCommand(UI.cmd, b.dataset.doer, id);
+    if (r.ok && r.event) {
+      UI.cmd = null;
+      saveGame();
+      renderAll();
+      playWeaponScout(r.event);
+      return;
+    }
     toast(r.msg, r.ok ? (r.found ? 'gold' : '') : 'warn');
     if (r.ok) { logEvent(r.msg); saveGame(); }
     renderAll();
@@ -5322,6 +5349,10 @@ function explore(placeId) {
   if (G.cities[pl.region].owner !== 'player') { toast(`${CITIES[pl.region].name}을(를) 먼저 차지해야 합니다.`); return; }
   const evId = pl.events.find((ev) => !G.done[ev] && (!EVENTS[ev].after || G.done[EVENTS[ev].after]));
   if (!evId) { toast('이곳에서는 더 찾을 것이 없습니다.'); return; }
+  if (EVENTS[evId].scoutBy) {
+    toast(`${heroName(EVENTS[evId].scoutBy)}이(가) 직접 소문 탐색을 해야 이 무기의 소문이 이어집니다.`);
+    return;
+  }
   const ev = EVENTS[evId];
   const why = ev.need();
   if (why) {
@@ -5360,6 +5391,12 @@ function explore(placeId) {
   });
 }
 
+function playWeaponScout(evId) {
+  const ev = EVENTS[evId];
+  const pid = Object.keys(PLACES).find((p) => PLACES[p].events.includes(evId));
+  if (pid && !G.places.includes(pid)) G.places.push(pid);
+  Dialog.play(ev.lines, () => finishEvent(evId));
+}
 function finishEvent(evId) {
   G.done[evId] = true;
   const pl = Object.values(PLACES).find((p) => p.events.includes(evId));
@@ -5633,7 +5670,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>숨겨진 장소는 야간 소문 탐색으로만 들을 수 있습니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
+      <li>숨겨진 장소는 야간 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,
   (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; });
 }

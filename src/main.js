@@ -386,7 +386,7 @@ function heroDetail(id) {
     const hs = SKILLS[d.hidden], wpn = ITEMS[d.weapon];
     if (s.hiddenOn) hiddenHtml = `<div class="skill hid on"><b>${hs.name}</b><span class="tag gold">발동 중</span><p>${hs.desc}</p></div>`;
     else if (G.seen[d.weapon]) hiddenHtml = `<div class="skill hid"><b>${hs.name}</b><span class="tag">봉인</span><p>${hs.desc}</p><p class="muted small">「${wpn.name}」을(를) 장착하면 열립니다.</p></div>`;
-    else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">어딘가에 이 영웅의 고유 무기가 잠들어 있다.</p></div>`;
+    else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">이 영웅에게 야간 소문 탐색을 시키면 고유 무기의 소문을 들을 수 있다.</p></div>`;
   }
   const slots = ['w1', 'w2', 'armor', 'acc0', 'acc1', 'acc2', 'acc3'].map((sl) => {
     const iid = getSlot(h.equip, sl), it = ITEMS[iid];
@@ -493,6 +493,13 @@ function onPanelClick(e) {
   }
   if (b.dataset.doer) {
     const r = doCommand(UI.cmd, b.dataset.doer, id);
+    if (r.ok && r.event) {
+      UI.cmd = null;
+      saveGame();
+      renderAll();
+      playWeaponScout(r.event);
+      return;
+    }
     toast(r.msg, r.ok ? (r.found ? 'gold' : '') : 'warn');
     if (r.ok) { logEvent(r.msg); saveGame(); }
     renderAll();
@@ -782,6 +789,10 @@ function explore(placeId) {
   if (G.cities[pl.region].owner !== 'player') { toast(`${CITIES[pl.region].name}을(를) 먼저 차지해야 합니다.`); return; }
   const evId = pl.events.find((ev) => !G.done[ev] && (!EVENTS[ev].after || G.done[EVENTS[ev].after]));
   if (!evId) { toast('이곳에서는 더 찾을 것이 없습니다.'); return; }
+  if (EVENTS[evId].scoutBy) {
+    toast(`${heroName(EVENTS[evId].scoutBy)}이(가) 직접 소문 탐색을 해야 이 무기의 소문이 이어집니다.`);
+    return;
+  }
   const ev = EVENTS[evId];
   const why = ev.need();
   if (why) {
@@ -820,6 +831,12 @@ function explore(placeId) {
   });
 }
 
+function playWeaponScout(evId) {
+  const ev = EVENTS[evId];
+  const pid = Object.keys(PLACES).find((p) => PLACES[p].events.includes(evId));
+  if (pid && !G.places.includes(pid)) G.places.push(pid);
+  Dialog.play(ev.lines, () => finishEvent(evId));
+}
 function finishEvent(evId) {
   G.done[evId] = true;
   const pl = Object.values(PLACES).find((p) => p.events.includes(evId));
@@ -1093,7 +1110,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>숨겨진 장소는 야간 소문 탐색으로만 들을 수 있습니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
+      <li>숨겨진 장소는 야간 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,
   (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; });
 }

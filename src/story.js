@@ -244,6 +244,7 @@ const EVENTS = {
     reward: () => { addHero('sejong'); return '세종대왕이 합류했습니다.'; },
   },
   ev_sejong_brush: {
+    scoutBy: 'sejong',
     after: 'ev_sejong',
     need: () => {
       if (!G.roster.includes('sejong')) return '집현전은 고요하다.';
@@ -257,6 +258,7 @@ const EVENTS = {
     reward: () => { giveItem('u_sejong'); return '「어필」을 얻었습니다. 세종대왕에게 장착하면 숨겨진 특수기가 열립니다.'; },
   },
   ev_jeokpae: {
+    scoutBy: 'gangrim',
     need: () => {
       if (!G.roster.includes('gangrim')) return '호수는 조용하다.';
       if (G.phase !== NIGHT) return '아직 달이 뜨지 않았다. 야간에 오자.';
@@ -305,6 +307,7 @@ const EVENTS = {
     reward: () => { G.keys = G.keys.filter((k) => k !== 'k_sansam'); addHero('heojun'); return '허준이 합류했습니다.'; },
   },
   ev_sunsin_sword: {
+    scoutBy: 'sunsin',
     need: () => {
       if (!G.roster.includes('sunsin')) return '바위에 꽂힌 칼은 꿈쩍도 하지 않는다. 주인이 따로 있다.';
       if (G.phase !== 0) return '안개가 걷혀 칼이 보이지 않는다. 오전에 오자.';
@@ -318,6 +321,7 @@ const EVENTS = {
     reward: () => { giveItem('u_sunsin'); return '「이순신의 장검」을 얻었습니다. 이순신에게 장착하면 「거북선 출격」이 열립니다.'; },
   },
   ev_eulji_fan: {
+    scoutBy: 'eulji',
     need: () => G.roster.includes('eulji') ? null : '부채가 물살에 흔들린다. 그 계책을 아는 자가 필요하다.',
     lines: [
       { who: 'narr', text: '살수 강가에 깃부채 하나가 떠밀려 와 있다.' },
@@ -341,6 +345,7 @@ const EVENTS = {
     reward: () => { addHero('gwanggaeto'); return '광개토대왕이 「호태왕의 철창」을 들고 합류했습니다.'; },
   },
   ev_gamchan_bow: {
+    scoutBy: 'gamchan',
     need: () => {
       if (!G.roster.includes('gamchan')) return '별빛이 무언가를 가리키지만, 읽을 줄 아는 장수가 없다.';
       if (G.phase !== NIGHT) return '별이 보이지 않는다. 야간에 오자.';

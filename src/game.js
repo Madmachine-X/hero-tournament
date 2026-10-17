@@ -280,11 +280,26 @@ function commandCost(cmd, hid, cityId) {
 function isNight() { return G.phase === NIGHT; }
 function cmdAllowed(cmd) { const w = COMMANDS[cmd].when || 'day'; return w === 'any' || (w === 'night') === isNight(); }
 
-/* 야간 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다 */
+function publicPlaceEvents(id) {
+  return PLACES[id].events.filter((ev) => !EVENTS[ev].scoutBy && !G.done[ev] && (!EVENTS[ev].after || G.done[EVENTS[ev].after]));
+}
+function pendingWeaponScout(hid) {
+  return Object.keys(EVENTS).find((id) => {
+    const ev = EVENTS[id];
+    if (ev.scoutBy !== hid || G.done[id]) return false;
+    if (ev.after && !G.done[ev.after]) return false;
+    const pid = Object.keys(PLACES).find((p) => PLACES[p].events.includes(id));
+    if (pid && G.cities[PLACES[pid].region].owner !== 'player') return false;
+    return true;
+  });
+}
+/* 야간 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다. 고유 무기는 그 장군이 직접 들을 때만 이어진다. */
 function scoutRumor(hid, cityId) {
+  const wev = pendingWeaponScout(hid);
+  if (wev) return { ok: true, event: wev, msg: `${heroName(hid)}이(가) 고유 무기의 소문을 따라갔습니다.` };
   const s = computeStats(hid), who = heroName(hid);
   const luck = Math.random() * 100 + s.int * 1.2;
-  const hidden = Object.keys(PLACES).filter((p) => !G.places.includes(p));
+  const hidden = Object.keys(PLACES).filter((p) => !G.places.includes(p) && publicPlaceEvents(p).length);
   const owned = ownedCities();
   const tied = hidden.filter((p) => owned.includes(PLACES[p].region));
   const near = hidden.filter((p) => PLACES[p].region === cityId || neighbors(cityId).includes(PLACES[p].region));
