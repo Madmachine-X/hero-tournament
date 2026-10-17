@@ -1,6 +1,17 @@
 'use strict';
 /* ===== 화면 흐름, 전략 UI, 영웅/장비/상점 ===== */
-const UI = { tab: 'info', sel: null, heroView: null, equipSlot: null, cmd: null, cmdHero: null, formation: (() => { try { return localStorage.getItem('chyw-form') || 'eorin'; } catch (e) { return 'eorin'; } })() };
+const UI = {
+  tab: 'info', sel: null, heroView: null, equipSlot: null, cmd: null, cmdHero: null,
+  formation: (() => { try { return localStorage.getItem('chyw-form') || 'eorin'; } catch (e) { return 'eorin'; } })(),
+  forms: (() => { try { return JSON.parse(localStorage.getItem('chyw-hero-forms') || '{}') || {}; } catch (e) { return {}; } })(),
+};
+function heroFormOf(h) { return FORMATIONS[UI.forms[h]] ? UI.forms[h] : (UI.formation || 'eorin'); }
+function setHeroForm(h, f) {
+  if (!FORMATIONS[f]) return;
+  UI.forms[h] = f;
+  UI.formation = f;
+  try { localStorage.setItem('chyw-hero-forms', JSON.stringify(UI.forms)); localStorage.setItem('chyw-form', f); } catch (err) {}
+}
 const SLOT_LABEL = { w1: '무기 1', w2: '무기 2', armor: '갑옷', acc0: '장신구 1', acc1: '장신구 2', acc2: '장신구 3', acc3: '장신구 4' };
 const DANGER = { gangneung: 1, jeonju: 2, tongyeong: 2, pyongyang: 3, gyeongju: 3, seoul: 1 };
 
@@ -508,20 +519,22 @@ function choosePartyThen(title, cb, onCancel, opts = {}) {
     const short = foodCost > G.food;
     openModal(`<div class="modal-head"><h3 class="h-display">${esc(title)}</h3><button class="x" data-close>×</button></div>
       ${opts.note ? `<p class="muted small">${opts.note}</p>` : ''}
-      <p class="muted">함께 갈 영웅을 ${MAXP}명까지 고르세요. 영웅 한 명이 혼불 병사 ${SQUAD}명을 이끕니다. (${picked.size}/${MAXP})</p>
-      <div class="party">${pool.map((h) => { const s = computeStats(h), hp = G.heroes[h].hp;
-        return `<button class="pick-hero ${picked.has(h) ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 통솔 ${s.lea} (사기 ${Math.round(clamp(30 + s.lea * 2.5, 10, 100))}) · ${s.style}</span><span class="bar"><i style="width:${Math.round(hp * 100)}%"></i></span></span>${s.hiddenOn ? '<em class="gold small">특수기</em>' : ''}</button>`; }).join('') || '<p class="muted small">고를 수 있는 영웅이 없습니다.</p>'}</div>
-      ${opts.formation ? `<p class="label">진형 ${opts.enemyCity ? `<span class="muted small">적은 ${FORMATIONS[FACTION_FORMATION[G.cities[opts.enemyCity].owner]].name}으로 맞섭니다</span>` : ''}</p>
-      <div class="forms">${Object.keys(FORMATIONS).map((k) => `<button class="form-pick ${UI.formation === k ? 'on' : ''}" data-form="${k}"><b>${FORMATIONS[k].name}<small>${FORMATIONS[k].hanja}</small></b><span>${FORMATIONS[k].desc}</span></button>`).join('')}</div>` : ''}
+      <p class="muted">함께 갈 영웅을 ${MAXP}명까지 고르세요. 영웅 한 명이 혼불 병사 ${SQUAD}명을 이끕니다. 고른 영웅마다 혼불 진형을 따로 정합니다. (${picked.size}/${MAXP})</p>
+      ${opts.formation && opts.enemyCity ? `<p class="muted small">적은 ${FORMATIONS[FACTION_FORMATION[G.cities[opts.enemyCity].owner]].name}으로 맞섭니다.</p>` : ''}
+      <div class="party">${pool.map((h) => { const s = computeStats(h), hp = G.heroes[h].hp, on = picked.has(h), hf = heroFormOf(h);
+        const chips = on && opts.formation ? `<span class="hero-forms">${Object.keys(FORMATIONS).map((k) => `<button type="button" class="form-chip ${hf === k ? 'on' : ''}" data-hform="${h}" data-form="${k}">${FORMATIONS[k].name}</button>`).join('')}</span>` : '';
+        return `<div class="pick-hero ${on ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 통솔 ${s.lea} (사기 ${Math.round(clamp(30 + s.lea * 2.5, 10, 100))}) · ${s.style}${on && opts.formation ? ` · 혼불 ${FORMATIONS[hf].name}` : ''}</span><span class="bar"><i style="width:${Math.round(hp * 100)}%"></i></span></span>${s.hiddenOn ? '<em class="gold small">특수기</em>' : ''}${chips}</div>`; }).join('') || '<p class="muted small">고를 수 있는 영웅이 없습니다.</p>'}</div>
       <p class="muted small">출전 병력 ${sent}명 (쓸 수 있는 병력 ${troops})${foodCost ? ` · 군량 ${foodCost} 소모` : ''}${!picked.size && opts.allowEmpty ? ' · 영웅 없이 나가면 혼불 대장이 지휘합니다' : ''}</p>
       ${short ? '<p class="hint" style="color:#f08b72">군량이 모자랍니다. 개간으로 군량을 늘리거나 인원을 줄이세요.</p>' : ''}
       <div class="actions"><button class="btn primary" data-go ${(picked.size || opts.allowEmpty) && !short && (sent > 0 || picked.size) ? '' : 'disabled'}>출진</button></div>`, (card) => {
       card.onclick = (e) => {
+        const chip = e.target.closest('[data-hform]');
+        if (chip) { setHeroForm(chip.dataset.hform, chip.dataset.form); draw(); return; }
+        const row = e.target.closest('[data-h]');
+        if (row) { const h = row.dataset.h; if (picked.has(h)) picked.delete(h); else if (picked.size < MAXP) picked.add(h); else toast(`${MAXP}명까지만 데려갈 수 있습니다.`); draw(); return; }
         const b = e.target.closest('button');
         if (!b || b.disabled) return;
         if (b.dataset.close !== undefined) { closeModal(); if (onCancel) onCancel(); return; }
-        if (b.dataset.form) { UI.formation = b.dataset.form; try { localStorage.setItem('chyw-form', UI.formation); } catch (err) {} draw(); return; }
-        if (b.dataset.h) { const h = b.dataset.h; if (picked.has(h)) picked.delete(h); else if (picked.size < MAXP) picked.add(h); else toast(`${MAXP}명까지만 데려갈 수 있습니다.`); draw(); return; }
         if (b.dataset.go !== undefined) { closeModal(); cb([...picked], sent, foodCost); }
       };
     });
@@ -563,7 +576,7 @@ function launchAttack(cityId) {
       const enemy = enemyForce(cityId, { party: party.length });
       if (raid) { enemy.extraSquads = 0; enemy.moraleAdj = -20; enemy.surprised = true; }
       startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', type: 'attack', party, enemy,
-        playerSoldiers: sent, playerTrain: st.train, wall: { team: 1, value: G.cities[cityId].wall * (raid ? 0.5 : 1) }, formation: UI.formation,
+        playerSoldiers: sent, playerTrain: st.train, wall: { team: 1, value: G.cities[cityId].wall * (raid ? 0.5 : 1) }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])),
         onEnd: (res) => afterAttack(cityId, src, res, party) });
     }, null, { only: freeIn(src), troops: st.troops, food: 0.5, note: note + (raid ? '<br><b class="gold">야간 기습</b> · 잠든 적은 사기가 20 낮고, 성벽 효과가 절반이며, 혼불 지원 부대를 내보내지 못합니다.' : ''), formation: true, enemyCity: cityId });
     const sw = $('#modal-card [data-switch]');
@@ -797,7 +810,7 @@ function maybeEnemyAttack(force) {
           const enemy = enemyForce(tgt, { attacker: src, faction: owner, party: party.length });
           enemy.soldiers = preview.send;
           startBattle({ title: `${CITIES[tgt].name} 방어전`, theme: CITIES[tgt].theme || 'ruin', type: 'defend', party, enemy,
-            playerSoldiers: sent, playerTrain: T.train, wall: { team: 0, value: T.wall }, formation: UI.formation, onEnd: (res) => {
+            playerSoldiers: sent, playerTrain: T.train, wall: { team: 0, value: T.wall }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])), onEnd: (res) => {
               applyBattle(res, party, false);
               showScreen('scr-map');
               if (res.win) { T.troops += res.survivors; G.cities[src].troops += 0; toast(`${CITIES[tgt].name}을(를) 지켜 냈습니다.`, 'gold'); logEvent(`${CITIES[tgt].name} 방어 성공`); }
@@ -902,7 +915,7 @@ function startNew() {
 
 function tutorialBattle() {
   startBattle({
-    title: '거울 세계 · 서울', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
+    title: '거울 세계 · 서울', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', forms: { hero: heroFormOf('hero'), gangrim: heroFormOf('gangrim') }, party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
     enemy: { heroes: [{ generic: true, name: '무명 십부장', level: 2, faction: 'ghost', skill: 'ghostfire' }], soldiers: 14, level: 1, faction: 'ghost' },
     onEnd: (res) => {
       applyBattle(res, ['hero', 'gangrim'], false);

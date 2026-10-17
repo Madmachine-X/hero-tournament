@@ -20,12 +20,38 @@ const Art = (() => {
     x.drawImage(im, 0, 0);
     const img = x.getImageData(0, 0, w, h);
     const d = img.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const r = d[i], g = d[i + 1], b = d[i + 2];
+    const isBg = (p) => {
+      const r = d[p], g = d[p + 1], b = d[p + 2];
       const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       const span = Math.max(r, g, b) - Math.min(r, g, b);
-      if (lum < 22 && span < 18) d[i + 3] = 0;
-      else if (lum < 38 && span < 22) d[i + 3] = Math.round(d[i + 3] * ((lum - 22) / 16));
+      return lum < 36 && span < 28;
+    };
+    const seen = new Uint8Array(w * h);
+    const stack = [];
+    const push = (xx, yy) => {
+      if (xx < 0 || yy < 0 || xx >= w || yy >= h) return;
+      const n = yy * w + xx;
+      if (seen[n] || !isBg(n * 4)) return;
+      seen[n] = 1;
+      stack.push(n);
+    };
+    for (let xx = 0; xx < w; xx++) { push(xx, 0); push(xx, h - 1); }
+    for (let yy = 0; yy < h; yy++) { push(0, yy); push(w - 1, yy); }
+    while (stack.length) {
+      const n = stack.pop();
+      const xx = n % w, yy = (n / w) | 0;
+      d[n * 4 + 3] = 0;
+      push(xx - 1, yy); push(xx + 1, yy); push(xx, yy - 1); push(xx, yy + 1);
+    }
+    for (let n = 0; n < w * h; n++) {
+      if (seen[n] || d[n * 4 + 3] === 0) continue;
+      const xx = n % w, yy = (n / w) | 0;
+      let edge = 0;
+      if (xx > 0 && seen[n - 1]) edge++;
+      if (xx < w - 1 && seen[n + 1]) edge++;
+      if (yy > 0 && seen[n - w]) edge++;
+      if (yy < h - 1 && seen[n + w]) edge++;
+      if (edge) d[n * 4 + 3] = Math.round(d[n * 4 + 3] * (1 - edge * 0.28));
     }
     x.putImageData(img, 0, 0);
     keyed[id] = cv;
@@ -80,7 +106,7 @@ const Sprites = (() => {
     const ph = t * 13 + u.bob;
     const bob = moving ? Math.abs(Math.sin(ph)) * 1.8 : Math.sin(t * 2.2 + u.bob) * 0.6;
     const sc = (u.boss ? 1.12 : 1) * ((LOOKS[u.hid] || {}).small ? 0.9 : 1) * ((LOOKS[u.hid] || {}).mount ? 1.18 : 1);
-    const h = 58 * sc;
+    const h = 66 * sc;
     const w = h * (spr.width / spr.height);
     c.save();
     c.translate(u.x + dir * sw * 4, u.y + 10);

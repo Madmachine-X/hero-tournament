@@ -220,14 +220,15 @@ const Battle = (() => {
     const px = cfg.type === 'defend' ? 620 : 380;
     B.form = [FORMATIONS[cfg.formation] ? cfg.formation : 'eorin', FORMATIONS[cfg.enemy.formation] ? cfg.enemy.formation : 'bangwon'];
     const pHeroes = party.map((hid, i) => {
-      const { x, y } = formPos(B.form[0], i, party.length, px, 1);
+      const { x, y } = heroLine(i, party.length, px, 1);
       const u = heroUnit(hid, 0, x, y);
+      u.form = (cfg.forms && FORMATIONS[cfg.forms[hid]]) ? cfg.forms[hid] : B.form[0];
       u.hp = Math.max(0.3, G.heroes[hid].hp) * u.maxHp;
       B.units.push(u);
       B.exp[hid] = 0;
       return u;
     });
-    // 아군 병사 배분
+    // 아군 혼불이 영웅별 진형을 만든다
     let pool = Math.max(0, Math.floor(cfg.playerSoldiers || 0));
     const pL = pHeroes.length ? Math.round(pHeroes.reduce((a, u) => a + u.level, 0) / pHeroes.length) : Math.max(2, (cfg.enemy.level || 3) - 1);
     pHeroes.forEach((h) => {
@@ -239,9 +240,10 @@ const Battle = (() => {
         if (ut === 'archer') st = k % 2 ? 'archer' : 'melee';
         else if (ut === 'cavalry') st = k % 3 === 2 ? 'melee' : 'cavalry';
         else if (k % 4 === 3) st = 'archer';
-        const a = (k / Math.max(1, n)) * Math.PI * 2;
-        const rr = 28 + Math.floor(k / 10) * 18;
-        B.units.push(soldierUnit(0, h, st, pL, h.x - 30 + Math.cos(a) * rr, h.y + Math.sin(a) * rr, 'player', cfg.playerTrain));
+        const off = formOffset(h.form, k, n, 1);
+        const so = soldierUnit(0, h, st, pL, h.x + off.x, h.y + off.y, 'player', cfg.playerTrain);
+        so.formOx = off.x; so.formOy = off.y;
+        B.units.push(so);
       }
     });
     // 영웅 없이 나선 병사(혼불 대장이 이끈다)
@@ -253,7 +255,7 @@ const Battle = (() => {
     const E = cfg.enemy;
     const ex = cfg.type === 'defend' ? 1520 : 1620;
     const eHeroes = E.heroes.map((spec, i) => {
-      const { x: hx, y } = formPos(B.form[1], i, E.heroes.length, ex, -1);
+      const { x: hx, y } = heroLine(i, E.heroes.length, ex, -1);
       let u;
       if (spec.generic) u = genericUnit(spec, hx, y);
       else {
@@ -262,6 +264,7 @@ const Battle = (() => {
         u.maxHp = Math.round(u.maxHp * 1.3); u.hp = u.maxHp; u.atk = Math.round(u.atk * 0.8); u.sp = Math.round(u.sp * 0.85);
       }
       u.faction = E.faction;
+      u.form = B.form[1];
       B.units.push(u);
       return u;
     });
@@ -279,15 +282,18 @@ const Battle = (() => {
       else if (fac === 'baekje' && k % 6 === 0) st = 'archer';
       const grp = Math.floor((k - nLed) / SQUAD);
       const bx = lead ? lead.x : ex + 90, by = lead ? lead.y : H / 2 + (grp % 2 ? 1 : -1) * (120 + grp * 60);
-      const ring = lead ? Math.floor(lead.squadN / 10) : 0;
-      B.units.push(soldierUnit(1, lead, st, E.level, bx + 20 + rand(0, 40 + ring * 18), by + rand(-50 - ring * 14, 50 + ring * 14), fac, E.train != null ? E.train : 50));
+      const slot = lead ? lead.squadN : k;
+      const off = formOffset(lead ? lead.form : B.form[1], slot, SQUAD, -1);
+      const so = soldierUnit(1, lead, st, E.level, bx + off.x, by + off.y, fac, E.train != null ? E.train : 50);
+      so.formOx = off.x; so.formOy = off.y;
+      B.units.push(so);
     }
     // 성벽: 지키는 쪽 방어력
     if (cfg.wall && cfg.wall.value) {
       const k = 1 + cfg.wall.value / 200;
       B.units.forEach((u) => { if (u.team === cfg.wall.team) u.def *= k; });
     }
-    B.units.forEach((u) => { u.spd *= fmod(u.team, 'spd'); u.def *= fmod(u.team, 'def'); });
+    B.units.forEach((u) => { u.spd *= fmodU(u, 'spd'); u.def *= fmodU(u, 'def'); });
     B.init = [B.units.filter((u) => u.team === 0).length, B.units.filter((u) => u.team === 1).length];
     gridInit();
     // 부대와 사기: 이끄는 영웅의 통솔력을 따른다
@@ -328,7 +334,8 @@ const Battle = (() => {
     Sfx.reset(); Sfx.play('start');
     buildHud();
     $('#b-name').textContent = cfg.title || '전투';
-    $('#b-form').textContent = `${FORMATIONS[B.form[0]].name} vs ${FORMATIONS[B.form[1]].name}`;
+    const pNames = [...new Set(pHeroes.map((h) => (FORMATIONS[h.form] || FORMATIONS.eorin).name))];
+    $('#b-form').textContent = `${pNames.join('·') || FORMATIONS[B.form[0]].name} vs ${FORMATIONS[B.form[1]].name}`;
     $('#b-phase').textContent = PHASES[G.phase].name + (cfg.enemy.surprised ? ' 기습' : '');
     $('#b-result').hidden = true;
     $('#b-tip').hidden = !cfg.tutorial;
@@ -340,16 +347,30 @@ const Battle = (() => {
     syncButtons();
   }
 
-  /* 진형별 영웅 배치. side 1 = 왼쪽(아군), -1 = 오른쪽(적) */
-  function formPos(f, i, n, baseX, side) {
-    const mid = (n - 1) / 2, k = i - mid;
-    const spread = Math.min(130, (H - 260) / Math.max(1, n));
-    if (f === 'hakik') return { x: baseX + side * Math.abs(k) * 55, y: H / 2 + k * (spread + 10) };
-    if (f === 'eorin') return { x: baseX - side * Math.abs(k) * 55, y: H / 2 + k * spread * 0.8 };
-    if (f === 'bangwon') { const a = (i / Math.max(1, n)) * Math.PI * 2; const r = n > 1 ? 70 + n * 12 : 0; return { x: baseX + Math.cos(a) * r, y: H / 2 + Math.sin(a) * r * 1.2 }; }
-    if (f === 'jangsa') return { x: baseX + side * (i % 2) * 40, y: H / 2 + k * Math.min(105, (H - 200) / Math.max(1, n)) };
-    return slotPos(i, n, baseX, side);
+  /* 영웅은 세로로 나란히, 혼불이 진형을 만든다. side 1 = 왼쪽(아군), -1 = 오른쪽(적) */
+  function heroLine(i, n, baseX, side) {
+    const spread = Math.min(150, (H - 220) / Math.max(1, n));
+    return { x: baseX, y: H / 2 + (i - (n - 1) / 2) * spread };
   }
+  function formOffset(f, i, n, side) {
+    const mid = (n - 1) / 2, k = i - mid;
+    if (f === 'hakik') return { x: side * (10 + Math.abs(k) * 6), y: k * 11 };
+    if (f === 'eorin') return { x: side * (38 - Math.abs(k) * 5), y: k * 9 };
+    if (f === 'bangwon') {
+      const a = (i / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2;
+      return { x: Math.cos(a) * 44, y: Math.sin(a) * 38 };
+    }
+    if (f === 'jangsa') return { x: side * (8 + (i % 2) * 16), y: k * 12 };
+    return { x: side * 22, y: k * 10 };
+  }
+  function formOf(u) {
+    if (!u) return B.form[0];
+    if (u.form && FORMATIONS[u.form]) return u.form;
+    if (u.leader && u.leader.form && FORMATIONS[u.leader.form]) return u.leader.form;
+    if (u.sq && u.sq.leader && u.sq.leader.form) return u.sq.leader.form;
+    return B.form[u.team] || 'eorin';
+  }
+  function fmodU(u, key) { const f = FORMATIONS[formOf(u)]; return f && f[key] != null ? f[key] : 1; }
   function fmod(team, key) { const f = FORMATIONS[B.form[team]]; return f && f[key] != null ? f[key] : 1; }
 
   function slotPos(i, n, baseX, side) {
@@ -481,12 +502,12 @@ const Battle = (() => {
       const dx = u.x - t.x, dy = u.y - t.y, d = Math.hypot(dx, dy) || 1;
       const dot = (Math.cos(t.face) * dx + Math.sin(t.face) * dy) / d;
       let fl = dot < -0.45 ? 1.5 : dot < 0.45 ? 1.25 : 1;
-      if (fl > 1) fl = 1 + (fl - 1) * fmod(u.team, 'flank');
+      if (fl > 1) fl = 1 + (fl - 1) * fmodU(u, 'flank');
       m *= fl;
-      if (fl >= 1.4 && t.sq) t.sq.morale = Math.max(0, t.sq.morale - 0.12 * fmod(t.team, 'moraleLoss'));
+      if (fl >= 1.4 && t.sq) t.sq.morale = Math.max(0, t.sq.morale - 0.12 * fmodU(t, 'moraleLoss'));
       if (fl > 1 && u.kind === 'hero' && Math.random() < 0.25) floatText(t.x, t.y - 34, fl >= 1.4 ? '배후!' : '측면!', '#ffcf7a', 13);
-    } else m *= fmod(u.team, 'ranged');
-    if (B.t < 20) m *= fmod(u.team, 'openAtk');
+    } else m *= fmodU(u, 'ranged');
+    if (B.t < 20) m *= fmodU(u, 'openAtk');
     return m;
   }
   function attack(u, t) {
@@ -627,10 +648,15 @@ const Battle = (() => {
     if (!t && !lok) t = nearestFoe(u, 99999);
     if (t) { u.tgt = t; engage(u, t); return; }
     if (lok) {
-      const a = ((u.slot % 10) / 10) * Math.PI * 2 + Math.floor(u.slot / 10) * 0.3;
-      const rr = 32 + Math.floor(u.slot / 10) * 18;
-      const back = u.team === 0 ? -1 : 1;
-      const tx = L.x + Math.cos(a) * rr + back * 18, ty = L.y + Math.sin(a) * rr;
+      const ox = u.formOx, oy = u.formOy;
+      let tx, ty;
+      if (ox != null && oy != null) { tx = L.x + ox; ty = L.y + oy; }
+      else {
+        const a = ((u.slot % 10) / 10) * Math.PI * 2 + Math.floor(u.slot / 10) * 0.3;
+        const rr = 32 + Math.floor(u.slot / 10) * 18;
+        const back = u.team === 0 ? -1 : 1;
+        tx = L.x + Math.cos(a) * rr + back * 18; ty = L.y + Math.sin(a) * rr;
+      }
       if (Math.hypot(tx - u.x, ty - u.y) > 10) moveTo(u, tx, ty); else stopU(u);
     } else stopU(u);
   }
@@ -767,9 +793,9 @@ const Battle = (() => {
     if (t.team === 0 && t.kind === 'soldier') B.lost++;
     if (t.sq) {
       const sq = t.sq;
-      if (t.kind === 'soldier' && !t.captain) sq.morale = Math.max(0, sq.morale - (24 / Math.max(10, sq.size || 20)) * fmod(sq.team, 'moraleLoss'));
+      if (t.kind === 'soldier' && !t.captain) sq.morale = Math.max(0, sq.morale - (24 / Math.max(10, sq.size || 20)) * fmodU(sq.leader || t, 'moraleLoss'));
       if (t === sq.leader) {
-        sq.morale = Math.max(0, sq.morale - 22 * fmod(sq.team, 'moraleLoss'));
+        sq.morale = Math.max(0, sq.morale - 22 * fmodU(sq.leader || t, 'moraleLoss'));
         B.squads.forEach((o) => {
           if (o === sq) return;
           if (o.team === t.team) o.morale = Math.max(0, o.morale - 5);

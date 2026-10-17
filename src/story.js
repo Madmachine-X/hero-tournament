@@ -102,10 +102,16 @@ const Dialog = (() => {
   }
 
   function init() {
-    $('#dialog').addEventListener('click', (e) => {
+    const onAdvanceClick = (e) => {
+      if ($('#dialog').hidden) return;
       if (e.target.closest('#dlg-choices') || e.target.closest('#dlg-input')) return;
+      if (e.target.closest('#modal') && !$('#modal').hidden) return;
+      const storyOn = $('#scr-story') && !$('#scr-story').hidden;
+      if (!storyOn && !e.target.closest('#dialog')) return;
+      e.preventDefault();
       advance();
-    });
+    };
+    document.addEventListener('click', onAdvanceClick);
     window.addEventListener('keydown', (e) => {
       if ($('#dialog').hidden) return;
       if (e.target && e.target.tagName === 'INPUT') return;
