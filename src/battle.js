@@ -293,6 +293,9 @@ const Battle = (() => {
       const k = 1 + cfg.wall.value / 200;
       B.units.forEach((u) => { if (u.team === cfg.wall.team) u.def *= k; });
     }
+    if (E.nightRaid) {
+      B.units.forEach((u) => { if (u.team === 0) { u.atk = Math.round(u.atk * 0.9); u.spd *= 0.92; } });
+    }
     B.units.forEach((u) => { u.spd *= fmodU(u, 'spd'); u.def *= fmodU(u, 'def'); });
     B.init = [B.units.filter((u) => u.team === 0).length, B.units.filter((u) => u.team === 1).length];
     gridInit();
@@ -624,7 +627,7 @@ const Battle = (() => {
     const attackerSide = B.cfg.type === 'defend';
     const home = u.home || (u.home = { x: u.x, y: u.y });
     // 야간 기습: 잠에서 깬 적은 10초 동안 허둥대며 가까이 온 적만 상대한다
-    if (B.cfg.enemy.surprised && B.t < 10) { const n = nearestFoe(u, 140); if (n) engage(u, n); else stopU(u); return; }
+    if (B.cfg.enemy.surprised && B.t < (B.cfg.enemy.surpriseT || 5)) { const n = nearestFoe(u, 100); if (n) engage(u, n); else stopU(u); return; }
     const near = nearestFoe(u, attackerSide ? 340 : 300);
     if (near) { engage(u, near); return; }
     // 성을 지키는 쪽은 25초까지 자리를 지키고, 그 뒤엔 나가 싸운다

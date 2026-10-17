@@ -17,7 +17,7 @@ function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 
 function newGame() {
   G = {
-    v: 4, name: '무명', day: 1, phase: 0, gold: 600, food: 900, karma: 0,
+    v: 5, name: '무명', day: 1, phase: 0, gold: 600, food: 900, karma: 0,
     cities: {}, roster: [], heroes: {}, inv: ['r_ok', 'w_deungpae'], keys: [],
     places: ['nakseongdae'], done: {}, seen: {}, log: [], stats: { battles: 0, wins: 0 },
     stage: 'prologue', attackDay: 0, officers: {}, offSeq: 0, joinCity: 'seoul',
@@ -76,7 +76,7 @@ function addHero(id, lv, city) {
   }
   const gear = HERO_GEAR[id] || {};
   const home = city || (G.joinCity && G.cities[G.joinCity] && G.cities[G.joinCity].owner === 'player' ? G.joinCity : ownedCities()[0] || 'seoul');
-  G.heroes[id] = { level: lv, exp: 0, hp: 1, acted: false, city: home, equip: { w1: gear.w1 || null, w2: gear.w2 || null, armor: gear.armor || null, acc: [null, null, null, null] } };
+  G.heroes[id] = { level: lv, exp: 0, hp: 1, acted: false, tired: false, nightWork: false, city: home, equip: { w1: gear.w1 || null, w2: gear.w2 || null, armor: gear.armor || null, acc: [null, null, null, null] } };
   ['w1', 'w2', 'armor'].forEach((k) => { if (gear[k] && ITEMS[gear[k]].unique) G.seen[gear[k]] = true; });
   if (!G.roster.includes(id)) G.roster.push(id);
 }
@@ -115,14 +115,20 @@ function styleOf(equip) {
   return '맨손';
 }
 
-function statsFrom(id, level, equip) {
+function markNightWork(hid) {
+  const h = G.heroes[hid];
+  if (h && isNight()) h.nightWork = true;
+}
+
+function statsFrom(id, level, equip, tired) {
   const d = HEROES[id];
   const base = {};
   for (const k in d.stats) base[k] = d.stats[k] + (level - 1);
   const w1 = ITEMS[equip.w1];
   const items = [w1, ITEMS[equip.w2], ITEMS[equip.armor], ...(equip.acc || []).map((a) => ITEMS[a])];
   const b = sumBonus(items);
-  const str = base.str, agi = base.agi + b.agi, int = base.int + b.int, vit = base.vit, lea = base.lea;
+  const pen = tired ? 0.8 : 1;
+  const str = Math.round(base.str * pen), agi = Math.round((base.agi + b.agi) * pen), int = Math.round((base.int + b.int) * pen), vit = Math.round(base.vit * pen), lea = Math.round(base.lea * pen);
   const ranged = !!(w1 && w1.wtype === 'bow');
   const style = styleOf(equip);
   let atk = 6 + str * 1.3 + b.atk;
@@ -139,9 +145,9 @@ function statsFrom(id, level, equip) {
   const cdr = Math.min(40, b.cdr);
   const squad = 3 + Math.floor(lea / 4);
   const hiddenOn = !!(d.weapon && (equip.w1 === d.weapon || equip.w2 === d.weapon));
-  return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, range, ranged, cdr, squad, style, hiddenOn };
+  return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, range, ranged, cdr, squad, style, hiddenOn, tired: !!tired };
 }
-function computeStats(id) { const h = G.heroes[id]; return statsFrom(id, h.level, h.equip); }
+function computeStats(id) { const h = G.heroes[id]; return statsFrom(id, h.level, h.equip, !!h.tired); }
 
 /* ----- 장비 ----- */
 function slotAccepts(slot, itemId) {
@@ -242,8 +248,8 @@ function doCommand(cmd, hid, cityId) {
   const c = G.cities[cityId], h = G.heroes[hid];
   if (h.acted) return { ok: false, msg: '이번 턴에 이미 행동했습니다.' };
   if (!cmdAllowed(cmd)) return { ok: false, msg: COMMANDS[cmd].when === 'night' ? `${COMMANDS[cmd].name} 명령은 야간에만 할 수 있습니다.` : `${COMMANDS[cmd].name} 명령은 오전·오후에만 할 수 있습니다. 백성도 밤에는 잡니다.` };
-  if (cmd === 'rest') { h.hp = 1; h.acted = true; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다.` }; }
-  if (cmd === 'scout') { h.acted = true; grantExp(hid, 5); return scoutRumor(hid, cityId); }
+  if (cmd === 'rest') { h.hp = 1; h.acted = true; h.nightWork = false; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다. 다음날 피로하지 않습니다.` }; }
+  if (cmd === 'scout') { h.acted = true; markNightWork(hid); grantExp(hid, 5); return scoutRumor(hid, cityId); }
   const cost = commandCost(cmd, hid, cityId);
   if (!canAfford(cost)) return { ok: false, msg: '금이나 군량이 모자랍니다.' };
   const gain = commandGain(cmd, hid, cityId);
@@ -252,6 +258,7 @@ function doCommand(cmd, hid, cityId) {
     if (G.roster.length >= 30) return { ok: false, msg: '더는 장수를 거둘 수 없습니다 (최대 30명).' };
     G.gold -= cost.gold || 0;
     h.acted = true;
+    markNightWork(hid);
     grantExp(hid, 6);
     if (Math.random() * 100 < gain) {
       const lv = Math.max(2, Math.round(G.roster.reduce((a, x) => a + G.heroes[x].level, 0) / G.roster.length) - 1);
@@ -276,6 +283,7 @@ function doCommand(cmd, hid, cityId) {
   }
   G.gold -= cost.gold || 0; G.food -= cost.food || 0;
   h.acted = true;
+  markNightWork(hid);
   grantExp(hid, 6);
   return { ok: true, msg };
 }

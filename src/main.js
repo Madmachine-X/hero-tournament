@@ -187,7 +187,7 @@ function cityCard(id) {
         <div><dt>매일 아침</dt><dd>금 +${cityGold(id)} · 군량 +${cityFood(id)}</dd></div>
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${here.length}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}</span></p>
-      <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}">${medallion(h, 'sm')}<span>${esc(heroName(h))}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
+      <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${G.heroes[h].tired ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${G.heroes[h].tired ? ' · 피로' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${G.heroes[h].tired ? ' · 피로' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
       <p class="hint">내정·장터·위임은 위쪽 명령 막대에서 고릅니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
@@ -237,7 +237,7 @@ function commandPicker(cityId) {
   const rows = free.map((h) => {
     const s = computeStats(h);
     let eff = '', cost = { gold: 0, food: 0 };
-    if (cmd === 'rest') eff = `체력 ${Math.round(G.heroes[h].hp * 100)}% → 100%`;
+    if (cmd === 'rest') eff = `체력 ${Math.round(G.heroes[h].hp * 100)}% → 100% · 피로 없음`;
     else if (cmd === 'scout') eff = '소문 듣기';
     else if (cmd === 'move' || cmd === 'relocate') eff = '';
     else if (cmd === 'search') { cost = commandCost(cmd, h, cityId); eff = `발견 확률 ${commandGain(cmd, h, cityId)}%`; }
@@ -286,7 +286,7 @@ function heroList() {
       ${medallion(id)}
       <span class="hr-main"><b>${esc(heroName(id))}</b><span class="muted">${d.title} · Lv ${h.level} · 무${computeStats(id).str} 통${computeStats(id).lea} 지${computeStats(id).int}</span>
         <span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></span>
-      <span class="hr-side">${h.acted ? '<em class="spent">행동 완료</em>' : '<em class="free">행동 가능</em>'}${s.style}${s.hiddenOn ? '<em class="gold">특수기</em>' : ''}</span>
+      <span class="hr-side">${h.tired ? '<em class="tired">피로</em>' : ''}${h.acted ? '<em class="spent">행동 완료</em>' : '<em class="free">행동 가능</em>'}${s.style}${s.hiddenOn ? '<em class="gold">특수기</em>' : ''}</span>
     </button>`;
   };
   const groups = Object.keys(byCity).map((c) => `<p class="label">${CITIES[c] ? CITIES[c].name : c} <span class="muted small">${byCity[c].length}명</span></p><div class="list">${byCity[c].map(row).join('')}</div>`).join('');
@@ -327,7 +327,7 @@ function heroDetail(id) {
   return `<div class="hero-detail">
     <button class="back" data-act="heroback">← 영웅 목록</button>
     <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title}</p><h3 class="h-display">${esc(heroName(id))}</h3>
-      <p class="muted">Lv ${h.level} · 경험 ${h.exp}/${needExp(h.level)}</p><span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></div></div>
+      <p class="muted">Lv ${h.level} · 경험 ${h.exp}/${needExp(h.level)}${h.tired ? ' · 피로 (능력치 -20%)' : ''}</p><span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></div></div>
     <p class="bio">${esc(d.bio)}</p>
     <div class="stats">
       <div><span>무력</span><b>${s.str}</b></div><div><span>통솔</span><b>${s.lea}</b></div><div><span>지력</span><b>${s.int}</b></div>
@@ -392,7 +392,7 @@ function onPanelClick(e) {
   if (b.dataset.heroGo) { UI.tab = 'heroes'; UI.heroView = b.dataset.heroGo; UI.equipSlot = null; renderPanel(); return; }
   if (b.dataset.reloc) {
     const h = UI.cmdHero;
-    G.heroes[h].city = b.dataset.reloc; G.heroes[h].acted = true;
+    G.heroes[h].city = b.dataset.reloc; G.heroes[h].acted = true; markNightWork(h);
     const msg = `${heroName(h)}이(가) ${CITIES[b.dataset.reloc].name}(으)로 이동했습니다.`;
     toast(msg); logEvent(msg);
     UI.cmd = null; UI.cmdHero = null; saveGame(); renderAll(); return;
@@ -412,7 +412,7 @@ function onPanelClick(e) {
     const d = G.cities[b.dataset.move];
     d.train = Math.round((d.train * d.troops + G.cities[id].train * n) / Math.max(1, d.troops + n));
     d.troops += n;
-    G.heroes[UI.cmdHero].acted = true;
+    G.heroes[UI.cmdHero].acted = true; markNightWork(UI.cmdHero);
     const msg = `${heroName(UI.cmdHero)}이(가) 병력 ${n}을 ${CITIES[b.dataset.move].name}(으)로 옮겼습니다.`;
     toast(msg); logEvent(msg);
     UI.cmd = null; UI.cmdHero = null; saveGame(); renderAll(); return;
@@ -458,7 +458,7 @@ function openShop(mode = 'buy') {
 function phaseCard() {
   if (!isNight()) return `<div class="phase-card day"><b>${phaseName()}</b><span>내정과 출병을 할 수 있는 시간입니다. 남은 행동 ${freeHeroes().length}</span></div>`;
   const m = G.market;
-  return `<div class="phase-card night"><b>야간</b><span>백성이 잠들었습니다. 휴식, 소문 탐색, 야간 기습을 할 수 있습니다.</span>
+  return `<div class="phase-card night"><b>야간</b><span>백성이 잠들었습니다. 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 휴식, 소문 탐색, 야간 기습을 할 수 있습니다.</span>
     ${m ? `<button class="btn sm market" data-act="market">비밀 장터 · ${CITIES[m.city].name} <small>오늘 밤만</small></button>` : ''}</div>`;
 }
 const MARKET_GEAR = ['m_gamtu', 'm_yeouiju', 'm_gatkkeun', 'm_heukdo', 'a_yongrin', 'w_heukgak', 'w_woldo', 'a_dujeong', 'n_yeomju', 'w_ungeom'];
@@ -540,7 +540,7 @@ function choosePartyThen(title, cb, onCancel, opts = {}) {
       ${opts.formation && opts.enemyCity ? `<p class="muted small">적은 ${FORMATIONS[FACTION_FORMATION[G.cities[opts.enemyCity].owner]].name}으로 맞섭니다.</p>` : ''}
       <div class="party">${pool.map((h) => { const s = computeStats(h), hp = G.heroes[h].hp, on = picked.has(h), hf = heroFormOf(h);
         const chips = on && opts.formation ? `<span class="hero-forms">${Object.keys(FORMATIONS).map((k) => `<button type="button" class="form-chip ${hf === k ? 'on' : ''}" data-hform="${h}" data-form="${k}">${FORMATIONS[k].name}</button>`).join('')}</span>` : '';
-        return `<div class="pick-hero ${on ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 통솔 ${s.lea} (사기 ${Math.round(clamp(30 + s.lea * 2.5, 10, 100))}) · ${s.style}${on && opts.formation ? ` · 혼불 ${FORMATIONS[hf].name}` : ''}</span><span class="bar"><i style="width:${Math.round(hp * 100)}%"></i></span></span>${s.hiddenOn ? '<em class="gold small">특수기</em>' : ''}${chips}</div>`; }).join('') || '<p class="muted small">고를 수 있는 영웅이 없습니다.</p>'}</div>
+        return `<div class="pick-hero ${on ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 통솔 ${s.lea} (사기 ${Math.round(clamp(30 + s.lea * 2.5, 10, 100))}) · ${s.style}${G.heroes[h].tired ? ' · 피로 -20%' : ''}${on && opts.formation ? ` · 혼불 ${FORMATIONS[hf].name}` : ''}</span><span class="bar"><i style="width:${Math.round(hp * 100)}%"></i></span></span>${s.hiddenOn ? '<em class="gold small">특수기</em>' : ''}${chips}</div>`; }).join('') || '<p class="muted small">고를 수 있는 영웅이 없습니다.</p>'}</div>
       <p class="muted small">출전 병력 ${sent}명 (쓸 수 있는 병력 ${troops})${foodCost ? ` · 군량 ${foodCost} 소모` : ''}${!picked.size && opts.allowEmpty ? ' · 영웅 없이 나가면 혼불 대장이 지휘합니다' : ''}</p>
       ${short ? '<p class="hint" style="color:#f08b72">군량이 모자랍니다. 개간으로 군량을 늘리거나 인원을 줄이세요.</p>' : ''}
       <div class="actions"><button class="btn primary" data-go ${(picked.size || opts.allowEmpty) && !short && (sent > 0 || picked.size) ? '' : 'disabled'}>출진</button></div>`, (card) => {
@@ -572,6 +572,7 @@ function applyBattle(res, party, markActed = true) {
     if (!G.heroes[h]) return;
     if (res.heroes[h] != null) G.heroes[h].hp = res.heroes[h];
     if (markActed) G.heroes[h].acted = true;
+    if (isNight()) markNightWork(h);
     const lv = grantExp(h, (res.win ? 60 : 20) + (res.exp[h] || 0));
     if (lv.length) ups.push(`${heroName(h)} Lv ${lv[lv.length - 1]}`);
   });
@@ -591,11 +592,11 @@ function launchAttack(cityId) {
       st.troops -= sent;
       G.food -= foodCost;
       const enemy = enemyForce(cityId, { party: party.length });
-      if (raid) { enemy.extraSquads = 0; enemy.moraleAdj = -20; enemy.surprised = true; }
+      if (raid) { enemy.extraSquads = 1; enemy.moraleAdj = -8; enemy.surprised = true; enemy.surpriseT = 5; enemy.nightRaid = true; }
       startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', type: 'attack', party, enemy,
-        playerSoldiers: sent, playerTrain: st.train, wall: { team: 1, value: G.cities[cityId].wall * (raid ? 0.5 : 1) }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])),
+        playerSoldiers: sent, playerTrain: st.train * (raid ? 0.85 : 1), wall: { team: 1, value: G.cities[cityId].wall * (raid ? 0.75 : 1) }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])),
         onEnd: (res) => afterAttack(cityId, src, res, party) });
-    }, null, { only: freeIn(src), troops: st.troops, food: 0.5, note: note + (raid ? '<br><b class="gold">야간 기습</b> · 잠든 적은 사기가 20 낮고, 성벽 효과가 절반이며, 혼불 지원 부대를 내보내지 못합니다.' : ''), formation: true, enemyCity: cityId });
+    }, null, { only: freeIn(src), troops: st.troops, food: raid ? 0.75 : 0.5, note: note + (raid ? '<br><b class="gold">야간 기습</b> · 적은 초반 5초만 허둥대고, 사기 -8, 성벽 75%. 지원 혼불이 일부 나옵니다. 어둠 때문에 아군 공격·훈련도 떨어지며, 기습에 나선 장수는 다음날 피로합니다.' : ''), formation: true, enemyCity: cityId });
     const sw = $('#modal-card [data-switch]');
     if (sw) sw.onclick = (e) => { e.stopPropagation(); closeModal(); go((srcIdx + 1) % srcs.length); };
   };
@@ -712,7 +713,7 @@ function explore(placeId) {
       const b = e.target.closest('[data-ex]');
       if (!b) return;
       closeModal();
-      G.heroes[b.dataset.ex].acted = true;
+      G.heroes[b.dataset.ex].acted = true; markNightWork(b.dataset.ex);
       renderTop();
       Dialog.play(ev.lines, () => {
         if (ev.battle) {
@@ -771,10 +772,18 @@ function endTurn() {
     }
     enemyDomestic();
   }
+  if (wasNight) {
+    G.roster.forEach((id) => {
+      const hh = G.heroes[id];
+      hh.tired = !!hh.nightWork;
+      hh.nightWork = false;
+    });
+  }
   G.roster.forEach((h) => { G.heroes[h].hp = Math.min(1, G.heroes[h].hp + 0.1); G.heroes[h].acted = false; });
   UI.cmd = null; UI.cmdHero = null;
   renderAll(); saveGame();
-  toast(`${G.day}일차 ${phaseName()}${extra}${isNight() ? ' · 내정은 쉬고 휴식·기습·소문 탐색을 할 수 있습니다' : ''}`);
+  const tiredN = G.roster.filter((id) => G.heroes[id].tired).length;
+  toast(`${G.day}일차 ${phaseName()}${extra}${isNight() ? ' · 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다' : ''}${wasNight && tiredN ? ` · 피로 ${tiredN}명 (능력치 -20%)` : ''}`);
   if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; setTimeout(() => marketNotice(), 700); }
   maybeEnemyAttack();
 }
@@ -957,7 +966,8 @@ function continueGame() {
   if (!s) return;
   G = s;
   if (G.stage === 'act1' && G.v === 3) { G.phase = [0, 0, 1, 2][G.phase] || 0; G.v = 4; }
-  if (G.stage !== 'act1' || G.v !== 4) { startNew(); return; }
+  if (G.stage === 'act1' && G.v === 4) G.v = 5;
+  if (G.stage !== 'act1' || G.v !== 5) { startNew(); return; }
   registerOfficers();
   showScreen('scr-map');
   renderAll();
@@ -978,7 +988,7 @@ function howTo() {
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다.</li>
       <li>오전·오후: 개간·상업·성벽·선정·징병·훈련·인재 탐색·수송 같은 내정과 출병, 장터.</li>
-      <li>야간: 휴식(체력 모두 회복), 소문 탐색(숨겨진 장소·적 정탐·재물), 야간 기습(적 사기 -20, 성벽 효과 절반, 적 지원 부대 없음). 가끔 도깨비들이 비밀 장터를 엽니다.</li>
+      <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음), 소문 탐색, 야간 기습(초반 5초 허둥, 적 사기 -8, 성벽 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
       <li>매일 아침 상업에서 금, 농업에서 군량이 들어오고 병사들이 군량을 먹습니다. 출병에는 병사당 군량 0.5가 듭니다.</li>
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>숨겨진 장소는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
