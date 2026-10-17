@@ -249,6 +249,8 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .st-hero.spent { opacity: 0.5; }
 .auto-toggle { width: 100%; text-align: left; padding: 8px 12px; border: 1px dashed var(--line-2); border-radius: 3px; background: transparent; cursor: pointer; color: var(--ash); font-size: 0.85rem; margin-top: 2px; }
 .auto-toggle.on { border-style: solid; border-color: #3d7a8a; color: var(--soul); background: rgba(127,211,230,0.06); }
+#cmdrail .cmd.auto-cmd.on { border-color: #3d7a8a; color: var(--soul); }
+#cmdrail .cmd.auto-cmd.on .cmd-glyph { color: var(--soul); }
 .forms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 8px 0; }
 .form-pick { text-align: left; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--ink-2); cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
 .form-pick b { font-family: var(--f-display); font-weight: 400; font-size: 1.02rem; }

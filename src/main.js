@@ -117,6 +117,7 @@ function renderCmdRail() {
     }).join("");
     if (isNight() && G.market && G.market.city === sel) html += '<button class="cmd market" data-act="market"><i class="cmd-glyph">市</i><span>비밀 장터</span></button>';
     else if (!isNight()) html += '<button class="cmd" data-act="shop"><i class="cmd-glyph">市</i><span>장터</span></button>';
+    html += '<button class="cmd auto-cmd' + (st.auto ? ' on' : '') + '" data-auto="' + sel + '" title="턴이 끝날 때 남은 장수가 알아서 내정합니다"><i class="cmd-glyph">託</i><span>' + (st.auto ? '위임 중' : '위임') + '</span></button>';
     if (btns) { btns.className = "cmds" + (isNight() ? " night" : ""); btns.innerHTML = html; }
     if (picker) picker.innerHTML = UI.cmd ? commandPicker(sel) : "";
   } else {
@@ -170,8 +171,7 @@ function cityCard(id) {
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${here.length}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}">${medallion(h, 'sm')}<span>${esc(heroName(h))}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
-      <button class="auto-toggle ${st.auto ? 'on' : ''}" data-auto="${id}">${st.auto ? '위임 중 · 턴이 끝날 때 남은 장수가 알아서 내정합니다' : '위임하기 · 턴이 끝날 때 남은 장수가 알아서 내정'}</button>
-      <p class="hint">내정과 장터는 위쪽 명령 막대에서 고릅니다.</p>`;
+      <p class="hint">내정·장터·위임은 위쪽 명령 막대에서 고릅니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);
@@ -371,7 +371,7 @@ function onPanelClick(e) {
     UI.equipSlot = null; saveGame(); renderPanel(); return;
   }
   const id = UI.sel && UI.sel.id;
-  if (b.dataset.auto) { const c = G.cities[b.dataset.auto]; c.auto = !c.auto; toast(c.auto ? `${CITIES[b.dataset.auto].name}을(를) 위임했습니다. 턴이 끝날 때 남은 장수가 내정합니다.` : '위임을 풀었습니다.'); saveGame(); renderPanel(); return; }
+  if (b.dataset.auto) { const c = G.cities[b.dataset.auto]; c.auto = !c.auto; toast(c.auto ? `${CITIES[b.dataset.auto].name}을(를) 위임했습니다. 턴이 끝날 때 남은 장수가 내정합니다.` : '위임을 풀었습니다.'); saveGame(); renderAll(); return; }
   if (b.dataset.heroGo) { UI.tab = 'heroes'; UI.heroView = b.dataset.heroGo; UI.equipSlot = null; renderPanel(); return; }
   if (b.dataset.reloc) {
     const h = UI.cmdHero;
