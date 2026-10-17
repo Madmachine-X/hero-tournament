@@ -7,7 +7,7 @@ const Art = (() => {
   const fx = Object.create(null);
   const keyed = Object.create(null);
   const HERO_IDS = typeof HERO_ORDER !== 'undefined' ? HERO_ORDER : [];
-  const SHEET_IDS = HERO_IDS.concat(['generic', 'wisp']);
+  const SHEET_IDS = HERO_IDS.concat(['generic']);
   const FX_IDS = ['orbs', 'rope', 'seal', 'wave', 'turtle', 'hangul', 'cavalry', 'meteor', 'slash', 'tiger', 'heal', 'arrows', 'swords'];
   const SKILL_FX = {
     honbul: 'orbs', ghostfire: 'orbs', orat: 'rope', jeokpae: 'seal',
@@ -109,14 +109,14 @@ const Art = (() => {
   }
 
   function drawActor(c, u, t) {
-    const id = u.kind === 'soldier' || u.captain ? 'wisp' : (u.generic ? 'generic' : (u.hid || 'generic'));
+    const id = u.generic ? 'generic' : (u.hid || 'generic');
     const spr = sheetOf(id) || sheetOf('generic');
     if (!spr) return false;
     const dir = Math.cos(u.face || 0) >= 0 ? 1 : -1;
     const moving = Math.hypot(u.vx || 0, u.vy || 0) > 8 && (u.stun || 0) <= 0;
     const bob = moving ? Math.abs(Math.sin(t * 13 + (u.bob || 0))) * 1.6 : Math.sin(t * 2.2 + (u.bob || 0)) * 0.5;
-    const sc = (u.boss ? 1.14 : 1) * (u.kind === 'soldier' ? 0.72 : 1);
-    const hh = (u.kind === 'soldier' ? 36 : 70) * sc;
+    const sc = u.boss ? 1.14 : 1;
+    const hh = 70 * sc;
     const fr = frameOf(u, t);
     const sw = u.swing > 0 ? Math.sin((u.swing / 0.2) * Math.PI) * 4 : 0;
     c.save();
@@ -155,6 +155,66 @@ const Sprites = (() => {
   const LOOKS = {};
   function lookOf(u) { return LOOKS[u && u.hid] || {}; }
   function hero(c, u, t) { Art.drawActor(c, u, t); }
-  function wisp(c, u, t) { Art.drawActor(c, u, t); }
+  function hexA(hex, a) {
+    const n = parseInt(String(hex).replace('#', ''), 16);
+    if (Number.isNaN(n)) return `rgba(139,149,166,${a})`;
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  const wispCache = new Map();
+  function wispSprite(color) {
+    if (wispCache.has(color)) return wispCache.get(color);
+    const S = 48;
+    const cv = document.createElement('canvas');
+    cv.width = S; cv.height = S * 1.3;
+    const c = cv.getContext('2d');
+    const cx = S / 2, cy = S * 0.78;
+    const glow = c.createRadialGradient(cx, cy, 2, cx, cy, S * 0.48);
+    glow.addColorStop(0, hexA(color, 0.5)); glow.addColorStop(1, hexA(color, 0));
+    c.fillStyle = glow; c.fillRect(0, 0, S, S * 1.3);
+    const body = c.createRadialGradient(cx, cy + 2, 1, cx, cy, S * 0.3);
+    body.addColorStop(0, '#ffffff'); body.addColorStop(0.35, hexA(color, 0.95)); body.addColorStop(1, hexA(color, 0.15));
+    c.fillStyle = body;
+    c.beginPath();
+    c.moveTo(cx, cy - S * 0.62);
+    c.bezierCurveTo(cx + S * 0.08, cy - S * 0.38, cx + S * 0.26, cy - S * 0.22, cx + S * 0.24, cy);
+    c.arc(cx, cy, S * 0.24, 0, Math.PI);
+    c.bezierCurveTo(cx - S * 0.26, cy - S * 0.2, cx - S * 0.06, cy - S * 0.3, cx, cy - S * 0.62);
+    c.fill();
+    c.fillStyle = 'rgba(10,12,16,0.85)';
+    c.beginPath(); c.ellipse(cx - 4, cy - 1, 2, 3, 0, 0, Math.PI * 2); c.ellipse(cx + 4, cy - 1, 2, 3, 0, 0, Math.PI * 2); c.fill();
+    wispCache.set(color, cv);
+    return cv;
+  }
+  function wisp(c, u, t) {
+    const col = u.team === 0 && u.kind === 'soldier' ? '#7fd3e6' : u.summon === 'ghostsol' ? '#e6edf5' : (u.color && u.color.length === 7 ? u.color : '#8b95a6');
+    const img = wispSprite(col);
+    const sw = u.swing > 0 ? Math.sin((u.swing / 0.2) * Math.PI) : 0;
+    const fl = 1 + Math.sin(t * 11 + (u.bob || 0) * 3) * 0.07;
+    const k = (u.r / 7) * (u.stype === 'cavalry' ? 1.1 : 1);
+    const w = 22 * k, h = 28.6 * k * fl;
+    const lx = u.x + Math.cos(u.face || 0) * sw * 5, ly = u.y + Math.sin(u.face || 0) * sw * 5;
+    const sp = Math.hypot(u.vx || 0, u.vy || 0);
+    if (sp > 10) {
+      const bx = -(u.vx || 0) / sp, by = -(u.vy || 0) / sp;
+      c.globalCompositeOperation = 'lighter';
+      for (let i = 1; i <= 3; i++) {
+        c.globalAlpha = 0.18 / i;
+        c.drawImage(img, lx + bx * i * 5 - w / 2, ly + by * i * 5 - h * 0.78, w, h);
+      }
+      c.globalAlpha = 1;
+      c.globalCompositeOperation = 'source-over';
+    }
+    c.globalCompositeOperation = 'lighter';
+    c.drawImage(img, lx - w / 2, ly - h * 0.78, w, h);
+    if (u.flash > 0) { c.globalAlpha = 0.7; c.drawImage(img, lx - w / 2, ly - h * 0.78, w, h); c.globalAlpha = 1; }
+    c.globalCompositeOperation = 'source-over';
+    if (u.stype === 'archer') {
+      c.strokeStyle = hexA(col, 0.8); c.lineWidth = 1.2;
+      c.beginPath(); c.arc(lx + Math.cos(u.face || 0) * 5, ly - 3 + Math.sin(u.face || 0) * 5, 5, (u.face || 0) - 1.1, (u.face || 0) + 1.1); c.stroke();
+    } else if (sw > 0.2) {
+      c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 1.4;
+      c.beginPath(); c.arc(lx, ly - 2, 10, (u.face || 0) - 0.8, (u.face || 0) + 0.8); c.stroke();
+    }
+  }
   return { hero, wisp, lookOf, LOOKS };
 })();
