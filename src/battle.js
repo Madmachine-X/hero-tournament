@@ -1027,8 +1027,18 @@ const Battle = (() => {
     if (!cast(u, s)) floatText(u.x, u.y - 40, '대상이 없다', '#c9bfa8', 13);
   }
 
+  const ciQ = [];
+  let ciOn = false;
   function cutin(u, name, mini) {
     if (B.ffwd) return;
+    ciQ.push({ u, name, mini });
+    pumpCutin();
+  }
+  function pumpCutin() {
+    if (ciOn || !ciQ.length || !B) return;
+    const job = ciQ.shift();
+    ciOn = true;
+    const u = job.u, name = job.name, mini = job.mini;
     if (mini) { B.darken = Math.max(B.darken, 0.35); B.slowT = Math.max(B.slowT, 0.25); }
     else { B.slowT = 0.85; B.flash = 0.6; B.darken = Math.max(B.darken, 0.6); }
     const el = $('#cutin');
@@ -1038,7 +1048,7 @@ const Battle = (() => {
     const face = u.hid ? `<img class="ci-face" src="img/portraits/${u.hid}.jpg" alt="">` : `<div class="ci-glyph">${esc(u.glyph)}</div>`;
     d.innerHTML = `<div class="ci-band">${face}<div class="ci-text"><span class="ci-hero">${esc(u.name)}</span><span class="ci-skill">${esc(name)}</span></div></div>`;
     el.appendChild(d);
-    setTimeout(() => d.remove(), mini ? 1000 : 1500);
+    setTimeout(() => { d.remove(); ciOn = false; pumpCutin(); }, mini ? 1000 : 1500);
   }
 
   const HANGUL = 'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ';

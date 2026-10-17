@@ -1,7 +1,8 @@
 'use strict';
 /* ===== 대화창과 스토리 대본 ===== */
 const Dialog = (() => {
-  let queue = [], done = null, typing = null, full = '', shown = 0;
+  let queue = [], done = null, typing = null, full = '', shown = 0, current = null;
+  const pending = [];
 
   function speaker(who) {
     if (!who || who === 'narr') return SPEAKERS.narr;
@@ -12,7 +13,14 @@ const Dialog = (() => {
   const fill = (s) => String(s).replace(/\{name\}/g, G ? G.name : '무명');
 
   function play(lines, cb) {
-    queue = lines.slice();
+    if (!$('#dialog').hidden) {
+      pending.push({ lines: (lines || []).slice(), cb: cb || null });
+      return;
+    }
+    begin(lines, cb);
+  }
+  function begin(lines, cb) {
+    queue = (lines || []).slice();
     done = cb || null;
     $('#dialog').hidden = false;
     next();
@@ -22,7 +30,15 @@ const Dialog = (() => {
     clearInterval(typing); typing = null;
     const box = $('#dialog');
     const line = queue.shift();
-    if (!line) { box.hidden = true; const d = done; done = null; if (d) d(); return; }
+    if (!line) {
+      box.hidden = true;
+      const d = done; done = null; current = null;
+      if (d) d();
+      if (!$('#dialog').hidden) return;
+      if (pending.length) { const p = pending.shift(); begin(p.lines, p.cb); return; }
+      setTimeout(() => { if (typeof EventQ !== 'undefined') EventQ.kick(); }, 0);
+      return;
+    }
     if (line.do) { line.do(); next(); return; }
     const sp = speaker(line.who);
     const face = $('#dlg-face');
@@ -92,7 +108,6 @@ const Dialog = (() => {
       if (shown >= full.length) finishType();
     }, 22);
   }
-  let current = null;
 
   function advance() {
     if ($('#dialog').hidden || !current) return;

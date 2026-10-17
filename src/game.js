@@ -11,6 +11,23 @@ const SAVE_KEY = 'chyw-save-v1';
 
 let G = null;
 
+/* 침공·장터·보상처럼 겹치는 이벤트는 하나씩만 연다 */
+const EventQ = (() => {
+  const jobs = [];
+  function blocked() {
+    if (typeof Dialog !== 'undefined' && Dialog.active()) return true;
+    const m = $('#modal');
+    return !!(m && !m.hidden);
+  }
+  function push(job) { jobs.push(job); kick(); }
+  function kick() {
+    if (blocked() || !jobs.length) return;
+    const job = jobs.shift();
+    job();
+  }
+  return { push, kick };
+})();
+
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
 function loadSave() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }

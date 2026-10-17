@@ -17,7 +17,7 @@ const DANGER = { gangneung: 1, jeonju: 2, tongyeong: 2, pyongyang: 3, gyeongju: 
 
 function showScreen(id) {
   $$('.screen').forEach((s) => { s.hidden = s.id !== id; });
-  if (id === 'scr-map') { MapView.start(); requestAnimationFrame(() => MapView.resize()); }
+  if (id === 'scr-map') { MapView.start(); requestAnimationFrame(() => MapView.resize()); setTimeout(() => EventQ.kick(), 0); }
   else MapView.stop();
   if (id === 'scr-battle') requestAnimationFrame(() => Battle.resize());
 }
@@ -42,7 +42,10 @@ function openModal(html, bind, cls = '') {
   $('#modal').hidden = false;
   if (bind) bind(card);
 }
-function closeModal() { $('#modal').hidden = true; }
+function closeModal() {
+  $('#modal').hidden = true;
+  setTimeout(() => EventQ.kick(), 0);
+}
 
 function medallion(id, size = '') {
   const d = HEROES[id];
@@ -481,6 +484,10 @@ function maybeMarket() {
 }
 function marketNotice() {
   const m = G.market; if (!m) return;
+  EventQ.push(() => showMarketNotice());
+}
+function showMarketNotice() {
+  const m = G.market; if (!m) { EventQ.kick(); return; }
   openModal(`<div class="modal-head"><h3 class="h-display">도깨비 비밀 장터</h3></div>
     <p>${CITIES[m.city].name} 뒷골목에 푸른 등불이 줄지어 켜졌습니다. 도깨비들이 오늘 밤에만 장을 엽니다.</p>
     <p class="muted small">장터에서는 영웅의 행동을 쓰지 않습니다. 날이 밝으면 사라집니다.</p>
@@ -742,9 +749,9 @@ function finishEvent(evId) {
   renderAll(); saveGame();
   const newHero = G.roster[G.roster.length - 1];
   const isHero = /합류/.test(msg);
-  openModal(`<div class="reward">${isHero ? medallion(newHero, 'xl') : '<span class="seal big gold">寶</span>'}
+  EventQ.push(() => openModal(`<div class="reward">${isHero ? medallion(newHero, 'xl') : '<span class="seal big gold">寶</span>'}
     <p class="reward-msg">${esc(msg)}</p><button class="btn primary" data-close>확인</button></div>`,
-    (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; }, 'narrow');
+    (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; }, 'narrow'));
 }
 
 /* ---------- 턴 ---------- */
@@ -784,8 +791,8 @@ function endTurn() {
   renderAll(); saveGame();
   const tiredN = G.roster.filter((id) => G.heroes[id].tired).length;
   toast(`${G.day}일차 ${phaseName()}${extra}${isNight() ? ' · 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다' : ''}${wasNight && tiredN ? ` · 피로 ${tiredN}명 (능력치 -20%)` : ''}`);
-  if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; setTimeout(() => marketNotice(), 700); }
   maybeEnemyAttack();
+  if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; marketNotice(); }
 }
 
 /* 컴퓨터 세력의 내정: 매일 아침 병력을 모으고 조련한다 */
@@ -822,7 +829,7 @@ function maybeEnemyAttack(force) {
   const preview = enemyForce(tgt, { attacker: src, faction: owner });
   G.cities[src].troops = Math.max(0, G.cities[src].troops - preview.send);
   const T = G.cities[tgt];
-  openModal(`<div class="modal-head warn"><h3 class="h-display">${isNight() ? '적의 야습' : '적의 침공'}</h3></div>
+  EventQ.push(() => openModal(`<div class="modal-head warn"><h3 class="h-display">${isNight() ? '적의 야습' : '적의 침공'}</h3></div>
     <p><b style="color:${fac.color}">${fac.name}</b>이(가) ${CITIES[src].name}에서 병력 ${preview.send}으로 <b>${CITIES[tgt].name}</b>을(를) 칩니다.</p>
     <p class="muted small">${CITIES[tgt].name} 병력 ${T.troops} · 훈련 ${T.train} · 성벽 ${T.wall}. 직접 지휘하면 실시간 전투로 막습니다. 방어 전투는 영웅의 행동을 쓰지 않습니다.</p>
     <div class="actions"><button class="btn primary" data-a="fight">직접 지휘</button><button class="btn" data-a="auto">자동 방어</button></div>`, (card) => {
@@ -846,6 +853,7 @@ function maybeEnemyAttack(force) {
         }, () => autoDefend(src, tgt, preview.send), { only: heroesIn(tgt), troops: T.troops, allowEmpty: true, formation: true, note: `${CITIES[tgt].name} 병력 ${T.troops}으로 막습니다. 영웅 없이 나가면 혼불 대장이 지휘합니다.` });
       } else autoDefend(src, tgt, preview.send);
     };
+  });
   });
 }
 

@@ -921,6 +921,23 @@ const SAVE_KEY = 'chyw-save-v1';
 
 let G = null;
 
+/* 침공·장터·보상처럼 겹치는 이벤트는 하나씩만 연다 */
+const EventQ = (() => {
+  const jobs = [];
+  function blocked() {
+    if (typeof Dialog !== 'undefined' && Dialog.active()) return true;
+    const m = $('#modal');
+    return !!(m && !m.hidden);
+  }
+  function push(job) { jobs.push(job); kick(); }
+  function kick() {
+    if (blocked() || !jobs.length) return;
+    const job = jobs.shift();
+    job();
+  }
+  return { push, kick };
+})();
+
 function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
 function loadSave() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
@@ -1272,7 +1289,8 @@ function autoDomestic(cityId) {
 'use strict';
 /* ===== 대화창과 스토리 대본 ===== */
 const Dialog = (() => {
-  let queue = [], done = null, typing = null, full = '', shown = 0;
+  let queue = [], done = null, typing = null, full = '', shown = 0, current = null;
+  const pending = [];
 
   function speaker(who) {
     if (!who || who === 'narr') return SPEAKERS.narr;
@@ -1283,7 +1301,14 @@ const Dialog = (() => {
   const fill = (s) => String(s).replace(/\{name\}/g, G ? G.name : '무명');
 
   function play(lines, cb) {
-    queue = lines.slice();
+    if (!$('#dialog').hidden) {
+      pending.push({ lines: (lines || []).slice(), cb: cb || null });
+      return;
+    }
+    begin(lines, cb);
+  }
+  function begin(lines, cb) {
+    queue = (lines || []).slice();
     done = cb || null;
     $('#dialog').hidden = false;
     next();
@@ -1293,7 +1318,15 @@ const Dialog = (() => {
     clearInterval(typing); typing = null;
     const box = $('#dialog');
     const line = queue.shift();
-    if (!line) { box.hidden = true; const d = done; done = null; if (d) d(); return; }
+    if (!line) {
+      box.hidden = true;
+      const d = done; done = null; current = null;
+      if (d) d();
+      if (!$('#dialog').hidden) return;
+      if (pending.length) { const p = pending.shift(); begin(p.lines, p.cb); return; }
+      setTimeout(() => { if (typeof EventQ !== 'undefined') EventQ.kick(); }, 0);
+      return;
+    }
     if (line.do) { line.do(); next(); return; }
     const sp = speaker(line.who);
     const face = $('#dlg-face');
@@ -1363,7 +1396,6 @@ const Dialog = (() => {
       if (shown >= full.length) finishType();
     }, 22);
   }
-  let current = null;
 
   function advance() {
     if ($('#dialog').hidden || !current) return;
@@ -2789,8 +2821,18 @@ const Battle = (() => {
     if (!cast(u, s)) floatText(u.x, u.y - 40, '대상이 없다', '#c9bfa8', 13);
   }
 
+  const ciQ = [];
+  let ciOn = false;
   function cutin(u, name, mini) {
     if (B.ffwd) return;
+    ciQ.push({ u, name, mini });
+    pumpCutin();
+  }
+  function pumpCutin() {
+    if (ciOn || !ciQ.length || !B) return;
+    const job = ciQ.shift();
+    ciOn = true;
+    const u = job.u, name = job.name, mini = job.mini;
     if (mini) { B.darken = Math.max(B.darken, 0.35); B.slowT = Math.max(B.slowT, 0.25); }
     else { B.slowT = 0.85; B.flash = 0.6; B.darken = Math.max(B.darken, 0.6); }
     const el = $('#cutin');
@@ -2800,7 +2842,7 @@ const Battle = (() => {
     const face = u.hid ? `<img class="ci-face" src="img/portraits/${u.hid}.jpg" alt="">` : `<div class="ci-glyph">${esc(u.glyph)}</div>`;
     d.innerHTML = `<div class="ci-band">${face}<div class="ci-text"><span class="ci-hero">${esc(u.name)}</span><span class="ci-skill">${esc(name)}</span></div></div>`;
     el.appendChild(d);
-    setTimeout(() => d.remove(), mini ? 1000 : 1500);
+    setTimeout(() => { d.remove(); ciOn = false; pumpCutin(); }, mini ? 1000 : 1500);
   }
 
   const HANGUL = 'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ';
@@ -4296,7 +4338,7 @@ const DANGER = { gangneung: 1, jeonju: 2, tongyeong: 2, pyongyang: 3, gyeongju: 
 
 function showScreen(id) {
   $$('.screen').forEach((s) => { s.hidden = s.id !== id; });
-  if (id === 'scr-map') { MapView.start(); requestAnimationFrame(() => MapView.resize()); }
+  if (id === 'scr-map') { MapView.start(); requestAnimationFrame(() => MapView.resize()); setTimeout(() => EventQ.kick(), 0); }
   else MapView.stop();
   if (id === 'scr-battle') requestAnimationFrame(() => Battle.resize());
 }
@@ -4321,7 +4363,10 @@ function openModal(html, bind, cls = '') {
   $('#modal').hidden = false;
   if (bind) bind(card);
 }
-function closeModal() { $('#modal').hidden = true; }
+function closeModal() {
+  $('#modal').hidden = true;
+  setTimeout(() => EventQ.kick(), 0);
+}
 
 function medallion(id, size = '') {
   const d = HEROES[id];
@@ -4760,6 +4805,10 @@ function maybeMarket() {
 }
 function marketNotice() {
   const m = G.market; if (!m) return;
+  EventQ.push(() => showMarketNotice());
+}
+function showMarketNotice() {
+  const m = G.market; if (!m) { EventQ.kick(); return; }
   openModal(`<div class="modal-head"><h3 class="h-display">도깨비 비밀 장터</h3></div>
     <p>${CITIES[m.city].name} 뒷골목에 푸른 등불이 줄지어 켜졌습니다. 도깨비들이 오늘 밤에만 장을 엽니다.</p>
     <p class="muted small">장터에서는 영웅의 행동을 쓰지 않습니다. 날이 밝으면 사라집니다.</p>
@@ -5021,9 +5070,9 @@ function finishEvent(evId) {
   renderAll(); saveGame();
   const newHero = G.roster[G.roster.length - 1];
   const isHero = /합류/.test(msg);
-  openModal(`<div class="reward">${isHero ? medallion(newHero, 'xl') : '<span class="seal big gold">寶</span>'}
+  EventQ.push(() => openModal(`<div class="reward">${isHero ? medallion(newHero, 'xl') : '<span class="seal big gold">寶</span>'}
     <p class="reward-msg">${esc(msg)}</p><button class="btn primary" data-close>확인</button></div>`,
-    (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; }, 'narrow');
+    (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; }, 'narrow'));
 }
 
 /* ---------- 턴 ---------- */
@@ -5063,8 +5112,8 @@ function endTurn() {
   renderAll(); saveGame();
   const tiredN = G.roster.filter((id) => G.heroes[id].tired).length;
   toast(`${G.day}일차 ${phaseName()}${extra}${isNight() ? ' · 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다' : ''}${wasNight && tiredN ? ` · 피로 ${tiredN}명 (능력치 -20%)` : ''}`);
-  if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; setTimeout(() => marketNotice(), 700); }
   maybeEnemyAttack();
+  if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; marketNotice(); }
 }
 
 /* 컴퓨터 세력의 내정: 매일 아침 병력을 모으고 조련한다 */
@@ -5101,7 +5150,7 @@ function maybeEnemyAttack(force) {
   const preview = enemyForce(tgt, { attacker: src, faction: owner });
   G.cities[src].troops = Math.max(0, G.cities[src].troops - preview.send);
   const T = G.cities[tgt];
-  openModal(`<div class="modal-head warn"><h3 class="h-display">${isNight() ? '적의 야습' : '적의 침공'}</h3></div>
+  EventQ.push(() => openModal(`<div class="modal-head warn"><h3 class="h-display">${isNight() ? '적의 야습' : '적의 침공'}</h3></div>
     <p><b style="color:${fac.color}">${fac.name}</b>이(가) ${CITIES[src].name}에서 병력 ${preview.send}으로 <b>${CITIES[tgt].name}</b>을(를) 칩니다.</p>
     <p class="muted small">${CITIES[tgt].name} 병력 ${T.troops} · 훈련 ${T.train} · 성벽 ${T.wall}. 직접 지휘하면 실시간 전투로 막습니다. 방어 전투는 영웅의 행동을 쓰지 않습니다.</p>
     <div class="actions"><button class="btn primary" data-a="fight">직접 지휘</button><button class="btn" data-a="auto">자동 방어</button></div>`, (card) => {
@@ -5125,6 +5174,7 @@ function maybeEnemyAttack(force) {
         }, () => autoDefend(src, tgt, preview.send), { only: heroesIn(tgt), troops: T.troops, allowEmpty: true, formation: true, note: `${CITIES[tgt].name} 병력 ${T.troops}으로 막습니다. 영웅 없이 나가면 혼불 대장이 지휘합니다.` });
       } else autoDefend(src, tgt, preview.send);
     };
+  });
   });
 }
 
