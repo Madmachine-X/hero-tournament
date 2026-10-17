@@ -493,9 +493,9 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 #cmdrail .cmd { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; padding: 6px 4px; }
 #cmdrail .cmd .cmd-glyph { font-family: var(--f-glyph); font-weight: 900; font-size: 1.05rem; line-height: 1; color: var(--gold); opacity: 0.9; }
 #cmdrail .cmd.on .cmd-glyph { color: #fff4d6; }
-#cmdrail-picker { position: relative; padding: 0 var(--gut-r) 10px var(--gut-l); display: flex; justify-content: flex-start; align-items: flex-start; }
+#cmdrail-picker { position: relative; padding: 0 var(--gut-r) 10px var(--gut-l); display: block; }
 #cmdrail-picker:empty { display: none; }
-#cmdrail-picker .picker { margin: 0; background: rgba(18,17,14,0.92); width: max-content; max-width: min(420px, 100%); height: auto; flex: none; align-self: flex-start; }
+#cmdrail-picker .picker { margin: 0; background: rgba(18,17,14,0.92); width: max-content; max-width: min(420px, 100%); height: auto; }
 #cmdrail-picker .pick-hero { width: auto; align-self: stretch; }
 #mapwrap .map-fx { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
 #mapwrap canvas { position: relative; z-index: 0; }
@@ -4386,6 +4386,7 @@ function renderCmdRail() {
     html += '<button class="cmd auto-cmd' + (st.auto ? ' on' : '') + '" data-auto="' + sel + '" title="턴이 끝날 때 남은 장수가 알아서 내정합니다"><i class="cmd-glyph">託</i><span>' + (st.auto ? '위임 중' : '위임') + '</span></button>';
     if (btns) { btns.className = "cmds" + (isNight() ? " night" : ""); btns.innerHTML = html; }
     if (picker) picker.innerHTML = UI.cmd ? commandPicker(sel) : "";
+    placeCmdPicker();
   } else {
     const adj = adjacentToPlayer(sel);
     const free = neighbors(sel).filter(function(n) { return G.cities[n].owner === "player"; }).reduce(function(a, n) { return a + freeIn(n).length; }, 0);
@@ -4398,6 +4399,22 @@ function renderCmdRail() {
   }
 }
 
+function placeCmdPicker() {
+  const host = $("#cmdrail-picker");
+  if (!host) return;
+  const box = host.querySelector(".picker");
+  if (!box) return;
+  const btn = $("#cmdrail-btns .cmd.on");
+  const cs = getComputedStyle(host);
+  const padL = parseFloat(cs.paddingLeft) || 0;
+  const padR = parseFloat(cs.paddingRight) || 0;
+  const hostRect = host.getBoundingClientRect();
+  const avail = Math.max(0, host.clientWidth - padL - padR);
+  let left = 0;
+  if (btn) left = btn.getBoundingClientRect().left - hostRect.left - padL;
+  left = Math.max(0, Math.min(left, Math.max(0, avail - box.offsetWidth)));
+  box.style.marginLeft = Math.round(left) + "px";
+}
 
 function overview() {
   const owned = ownedCities().length;
@@ -5259,6 +5276,7 @@ function boot() {
   $('#btn-help').addEventListener('click', howTo);
   $('#btn-title').addEventListener('click', () => { saveGame(); refreshTitle(); showScreen('scr-title'); });
   $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && $('#modal-card').querySelector('[data-close]')) { closeModal(); renderAll(); } });
+  window.addEventListener('resize', placeCmdPicker);
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape' && !$('#modal').hidden && $('#modal-card').querySelector('[data-close]')) { closeModal(); if (G) renderAll(); }
   });

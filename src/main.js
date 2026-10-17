@@ -120,6 +120,7 @@ function renderCmdRail() {
     html += '<button class="cmd auto-cmd' + (st.auto ? ' on' : '') + '" data-auto="' + sel + '" title="턴이 끝날 때 남은 장수가 알아서 내정합니다"><i class="cmd-glyph">託</i><span>' + (st.auto ? '위임 중' : '위임') + '</span></button>';
     if (btns) { btns.className = "cmds" + (isNight() ? " night" : ""); btns.innerHTML = html; }
     if (picker) picker.innerHTML = UI.cmd ? commandPicker(sel) : "";
+    placeCmdPicker();
   } else {
     const adj = adjacentToPlayer(sel);
     const free = neighbors(sel).filter(function(n) { return G.cities[n].owner === "player"; }).reduce(function(a, n) { return a + freeIn(n).length; }, 0);
@@ -132,6 +133,22 @@ function renderCmdRail() {
   }
 }
 
+function placeCmdPicker() {
+  const host = $("#cmdrail-picker");
+  if (!host) return;
+  const box = host.querySelector(".picker");
+  if (!box) return;
+  const btn = $("#cmdrail-btns .cmd.on");
+  const cs = getComputedStyle(host);
+  const padL = parseFloat(cs.paddingLeft) || 0;
+  const padR = parseFloat(cs.paddingRight) || 0;
+  const hostRect = host.getBoundingClientRect();
+  const avail = Math.max(0, host.clientWidth - padL - padR);
+  let left = 0;
+  if (btn) left = btn.getBoundingClientRect().left - hostRect.left - padL;
+  left = Math.max(0, Math.min(left, Math.max(0, avail - box.offsetWidth)));
+  box.style.marginLeft = Math.round(left) + "px";
+}
 
 function overview() {
   const owned = ownedCities().length;
@@ -993,6 +1010,7 @@ function boot() {
   $('#btn-help').addEventListener('click', howTo);
   $('#btn-title').addEventListener('click', () => { saveGame(); refreshTitle(); showScreen('scr-title'); });
   $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && $('#modal-card').querySelector('[data-close]')) { closeModal(); renderAll(); } });
+  window.addEventListener('resize', placeCmdPicker);
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape' && !$('#modal').hidden && $('#modal-card').querySelector('[data-close]')) { closeModal(); if (G) renderAll(); }
   });

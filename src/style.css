@@ -487,9 +487,9 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 #cmdrail .cmd { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; padding: 6px 4px; }
 #cmdrail .cmd .cmd-glyph { font-family: var(--f-glyph); font-weight: 900; font-size: 1.05rem; line-height: 1; color: var(--gold); opacity: 0.9; }
 #cmdrail .cmd.on .cmd-glyph { color: #fff4d6; }
-#cmdrail-picker { position: relative; padding: 0 var(--gut-r) 10px var(--gut-l); display: flex; justify-content: flex-start; align-items: flex-start; }
+#cmdrail-picker { position: relative; padding: 0 var(--gut-r) 10px var(--gut-l); display: block; }
 #cmdrail-picker:empty { display: none; }
-#cmdrail-picker .picker { margin: 0; background: rgba(18,17,14,0.92); width: max-content; max-width: min(420px, 100%); height: auto; flex: none; align-self: flex-start; }
+#cmdrail-picker .picker { margin: 0; background: rgba(18,17,14,0.92); width: max-content; max-width: min(420px, 100%); height: auto; }
 #cmdrail-picker .pick-hero { width: auto; align-self: stretch; }
 #mapwrap .map-fx { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
 #mapwrap canvas { position: relative; z-index: 0; }
