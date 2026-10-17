@@ -168,7 +168,7 @@ const COMMANDS = {
   rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '밤새 쉬며 체력을 모두 회복한다. 쉬지 않고 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
   scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '어둠을 틈타 주막과 장터를 돌며 소문을 모은다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다.', stat: '지력', when: 'night' },
   search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 찾으면 이 도시에 합류한다.', stat: '지력', when: 'day' },
-  relocate: { name: '이동', key: null, label: '', cost: {}, desc: '영웅을 다른 아군 도시로 보낸다. 밤길에도 갈 수 있다.', stat: '', when: 'any' },
+  relocate: { name: '이동', key: null, label: '', cost: {}, desc: '영웅을 다른 아군 도시로 보낸다. 이웃은 1턴, 길이 멀수록 그 칸 수만큼 턴을 쓴다. 밤길에도 갈 수 있다.', stat: '', when: 'any' },
 };
 
 /* 진형: 출진 전에 고른다 */

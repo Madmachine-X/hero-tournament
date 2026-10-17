@@ -80,8 +80,23 @@ function makeOfficer(kind, level, city, title) {
 }
 
 /* 도시별 주둔 영웅 */
-function heroesIn(city) { return G.roster.filter((h) => G.heroes[h].city === city); }
+function heroesIn(city) { return G.roster.filter((h) => G.heroes[h].city === city && !G.heroes[h].travel); }
 function freeIn(city) { return heroesIn(city).filter((h) => !G.heroes[h].acted); }
+function cityHops(a, b) {
+  if (a === b) return 0;
+  const q = [a], dist = { [a]: 0 };
+  while (q.length) {
+    const cur = q.shift();
+    for (const n of neighbors(cur)) {
+      if (dist[n] != null) continue;
+      dist[n] = dist[cur] + 1;
+      if (n === b) return dist[n];
+      q.push(n);
+    }
+  }
+  return 99;
+}
+function travelers() { return G.roster.filter((h) => G.heroes[h].travel); }
 function namedCount() { return G.roster.filter((h) => !isOfficer(h)).length; }
 
 function heroName(id) { return id === 'hero' ? G.name : HEROES[id].name; }
@@ -211,7 +226,7 @@ function cityGold(id) { const c = G.cities[id]; return Math.round(10 + c.comm * 
 function cityFood(id) { const c = G.cities[id]; return Math.round(10 + c.agri * 1.0 * c.loyal / 100); }
 function totalTroops() { return ownedCities().reduce((a, c) => a + G.cities[c].troops, 0); }
 function foodUpkeep() { return Math.round(totalTroops() * 0.06); }
-function freeHeroes() { return G.roster.filter((h) => !G.heroes[h].acted); }
+function freeHeroes() { return G.roster.filter((h) => !G.heroes[h].acted && !G.heroes[h].travel); }
 
 /* 내정 효과 미리 계산: 영웅 능력치를 따른다 */
 function commandGain(cmd, hid, cityId) {
@@ -306,6 +321,36 @@ function doCommand(cmd, hid, cityId) {
 }
 
 function neighbors(id) { return ROADS.filter((r) => r.includes(id)).map((r) => (r[0] === id ? r[1] : r[0])); }
+function startRelocate(hid, dest) {
+  const h = G.heroes[hid];
+  const from = h.city;
+  const hops = Math.max(1, cityHops(from, dest));
+  h.acted = true;
+  markNightWork(hid);
+  if (hops <= 1) {
+    h.city = dest;
+    h.travel = null;
+    return { hops, msg: `${heroName(hid)}이(가) ${CITIES[dest].name}(으)로 이동했습니다.` };
+  }
+  h.travel = { from, to: dest, left: hops };
+  return { hops, msg: `${heroName(hid)}이(가) ${CITIES[from].name}에서 ${CITIES[dest].name}(으)로 길을 떠났습니다. ${hops}턴 뒤에 도착합니다.` };
+}
+function tickTravel(wasNight) {
+  const arrived = [];
+  G.roster.forEach((id) => {
+    const hh = G.heroes[id];
+    if (!hh.travel) return;
+    if (wasNight) hh.nightWork = true;
+    hh.travel.left--;
+    if (hh.travel.left > 0) return;
+    let dest = hh.travel.to;
+    if (!G.cities[dest] || G.cities[dest].owner !== 'player') dest = ownedCities()[0] || dest;
+    hh.city = dest;
+    arrived.push(id);
+    hh.travel = null;
+  });
+  return arrived;
+}
 function adjacentToPlayer(id) { return neighbors(id).some((n) => G.cities[n].owner === 'player'); }
 function phaseName() { return PHASES[G.phase].name; }
 
