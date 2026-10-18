@@ -183,6 +183,26 @@ function markNightWork(hid) {
   const h = G.heroes[hid];
   if (h && isNight()) h.nightWork = true;
 }
+function isWeary(id) {
+  const h = G.heroes[id];
+  return !!(h && (h.tired || h.hp <= 0.5));
+}
+function cmdHpCost(cmd, hops) {
+  if (cmd === 'rest') return 0;
+  if (cmd === 'move') return clamp(0.12 * Math.max(1, hops || 1), 0.12, 0.36);
+  const n = COMMANDS[cmd] && COMMANDS[cmd].hp;
+  return n == null ? 0.18 : n;
+}
+function spendActionHp(hid, amount) {
+  const h = G.heroes[hid];
+  if (!h || !(amount > 0)) return { spent: 0, hp: h ? h.hp : 0, weary: isWeary(hid) };
+  const before = h.hp;
+  h.hp = clamp(h.hp - amount, 0.05, 1);
+  return { spent: before - h.hp, hp: h.hp, weary: isWeary(hid) };
+}
+function wearyNote(hid) {
+  return isWeary(hid) ? ' 체력이 절반 아래라 능력치가 20% 떨어집니다.' : '';
+}
 
 function jobIdOf(hid) {
   if (G && G.heroes && G.heroes[hid] && JOBS[G.heroes[hid].job]) return G.heroes[hid].job;
@@ -296,7 +316,7 @@ function statsFrom(id, level, equip, tired) {
   const hiddenOn = !!(d.weapon && (equip.w1 === d.weapon || equip.w2 === d.weapon));
   return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, range, ranged, cdr, squad, style, hiddenOn, tired: !!tired, job: job.name, jobId: jobIdOf(id), unit: job.unit };
 }
-function computeStats(id) { const h = G.heroes[id]; return statsFrom(id, h.level, h.equip, !!h.tired); }
+function computeStats(id) { const h = G.heroes[id]; return statsFrom(id, h.level, h.equip, isWeary(id)); }
 
 /* ----- 장비 ----- */
 function slotAccepts(slot, itemId) {
@@ -421,8 +441,8 @@ function doCommand(cmd, hid, cityId) {
   const c = G.cities[cityId], h = G.heroes[hid];
   if (h.acted) return { ok: false, msg: '이번 턴에 이미 행동했습니다.' };
   if (!cmdAllowed(cmd)) return { ok: false, msg: COMMANDS[cmd].when === 'night' ? `${COMMANDS[cmd].name} 명령은 야간에만 할 수 있습니다.` : `${COMMANDS[cmd].name} 명령은 오전·오후에만 할 수 있습니다. 백성도 밤에는 잡니다.` };
-  if (cmd === 'rest') { h.hp = 1; h.acted = true; h.nightWork = false; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다. 다음날 피로하지 않습니다.` }; }
-  if (cmd === 'scout') { h.acted = true; markNightWork(hid); grantExp(hid, 5); return scoutRumor(hid, cityId); }
+  if (cmd === 'rest') { h.hp = 1; h.acted = true; h.nightWork = false; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다. 체력이 가득 찼습니다.` }; }
+  if (cmd === 'scout') { h.acted = true; markNightWork(hid); grantExp(hid, 5); const r = scoutRumor(hid, cityId); spendActionHp(hid, cmdHpCost('scout')); if (r && r.msg) r.msg += wearyNote(hid); return r; }
   const cost = commandCost(cmd, hid, cityId);
   if (!canAfford(cost)) return { ok: false, msg: '금이나 군량이 모자랍니다.' };
   const gain = commandGain(cmd, hid, cityId);
@@ -432,14 +452,15 @@ function doCommand(cmd, hid, cityId) {
     G.gold -= cost.gold || 0;
     h.acted = true;
     markNightWork(hid);
+    spendActionHp(hid, cmdHpCost('search'));
     grantExp(hid, 6);
     if (Math.random() * 100 < gain) {
       const lv = Math.max(2, Math.round(G.roster.reduce((a, x) => a + G.heroes[x].level, 0) / G.roster.length) - 1);
       const nid = makeOfficer(Math.random() < 0.5 ? 'civil' : 'mil', lv, cityId);
       G.heroes[nid].acted = true;
-      return { ok: true, found: nid, msg: `${heroName(hid)}이(가) 인재를 찾았습니다: ${HEROES[nid].title} ${HEROES[nid].name}` };
+      return { ok: true, found: nid, msg: `${heroName(hid)}이(가) 인재를 찾았습니다: ${HEROES[nid].title} ${HEROES[nid].name}` + wearyNote(hid) };
     }
-    return { ok: true, msg: `${heroName(hid)}이(가) 인재를 찾지 못했습니다.` };
+    return { ok: true, msg: `${heroName(hid)}이(가) 인재를 찾지 못했습니다.` + wearyNote(hid) };
   }
   if (cmd === 'draft') {
     if (c.loyal < 30) return { ok: false, msg: '민심이 30 아래라 징병할 수 없습니다. 먼저 선정을 하세요.' };
@@ -457,8 +478,9 @@ function doCommand(cmd, hid, cityId) {
   G.gold -= cost.gold || 0; G.food -= cost.food || 0;
   h.acted = true;
   markNightWork(hid);
+  spendActionHp(hid, cmdHpCost(cmd));
   grantExp(hid, 6);
-  return { ok: true, msg };
+  return { ok: true, msg: msg + wearyNote(hid) };
 }
 
 function neighbors(id) { return ROADS.filter((r) => r.includes(id)).map((r) => (r[0] === id ? r[1] : r[0])); }
@@ -469,6 +491,7 @@ function startRelocate(hid, dest, opts) {
   if (!(opts && opts.skipCap) && cityPop(dest) >= cityCap(dest)) return { ok: false, hops, msg: `${CITIES[dest].name}은(는) 인재 정원이 가득합니다 (${cityPop(dest)}/${cityCap(dest)}).` };
   h.acted = true;
   markNightWork(hid);
+  spendActionHp(hid, cmdHpCost('move', hops));
   if (hops <= 1) {
     h.city = dest;
     h.travel = null;
@@ -506,7 +529,7 @@ function executeMarch(from, dest, heroIds, troops) {
     if (r.ok) bits.push(heroName(h));
   });
   if (n) transferTroops(from, dest, n);
-  if (escort) { G.heroes[escort].acted = true; markNightWork(escort); }
+  if (escort) { G.heroes[escort].acted = true; markNightWork(escort); spendActionHp(escort, 0.15); }
   const hops = Math.max(1, cityHops(from, dest));
   const msg = `${CITIES[from].name} → ${CITIES[dest].name}` +
     (bits.length ? ` · 장수 ${bits.join(', ')}${hops > 1 ? ` (${hops}턴)` : ''}` : '') +
@@ -519,6 +542,7 @@ function tickTravel(wasNight) {
     const hh = G.heroes[id];
     if (!hh.travel) return;
     if (wasNight) hh.nightWork = true;
+    spendActionHp(id, 0.1);
     hh.travel.left--;
     if (hh.travel.left > 0) return;
     let dest = hh.travel.to;

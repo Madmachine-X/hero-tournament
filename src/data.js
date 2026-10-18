@@ -196,16 +196,16 @@ const ITEMS = {
 };
 /* 내정 명령: 영웅 한 명이 턴마다 하나를 한다 */
 const COMMANDS = {
-  agri:  { name: '개간', key: 'agri', label: '농업', cost: { gold: 50 }, desc: '논밭을 넓혀 농업을 올린다. 매일 아침 들어오는 군량이 는다.', stat: '지력·통솔', when: 'day' },
-  comm:  { name: '상업', key: 'comm', label: '상업', cost: { gold: 50 }, desc: '시장을 키워 상업을 올린다. 매일 아침 들어오는 금이 는다.', stat: '지력', when: 'day' },
-  wall:  { name: '성벽', key: 'wall', label: '성벽', cost: { gold: 60 }, desc: '성벽을 보수한다. 이 도시를 지킬 때 방어력이 오른다.', stat: '통솔·무력', when: 'day' },
-  loyal: { name: '선정', key: 'loyal', label: '민심', cost: { food: 40 }, desc: '곡식을 풀어 민심을 얻는다. 민심은 세금과 징병에 영향을 준다.', stat: '지력', when: 'day' },
-  draft: { name: '징병', key: 'troops', label: '병력', cost: { goldPer: 1.5 }, desc: '혼불 병사를 모은다. 민심이 조금 떨어지고 훈련도가 묽어진다.', stat: '통솔', when: 'day' },
-  train: { name: '훈련', key: 'train', label: '훈련', cost: { food: 20 }, desc: '병사를 조련한다. 훈련도가 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
-  move:  { name: '병력 이동', key: null, label: '', cost: {}, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다.', stat: '', when: 'any' },
-  rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '쉬며 체력을 모두 회복한다. 야간에 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉰다. 밤에 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
-  scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '주막과 장터를 돌며 소문을 모은다. 오전·오후·야간 모두 할 수 있다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다. 고유 무기의 소문은 그 장군이 직접 들을 때만 이어진다.', stat: '지력', when: 'any' },
-  search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 장수가 늘수록 발견 확률이 떨어진다. 정원이 가득하면 다른 도시로 보내거나 해고·등용 취소를 해야 한다.', stat: '지력', when: 'day' },
+  agri:  { name: '개간', key: 'agri', label: '농업', cost: { gold: 50 }, hp: 0.18, desc: '논밭을 넓혀 농업을 올린다. 매일 아침 들어오는 군량이 는다.', stat: '지력·통솔', when: 'day' },
+  comm:  { name: '상업', key: 'comm', label: '상업', cost: { gold: 50 }, hp: 0.18, desc: '시장을 키워 상업을 올린다. 매일 아침 들어오는 금이 는다.', stat: '지력', when: 'day' },
+  wall:  { name: '성벽', key: 'wall', label: '성벽', cost: { gold: 60 }, hp: 0.18, desc: '성벽을 보수한다. 이 도시를 지킬 때 방어력이 오른다.', stat: '통솔·무력', when: 'day' },
+  loyal: { name: '선정', key: 'loyal', label: '민심', cost: { food: 40 }, hp: 0.18, desc: '곡식을 풀어 민심을 얻는다. 민심은 세금과 징병에 영향을 준다.', stat: '지력', when: 'day' },
+  draft: { name: '징병', key: 'troops', label: '병력', cost: { goldPer: 1.5 }, hp: 0.18, desc: '혼불 병사를 모은다. 민심이 조금 떨어지고 훈련도가 묽어진다.', stat: '통솔', when: 'day' },
+  train: { name: '훈련', key: 'train', label: '훈련', cost: { food: 20 }, hp: 0.18, desc: '병사를 조련한다. 훈련도가 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
+  move:  { name: '병력 이동', key: null, label: '', cost: {}, hp: 0.15, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다. 길을 떠난 장수는 체력이 더 단다.', stat: '', when: 'any' },
+  rest:  { name: '휴식', key: null, label: '', cost: {}, hp: 0, desc: '쉬며 체력을 모두 회복한다. 야간에 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉰다. 체력이 절반 이하면 능력치가 20% 떨어진다.', stat: '', when: 'night' },
+  scout: { name: '소문 탐색', key: null, label: '', cost: {}, hp: 0.2, desc: '주막과 장터를 돌며 소문을 모은다. 오전·오후·야간 모두 할 수 있다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다. 고유 무기의 소문은 그 장군이 직접 들을 때만 이어진다.', stat: '지력', when: 'any' },
+  search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, hp: 0.2, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 장수가 늘수록 발견 확률이 떨어진다. 정원이 가득하면 다른 도시로 보내거나 해고·등용 취소를 해야 한다.', stat: '지력', when: 'day' },
 };
 
 /* 진형: 출진 전에 고른다 */
