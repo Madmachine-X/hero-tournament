@@ -121,12 +121,17 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 /* ---------- 이야기 배경 ---------- */
 #scr-story { overflow: hidden; background: #08090b; cursor: pointer; }
 .story-bg { position: absolute; inset: 0; display: grid; place-items: center; transition: background 1.2s; }
-#story-mark { font-family: var(--f-glyph); font-weight: 900; font-size: clamp(4rem, 22vmin, 14rem); letter-spacing: 0.12em; line-height: 1; white-space: nowrap;
+.story-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,9,11,0.2), rgba(8,9,11,0.45) 55%, rgba(8,9,11,0.82)); pointer-events: none; z-index: 1; }
+#story-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 28%; opacity: 0; transition: opacity 0.7s ease; z-index: 0; }
+#story-art.on { opacity: 1; }
+#story-mark { position: relative; z-index: 2; font-family: var(--f-glyph); font-weight: 900; font-size: clamp(4rem, 22vmin, 14rem); letter-spacing: 0.12em; line-height: 1; white-space: nowrap;
   color: rgba(217,171,74,0.07); -webkit-text-stroke: 1px rgba(217,171,74,0.2); transform: translateY(-30%); }
 [data-scene="river"] .story-bg { background: radial-gradient(ellipse at 50% 70%, rgba(127,211,230,0.12), transparent 60%), linear-gradient(180deg, #050607, #0b1418 60%, #04080a); }
 [data-scene="hall"] .story-bg { background: radial-gradient(ellipse at 50% 30%, rgba(200,64,47,0.22), transparent 55%), repeating-linear-gradient(90deg, #120d0b 0 70px, #1a120f 70px 74px, #120d0b 74px 140px); }
+[data-scene="wait"] .story-bg { background: #0c0c0e; }
 [data-scene="mirror"] .story-bg { background: radial-gradient(circle at 50% 40%, rgba(185,166,232,0.2), rgba(20,18,30,0.8) 40%, #07070a 70%); }
 [data-scene="seoul"] .story-bg { background: radial-gradient(ellipse at 50% 60%, rgba(150,140,120,0.14), transparent 60%), linear-gradient(180deg, #121212, #0a0a0b); }
+[data-scene="karaoke"] .story-bg { background: #07080a; }
 
 /* ---------- 전략 지도 ---------- */
 #scr-map { display: grid; grid-template-rows: auto 1fr; background: var(--ink); }
@@ -571,7 +576,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 
   <!-- 이야기 배경 -->
   <section id="scr-story" class="screen" hidden data-scene="river">
-    <div class="story-bg" aria-hidden="true"><span id="story-mark"></span></div>
+    <div class="story-bg" aria-hidden="true"><img id="story-art" alt=""><span id="story-mark"></span></div>
   </section>
 
   <!-- 전략 지도 -->
@@ -1782,9 +1787,13 @@ const SCRIPT = {
     { who: 'gangrim', text: '…공주님 부탁이면야. 귀찮게 됐군.' },
   ],
   p4: [
-    { who: 'narr', text: '거울 세계 · 서울. 하늘이 갈라지고, 둘은 잿빛 도시 한가운데로 떨어진다.' },
+    { who: 'narr', text: '거울 세계 · 서울. 하늘이 갈라지고, 둘은 한강 위로 떨어진다.' },
     { who: 'gangrim', text: '온다. 무명혼이다. 이름 잃은 것들은 살아 있는 척하는 걸 미워하지.' },
     { who: 'gangrim', text: '네가 앞장서라. 나는 등 뒤를 맡지.' },
+  ],
+  p4b: [
+    { who: 'narr', text: '착지한 곳은 간판이 꺼진 노래방이다. 마이크가 창처럼 서 있고, 반주기가 혼을 삼킨다.' },
+    { who: 'gangrim', text: '탬버린이다. 방패 대신 들어. 후렴이 나오기 전에 친다.' },
   ],
   eulji: [
     { who: 'narr', text: '싸움이 끝나자, 무너진 산성 위에서 느린 박수 소리가 들린다.' },
@@ -4844,10 +4853,23 @@ function showScreen(id) {
   else MapView.stop();
   if (id === 'scr-battle') requestAnimationFrame(() => Battle.resize());
 }
+const STORY_ART = {
+  wait: 'img/opening/wait.jpg',
+  mirror: 'img/opening/mirror.jpg',
+  seoul: 'img/opening/seoul.jpg',
+  karaoke: 'img/opening/karaoke.jpg',
+};
 function setScene(name) {
   const s = $('#scr-story');
   s.dataset.scene = name;
-  $('#story-mark').textContent = { river: '黃泉', hall: '十王廳', mirror: '業鏡臺', seoul: '漢陽' }[name] || '';
+  $('#story-mark').textContent = { river: '黃泉', hall: '十王廳', wait: '待合', mirror: '業鏡臺', seoul: '漢陽', karaoke: '歌房' }[name] || '';
+  const img = $('#story-art');
+  if (!img) return;
+  const src = STORY_ART[name];
+  img.classList.remove('on');
+  if (!src) { img.removeAttribute('src'); return; }
+  img.onload = () => img.classList.add('on');
+  img.src = src;
 }
 
 function toast(msg, kind = '') {
@@ -5949,18 +5971,24 @@ function startNew() {
   Dialog.play(SCRIPT.p1, () => {
     setScene('hall');
     Dialog.play(SCRIPT.p2, () => {
-      setScene('mirror');
-      Dialog.play(SCRIPT.p3a, () => nationSelect(() => Dialog.play(SCRIPT.p3b, () => {
-        setScene('seoul');
-        Dialog.play(SCRIPT.p4, tutorialBattle);
-      })));
+      setScene('wait');
+      Dialog.play(SCRIPT.p3a, () => nationSelect(() => {
+        setScene('mirror');
+        Dialog.play(SCRIPT.p3b, () => {
+          setScene('seoul');
+          Dialog.play(SCRIPT.p4, () => {
+            setScene('karaoke');
+            Dialog.play(SCRIPT.p4b, tutorialBattle);
+          });
+        });
+      }));
     });
   });
 }
 
 function tutorialBattle() {
   startBattle({
-    title: '거울 세계 · 서울', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', forms: { hero: heroFormOf('hero'), gangrim: heroFormOf('gangrim') }, party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
+    title: '거울 세계 · 노래방', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', forms: { hero: heroFormOf('hero'), gangrim: heroFormOf('gangrim') }, party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
     enemy: { heroes: [{ generic: true, name: '무명 십부장', level: 2, faction: 'ghost', skill: 'ghostfire' }], soldiers: 14, level: 1, faction: 'ghost' },
     onEnd: (res) => {
       applyBattle(res, ['hero', 'gangrim'], false);

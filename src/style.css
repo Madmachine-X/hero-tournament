@@ -115,12 +115,17 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 /* ---------- 이야기 배경 ---------- */
 #scr-story { overflow: hidden; background: #08090b; cursor: pointer; }
 .story-bg { position: absolute; inset: 0; display: grid; place-items: center; transition: background 1.2s; }
-#story-mark { font-family: var(--f-glyph); font-weight: 900; font-size: clamp(4rem, 22vmin, 14rem); letter-spacing: 0.12em; line-height: 1; white-space: nowrap;
+.story-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,9,11,0.2), rgba(8,9,11,0.45) 55%, rgba(8,9,11,0.82)); pointer-events: none; z-index: 1; }
+#story-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 28%; opacity: 0; transition: opacity 0.7s ease; z-index: 0; }
+#story-art.on { opacity: 1; }
+#story-mark { position: relative; z-index: 2; font-family: var(--f-glyph); font-weight: 900; font-size: clamp(4rem, 22vmin, 14rem); letter-spacing: 0.12em; line-height: 1; white-space: nowrap;
   color: rgba(217,171,74,0.07); -webkit-text-stroke: 1px rgba(217,171,74,0.2); transform: translateY(-30%); }
 [data-scene="river"] .story-bg { background: radial-gradient(ellipse at 50% 70%, rgba(127,211,230,0.12), transparent 60%), linear-gradient(180deg, #050607, #0b1418 60%, #04080a); }
 [data-scene="hall"] .story-bg { background: radial-gradient(ellipse at 50% 30%, rgba(200,64,47,0.22), transparent 55%), repeating-linear-gradient(90deg, #120d0b 0 70px, #1a120f 70px 74px, #120d0b 74px 140px); }
+[data-scene="wait"] .story-bg { background: #0c0c0e; }
 [data-scene="mirror"] .story-bg { background: radial-gradient(circle at 50% 40%, rgba(185,166,232,0.2), rgba(20,18,30,0.8) 40%, #07070a 70%); }
 [data-scene="seoul"] .story-bg { background: radial-gradient(ellipse at 50% 60%, rgba(150,140,120,0.14), transparent 60%), linear-gradient(180deg, #121212, #0a0a0b); }
+[data-scene="karaoke"] .story-bg { background: #07080a; }
 
 /* ---------- 전략 지도 ---------- */
 #scr-map { display: grid; grid-template-rows: auto 1fr; background: var(--ink); }
