@@ -1,7 +1,7 @@
 'use strict';
 /* ===== 화면 흐름, 전략 UI, 영웅/장비/상점 ===== */
 const UI = {
-  tab: 'info', sel: null, heroView: null, equipSlot: null, cmd: null, cmdHero: null, cmdParty: null, cmdTroops: null,
+  tab: 'info', sel: null, heroView: null, equipSlot: null, cmd: null, cmdHero: null, cmdParty: null, cmdTroops: null, turning: false,
   formation: (() => { try { return localStorage.getItem('chyw-form') || 'eorin'; } catch (e) { return 'eorin'; } })(),
   forms: (() => { try { return JSON.parse(localStorage.getItem('chyw-hero-forms') || '{}') || {}; } catch (e) { return {}; } })(),
 };
@@ -876,8 +876,32 @@ function finishEvent(evId) {
 }
 
 /* ---------- 턴 ---------- */
+function playPhaseWipe(day, phase, onMid, onDone) {
+  const el = $('#phase-wipe');
+  if (!el) { if (onMid) onMid(); if (onDone) onDone(); return; }
+  const marks = { morning: '晨', noon: '晝', night: '夜' };
+  el.dataset.phase = phase.id;
+  el.innerHTML = `<i class="pw-veil"></i><i class="pw-wipe"></i><div class="pw-copy"><span class="pw-mark">${marks[phase.id] || ''}</span><em>${day}일차</em><b>${esc(phase.name)}</b></div>`;
+  el.classList.remove('out');
+  el.classList.add('on');
+  setTimeout(() => { if (onMid) onMid(); }, 400);
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => { el.classList.remove('on', 'out'); el.innerHTML = ''; if (onDone) onDone(); }, 420);
+  }, 980);
+}
 function endTurn() {
-  if (Dialog.active() || !$('#modal').hidden) return;
+  if (UI.turning || Dialog.active() || !$('#modal').hidden) return;
+  UI.turning = true;
+  const next = PHASES[(G.phase + 1) % PHASES.length];
+  const nextDay = G.phase === NIGHT ? G.day + 1 : G.day;
+  playPhaseWipe(nextDay, next, applyTurnAdvance, () => {
+    maybeEnemyAttack();
+    if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; marketNotice(); }
+    UI.turning = false;
+  });
+}
+function applyTurnAdvance() {
   const autoLog = [];
   ownedCities().forEach((c) => { if (G.cities[c].auto) autoLog.push(...autoDomestic(c)); });
   if (autoLog.length) { autoLog.forEach(logEvent); setTimeout(() => toast(`위임 내정 ${autoLog.length}건 · 탐색 탭 기록에서 볼 수 있습니다`), 300); }
@@ -915,8 +939,6 @@ function endTurn() {
   toast(`${G.day}일차 ${phaseName()}${extra}${isNight() ? ' · 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다' : ''}${wasNight && tiredN ? ` · 피로 ${tiredN}명 (능력치 -20%)` : ''}`);
   if (arrived.length) setTimeout(() => toast(arrived.map((id) => `${heroName(id)} ${CITIES[G.heroes[id].city].name} 도착`).join(' · '), 'gold'), 450);
   if (arrived.length) promptCapIfNeeded();
-  maybeEnemyAttack();
-  if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; marketNotice(); }
 }
 
 /* 컴퓨터 세력의 내정: 매일 아침 병력을 모으고 조련한다 */
