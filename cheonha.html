@@ -4824,12 +4824,16 @@ const UI = {
   formation: (() => { try { return localStorage.getItem('chyw-form') || 'eorin'; } catch (e) { return 'eorin'; } })(),
   forms: (() => { try { return JSON.parse(localStorage.getItem('chyw-hero-forms') || '{}') || {}; } catch (e) { return {}; } })(),
 };
-function heroFormOf(h) { return FORMATIONS[UI.forms[h]] ? UI.forms[h] : (UI.formation || 'eorin'); }
+function heroFormOf(h) { return FORMATIONS[UI.forms[h]] ? UI.forms[h] : (FORMATIONS[UI.formation] ? UI.formation : 'eorin'); }
+function ensureHeroForm(h) {
+  if (FORMATIONS[UI.forms[h]]) return UI.forms[h];
+  UI.forms[h] = FORMATIONS[UI.formation] ? UI.formation : 'eorin';
+  return UI.forms[h];
+}
 function setHeroForm(h, f) {
   if (!FORMATIONS[f]) return;
   UI.forms[h] = f;
-  UI.formation = f;
-  try { localStorage.setItem('chyw-hero-forms', JSON.stringify(UI.forms)); localStorage.setItem('chyw-form', f); } catch (err) {}
+  try { localStorage.setItem('chyw-hero-forms', JSON.stringify(UI.forms)); } catch (err) {}
 }
 const SLOT_LABEL = { w1: '무기 1', w2: '무기 2', armor: '갑옷', acc0: '장신구 1', acc1: '장신구 2', acc2: '장신구 3', acc3: '장신구 4' };
 const DANGER = { gangneung: 1, jeonju: 2, tongyeong: 2, pyongyang: 3, gyeongju: 3, seoul: 1, hamheung: 3, jeju: 2 };
@@ -5480,7 +5484,7 @@ function choosePartyThen(title, cb, onCancel, opts = {}) {
       ${opts.note ? `<p class="muted small">${opts.note}</p>` : ''}
       <p class="muted">함께 갈 영웅을 ${MAXP}명까지 고르세요. 영웅 한 명이 혼불 병사 ${SQUAD}명을 이끕니다. 고른 영웅마다 혼불 진형을 따로 정합니다. (${picked.size}/${MAXP})</p>
       ${opts.formation && opts.enemyCity ? `<p class="muted small">적은 ${FORMATIONS[FACTION_FORMATION[G.cities[opts.enemyCity].owner]].name}으로 맞섭니다.</p>` : ''}
-      <div class="party">${pool.map((h) => { const s = computeStats(h), hp = G.heroes[h].hp, on = picked.has(h), hf = heroFormOf(h);
+      <div class="party">${pool.map((h) => { const s = computeStats(h), hp = G.heroes[h].hp, on = picked.has(h), hf = on && opts.formation ? ensureHeroForm(h) : heroFormOf(h);
         const chips = on && opts.formation ? `<span class="hero-forms">${Object.keys(FORMATIONS).map((k) => `<button type="button" class="form-chip ${hf === k ? 'on' : ''}" data-hform="${h}" data-form="${k}">${FORMATIONS[k].name}</button>`).join('')}</span>` : '';
         return `<div class="pick-hero ${on ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · ${s.job} · 통솔 ${s.lea} (사기 ${Math.round(clamp(30 + s.lea * 2.5, 10, 100))}) · ${s.style}${isWeary(h) ? ' · 지침 -20%' : ''}${on && opts.formation ? ` · 혼불 ${FORMATIONS[hf].name}` : ''}</span><span class="bar"><i style="width:${Math.round(hp * 100)}%"></i></span></span>${s.hiddenOn ? '<em class="gold small">특수기</em>' : ''}${chips}</div>`; }).join('') || '<p class="muted small">고를 수 있는 영웅이 없습니다.</p>'}</div>
       <p class="muted small">출전 병력 ${sent}명 (쓸 수 있는 병력 ${troops})${foodCost ? ` · 군량 ${foodCost} 소모` : ''}${!picked.size && opts.allowEmpty ? ' · 영웅 없이 나가면 혼불 대장이 지휘합니다' : ''}</p>
@@ -5488,7 +5492,7 @@ function choosePartyThen(title, cb, onCancel, opts = {}) {
       <div class="actions"><button class="btn primary" data-go ${(picked.size || opts.allowEmpty) && !short && (sent > 0 || picked.size) ? '' : 'disabled'}>출진</button></div>`, (card) => {
       card.onclick = (e) => {
         const chip = e.target.closest('[data-hform]');
-        if (chip) { setHeroForm(chip.dataset.hform, chip.dataset.form); draw(); return; }
+        if (chip) { e.stopPropagation(); setHeroForm(chip.dataset.hform, chip.dataset.form); draw(); return; }
         const row = e.target.closest('[data-h]');
         if (row) { const h = row.dataset.h; if (picked.has(h)) picked.delete(h); else if (picked.size < MAXP) picked.add(h); else toast(`${MAXP}명까지만 데려갈 수 있습니다.`); draw(); return; }
         const b = e.target.closest('button');
