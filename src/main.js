@@ -988,8 +988,7 @@ function maybeEnemyAttack(force) {
         }, () => autoDefend(src, tgt, preview.send), { only: heroesIn(tgt), troops: T.troops, allowEmpty: true, formation: true, note: `${CITIES[tgt].name} 병력 ${T.troops}으로 막습니다. 영웅 없이 나가면 혼불 대장이 지휘합니다.` });
       } else autoDefend(src, tgt, preview.send);
     };
-  });
-  });
+  }));
 }
 
 function autoDefend(src, tgt, send) {
@@ -1197,7 +1196,7 @@ function boot() {
 }
 function refreshTitle() {
   const s = loadSave();
-  const ok = !!(s && s.stage === 'act1' && (s.v === 3 || s.v === 4));
+  const ok = !!(s && s.stage === 'act1' && s.v >= 3);
   $('#ti-cont').hidden = !ok;
   $('#ti-save').textContent = ok ? `${s.name} 맹주 · ${s.day}일차 · 영웅 ${s.roster.length}명` : '';
 }
