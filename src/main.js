@@ -142,16 +142,8 @@ function placeCmdPicker() {
   if (!host) return;
   const box = host.querySelector(".picker");
   if (!box) return;
-  const btn = $("#cmdrail-btns .cmd.on");
-  const cs = getComputedStyle(host);
-  const padL = parseFloat(cs.paddingLeft) || 0;
-  const padR = parseFloat(cs.paddingRight) || 0;
-  const hostRect = host.getBoundingClientRect();
-  const avail = Math.max(0, host.clientWidth - padL - padR);
-  let left = 0;
-  if (btn) left = btn.getBoundingClientRect().left - hostRect.left - padL;
-  left = Math.max(0, Math.min(left, Math.max(0, avail - box.offsetWidth)));
-  box.style.marginLeft = Math.round(left) + "px";
+  box.style.marginLeft = "0";
+  box.style.width = "100%";
 }
 function bindMarchPicker() {
   const r = $('#cmdrail-picker [data-troops]');
@@ -165,10 +157,10 @@ function bindMarchPicker() {
 
 function overview() {
   const owned = ownedCities().length;
-  const rows = Object.keys(CITIES).map((id) => {
+  const rows = ownedCities().map((id) => {
     const st = G.cities[id], f = FACTIONS[st.owner];
-    const here = st.owner === 'player' ? heroesIn(id).length : 0;
-    return `<button class="row" data-city="${id}"><span class="chip" style="--c:${f.color}">${f.glyph}</span><span class="row-main">${CITIES[id].name}</span><span class="row-sub">${st.owner === 'player' ? `아군 · 장수 ${cityPop(id)}/${cityCap(id)}${here < 2 ? ' ⚠' : ''}${st.auto ? ' · 위임' : ''}` : f.name} · 병력 ${st.troops}</span></button>`;
+    const here = heroesIn(id).length;
+    return `<button class="row" data-city="${id}"><span class="chip" style="--c:${f.color}">${f.glyph}</span><span class="row-main">${CITIES[id].name}</span><span class="row-sub">장수 ${cityPop(id)}/${cityCap(id)}${here < 2 ? ' ⚠' : ''}${st.auto ? ' · 위임' : ''} · 병력 ${st.troops}</span></button>`;
   }).join('');
   const gIn = ownedCities().reduce((a, c) => a + cityGold(c), 0), fIn = ownedCities().reduce((a, c) => a + cityFood(c), 0);
   return `<div class="card">
@@ -201,7 +193,7 @@ function cityCard(id) {
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${cityPop(id)} / ${cityCap(id)}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}${cityPop(id) > cityCap(id) ? ' · 정원 초과' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${G.heroes[h].tired ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${G.heroes[h].tired ? ' · 피로' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${G.heroes[h].tired ? ' · 피로' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
-      <p class="hint">내정·장터·위임은 위쪽 명령 막대에서 고릅니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
+      <p class="hint">내정·장터·위임은 아래 명령에서 고릅니다. 농업·상업 현황을 보며 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);
