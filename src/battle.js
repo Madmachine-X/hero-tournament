@@ -143,6 +143,8 @@ const Battle = (() => {
     const ob = $('#b-orders');
     ob.innerHTML = ORDERS.map((o) => `<button class="ord" data-ord="${o.id}"><kbd>${o.key}</kbd>${o.name}</button>`).join('');
     ob.addEventListener('click', (e) => { const b = e.target.closest('[data-ord]'); if (b) setOrder(b.dataset.ord); });
+    const fb = $('#b-forms');
+    if (fb) fb.addEventListener('click', (e) => { const b = e.target.closest('[data-bform]'); if (b) setBattleForm(b.dataset.bform); });
     $('#b-tip').addEventListener('click', () => { $('#b-tip').hidden = true; });
   }
 
@@ -341,8 +343,7 @@ const Battle = (() => {
     Sfx.reset(); Sfx.play('start');
     buildHud();
     $('#b-name').textContent = cfg.title || '전투';
-    const pNames = [...new Set(pHeroes.map((h) => (FORMATIONS[h.form] || FORMATIONS.eorin).name))];
-    $('#b-form').textContent = `${pNames.join('·') || FORMATIONS[B.form[0]].name} vs ${FORMATIONS[B.form[1]].name}`;
+    syncFormHud();
     $('#b-phase').textContent = PHASES[G.phase].name + (cfg.enemy.surprised ? ' 기습' : '');
     $('#b-result').hidden = true;
     $('#b-tip').hidden = !cfg.tutorial;
@@ -561,7 +562,10 @@ const Battle = (() => {
       if (u.x > W - 6 || u.x < 6) { u.alive = false; u.fled = true; }
       return;
     }
-    if (u === B.ctrl && !B.autoCtrl) { ctrlThink(u); return; }
+    if (u === B.ctrl && !B.autoCtrl) {
+      if (keyVec() || B.attackTarget || (B.moveTo && B.order !== 'form')) { ctrlThink(u); return; }
+      if (B.order !== 'form') { ctrlThink(u); return; }
+    }
     if (u.kind === 'hero' || u.captain) {
       if (u.team === 0) allyThink(u); else enemyThink(u);
       u.aiT = (u.aiT || 0) - dt;
@@ -602,11 +606,11 @@ const Battle = (() => {
   }
   function formOrigin() {
     const c = B.ctrl && B.ctrl.alive ? B.ctrl : null;
-    if (c && !B.autoCtrl) return { x: c.x - (c.formHx || 0), y: c.y - (c.formHy || 0) };
+    if (c && !B.autoCtrl && keyVec()) return { x: c.x - (c.formHx || 0), y: c.y - (c.formHy || 0) };
     if (B.moveTo) return { x: B.moveTo.x, y: B.moveTo.y };
     const lead = c || B.units.find((u) => u.team === 0 && (u.kind === 'hero' || u.captain) && u.alive);
     const t = lead ? nearestFoe(lead, 99999) : null;
-    if (t) return { x: t.x - 260, y: B.formCy != null ? B.formCy : H / 2 };
+    if (t) return { x: t.x - 200, y: B.formCy != null ? B.formCy : H / 2 };
     return { x: B.formCx != null ? B.formCx : 380, y: B.formCy != null ? B.formCy : H / 2 };
   }
   function allyThink(u) {
@@ -652,17 +656,44 @@ const Battle = (() => {
     const lagging = B.units.some((o) => o.leader === u && o.alive && !o.rout && dist(o, u) > 90);
     moveTo(u, x, y, lagging ? 0.55 : Math.min(1, 96 / u.spd));
   }
+  function enemyTemper(u) {
+    const src = (u.leader && u.leader.alive) ? u.leader : u;
+    const id = src.hid;
+    if (['gaesomun', 'gyeonhwon', 'gyebaek', 'gwanggaeto', 'gildong'].includes(id)) return 'rush';
+    if (['yusin', 'sunsin'].includes(id)) return 'form';
+    if (['eulji', 'sejong', 'heojun', 'gamchan'].includes(id)) return 'hold';
+    const fac = src.faction || (B.cfg.enemy && B.cfg.enemy.faction);
+    if (fac === 'goguryeo' || fac === 'baekje') return 'rush';
+    if (fac === 'silla') return 'form';
+    if (fac === 'sea') return 'skirmish';
+    return 'hold';
+  }
   function enemyThink(u) {
     const attackerSide = B.cfg.type === 'defend';
     const home = u.home || (u.home = { x: u.x, y: u.y });
-    // 야간 기습: 잠에서 깬 적은 10초 동안 허둥대며 가까이 온 적만 상대한다
     if (B.cfg.enemy.surprised && B.t < (B.cfg.enemy.surpriseT || 5)) { const n = nearestFoe(u, 100); if (n) engage(u, n); else stopU(u); return; }
-    const near = nearestFoe(u, attackerSide ? 340 : 300);
-    if (near) { engage(u, near); return; }
-    // 성을 지키는 쪽은 25초까지 자리를 지키고, 그 뒤엔 나가 싸운다
-    if (!attackerSide && B.t < 25) { const t = nearestFoe(u, 520, home); if (t) engage(u, t); else moveTo(u, home.x, home.y); return; }
+    const temper = enemyTemper(u);
+    if (attackerSide || temper === 'rush') {
+      const t = nearestFoe(u, 99999);
+      if (t) { if (dist(u, t) > 200) marchTo(u, t.x, t.y); else engage(u, t); } else stopU(u);
+      return;
+    }
+    if (temper === 'hold') {
+      const t = nearestFoe(u, 280, home) || nearestFoe(u, 220);
+      if (t) engage(u, t); else moveTo(u, home.x, home.y);
+      return;
+    }
+    if (temper === 'skirmish') {
+      const t = nearestFoe(u, 99999);
+      if (!t) { stopU(u); return; }
+      if (dist(u, t) < 170) engage(u, t);
+      else marchTo(u, (home.x + t.x) * 0.55, t.y);
+      return;
+    }
     const t = nearestFoe(u, 99999);
-    if (t) { if (dist(u, t) > 280) marchTo(u, t.x, t.y); else engage(u, t); } else stopU(u);
+    if (!t) { stopU(u); return; }
+    if (dist(u, t) < 210) engage(u, t);
+    else marchTo(u, t.x + 210, home.y);
   }
 
   function soldierThink(u, dt) {
@@ -2095,6 +2126,33 @@ const Battle = (() => {
     $$('#b-orders .ord').forEach((b) => b.classList.toggle('on', b.dataset.ord === o));
     const name = ORDERS.find((x) => x.id === o).name;
     if (B.ctrl) floatText(B.ctrl.x, B.ctrl.y - 46, name + '!', '#e8c050', 26, true);
+  }
+  function syncFormHud() {
+    if (!B) return;
+    const hs = B.units.filter((u) => u.team === 0 && u.kind === 'hero' && u.alive);
+    const pNames = [...new Set(hs.map((h) => (FORMATIONS[h.form] || FORMATIONS.eorin).name))];
+    const formEl = $('#b-form');
+    if (formEl) formEl.textContent = `${pNames.join('·') || FORMATIONS[B.form[0]].name} vs ${FORMATIONS[B.form[1]].name}`;
+    const fb = $('#b-forms');
+    if (!fb) return;
+    const cur = (B.ctrl && B.ctrl.form) || B.form[0];
+    fb.innerHTML = Object.keys(FORMATIONS).map((k) => `<button class="form-chip ${cur === k ? 'on' : ''}" data-bform="${k}">${FORMATIONS[k].name}</button>`).join('');
+  }
+  function setBattleForm(fid) {
+    if (!B || !FORMATIONS[fid]) return;
+    const h = (B.ctrl && B.ctrl.alive && B.ctrl.kind === 'hero') ? B.ctrl : B.units.find((u) => u.team === 0 && u.kind === 'hero' && u.alive);
+    if (!h) { B.form[0] = fid; syncFormHud(); return; }
+    h.form = fid;
+    B.form[0] = fid;
+    if (h.hid && typeof setHeroForm === 'function') setHeroForm(h.hid, fid);
+    const sols = B.units.filter((u) => u.leader === h && u.alive);
+    sols.forEach((so, i) => {
+      const off = formOffset(fid, i, sols.length, 1);
+      so.formOx = off.x; so.formOy = off.y;
+    });
+    captureAllyForm();
+    syncFormHud();
+    floatText(h.x, h.y - 50, FORMATIONS[fid].name + '!', '#e8c050', 24, true);
   }
   /* 결판 내기: 남은 전투를 자동으로 끝까지 빠르게 돌린다 */
   function skipBattle() {

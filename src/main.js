@@ -1135,7 +1135,7 @@ function howTo() {
       <ul><li><kbd>클릭</kbd> 땅을 누르면 이동, 적을 누르면 공격, 아군 영웅을 누르면 그 영웅을 조종</li>
       <li><kbd>W A S D</kbd> 또는 방향키로 직접 이동</li>
       <li><kbd>Q</kbd> 고유 기술 · <kbd>E</kbd> 숨겨진 특수기 (고유 무기 장착 시)</li>
-      <li><kbd>1</kbd> 진형 유지 이동 · <kbd>2</kbd> 돌격 · <kbd>3</kbd> 따라와 · <kbd>4</kbd> 각개전투 · <kbd>5</kbd> 대기 · <kbd>6</kbd> 후퇴</li>
+      <li><kbd>1</kbd> 진형 유지 이동 · <kbd>2</kbd> 돌격 · <kbd>3</kbd> 따라와 · <kbd>4</kbd> 각개전투 · <kbd>5</kbd> 대기 · <kbd>6</kbd> 후퇴. 전투 중에도 아래 진형 단추로 학익·어린·방원·장사를 바꿀 수 있습니다.</li>
       <li><kbd>Tab</kbd> 조종할 영웅 바꾸기 · <kbd>Space</kbd> 일시정지</li>
       <li><kbd>F</kbd> 속도 1×·2×·3× · <kbd>R</kbd> 자동 전투 (화면 위 버튼으로도 가능)</li></ul>
       <p class="muted small">조종하지 않는 영웅은 부대 명령을 따르며 기술을 알아서 씁니다. 화면 아래 영웅 카드의 버튼으로도 기술을 쓸 수 있습니다.</p>
