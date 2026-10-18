@@ -682,7 +682,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 'use strict';
 /* ===== 게임 데이터: 시간대, 세력, 영웅, 스킬, 장비, 도시, 숨겨진 장소 ===== */
 
-/* 하루는 오전 → 오후 → 야간. 오전·오후는 내정, 야간은 휴식·기습·소문 탐색 */
+/* 하루는 오전 → 오후 → 야간. 오전·오후는 내정·소문 탐색, 야간은 휴식·기습·소문 탐색 */
 const PHASES = [
   { id: 'morning', name: '오전', day: true },
   { id: 'noon', name: '오후', day: true },
@@ -884,8 +884,8 @@ const COMMANDS = {
   draft: { name: '징병', key: 'troops', label: '병력', cost: { goldPer: 1.5 }, desc: '혼불 병사를 모은다. 민심이 조금 떨어지고 훈련도가 묽어진다.', stat: '통솔', when: 'day' },
   train: { name: '훈련', key: 'train', label: '훈련', cost: { food: 20 }, desc: '병사를 조련한다. 훈련도가 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
   move:  { name: '병력 이동', key: null, label: '', cost: {}, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다.', stat: '', when: 'any' },
-  rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '밤새 쉬며 체력을 모두 회복한다. 쉬지 않고 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
-  scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '어둠을 틈타 주막과 장터를 돌며 소문을 모은다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다. 고유 무기의 소문은 그 장군이 직접 들을 때만 이어진다.', stat: '지력', when: 'night' },
+  rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '쉬며 체력을 모두 회복한다. 야간에 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉰다. 밤에 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
+  scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '주막과 장터를 돌며 소문을 모은다. 오전·오후·야간 모두 할 수 있다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다. 고유 무기의 소문은 그 장군이 직접 들을 때만 이어진다.', stat: '지력', when: 'any' },
   search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 장수가 늘수록 발견 확률이 떨어진다. 정원이 가득하면 다른 도시로 보내거나 해고·등용 취소를 해야 한다.', stat: '지력', when: 'day' },
 };
 
@@ -1369,7 +1369,7 @@ function pendingWeaponScout(hid) {
     return true;
   });
 }
-/* 야간 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다. 고유 무기는 그 장군이 직접 들을 때만 이어진다. */
+/* 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다. 고유 무기는 그 장군이 직접 들을 때만 이어진다. */
 function scoutRumor(hid, cityId) {
   const wev = pendingWeaponScout(hid);
   if (wev) return { ok: true, event: wev, msg: `${heroName(hid)}이(가) 고유 무기의 소문을 따라갔습니다.` };
@@ -1778,8 +1778,8 @@ const SCRIPT = {
     { who: 'gyeonhwon', text: '후백제의 한을 풀 때가 왔다. 전주를 넘보는 자는 범에게 물려 죽으리라.' },
     { who: 'gangrim', text: '동쪽 강릉엔 무명혼 떼가, 남쪽 통영 바다엔 망령 수군이 자리를 잡았다.' },
     { who: 'eulji', text: '주요 도시를 차지하면 혼맥을 따라 주변 땅까지 우리 빛으로 물든다. 약한 곳부터 치는 게 병법이다. 강릉이 좋겠군.' },
-    { who: 'gangrim', text: '하나 더. 숨겨진 장소는 거리에 떠도는 소문으로만 들린다. 밤에 소문 탐색을 시키면 지도에 찍힌다.' },
-    { who: 'narr', text: '도시를 눌러 정보를 보고, 이웃한 적 도시에 출병하세요. 턴을 넘기면 오전, 오후, 야간이 차례로 지나갑니다. 오전·오후에는 내정을, 야간에는 휴식·야간 기습·소문 탐색을 할 수 있습니다.' },
+    { who: 'gangrim', text: '하나 더. 숨겨진 장소는 거리에 떠도는 소문으로만 들린다. 소문 탐색을 시키면 지도에 찍힌다. 낮이든 밤이든 된다.' },
+    { who: 'narr', text: '도시를 눌러 정보를 보고, 이웃한 적 도시에 출병하세요. 턴을 넘기면 오전, 오후, 야간이 차례로 지나갑니다. 오전·오후에는 내정과 소문 탐색을, 야간에는 휴식·야간 기습·소문 탐색을 할 수 있습니다. 밤에 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉽니다.' },
   ],
   gangneung: [
     { who: 'narr', text: '강릉의 무명혼들이 흩어진다. 마지막 망령이 무릎을 꿇는다.' },
@@ -4907,7 +4907,7 @@ function renderCmdRail() {
   if (seal) { seal.textContent = f.glyph; seal.style.setProperty("--c", f.color); }
   if (cityEl) cityEl.textContent = CITIES[sel].name + (mine ? "" : " · " + f.name);
   if (mine) {
-    const cmds = isNight() ? ["rest", "scout", "move"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "move"];
+    const cmds = isNight() ? ["rest", "scout", "move"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "scout", "move"];
     if (noteEl) noteEl.textContent = isNight() ? "야간 · 휴식 · 소문 · 기습" : ("내정 · 이 도시 장수에게 맡깁니다 · 행동 가능 " + freeIn(sel).length + "명");
     let html = cmds.map(function(k) {
       const on = UI.cmd === k ? ' on' : '';
@@ -4979,7 +4979,7 @@ function cityCard(id) {
   const mine = st.owner === 'player';
   let body = '';
   if (mine) {
-    const cmds = isNight() ? ['rest', 'scout', 'move'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'move'];
+    const cmds = isNight() ? ['rest', 'scout', 'move'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'scout', 'move'];
     const here = heroesIn(id);
     body = `<div class="sbars">${statBar('농업', st.agri)}${statBar('상업', st.comm)}${statBar('성벽', st.wall)}${statBar('민심', st.loyal)}${statBar('훈련', st.train)}</div>
       <dl class="kv small">
@@ -5162,7 +5162,7 @@ function heroList() {
   const groups = roadHtml + Object.keys(byCity).map((c) => `<p class="label">${CITIES[c] ? CITIES[c].name : c} <span class="muted small">${byCity[c].length}명</span></p><div class="list">${byCity[c].map(row).join('')}</div>`).join('');
   const missing = 13 - namedCount();
   return `${groups}
-    ${missing ? `<p class="hint">아직 만나지 못한 이름난 영웅이 ${missing}명 있습니다. 야간에 소문 탐색을 하면 숨겨진 장소를 들을 수 있습니다.</p>` : ''}`;
+    ${missing ? `<p class="hint">아직 만나지 못한 이름난 영웅이 ${missing}명 있습니다. 소문 탐색을 하면 숨겨진 장소를 들을 수 있습니다.</p>` : ''}`;
 }
 
 function jobBlock(id) {
@@ -5189,7 +5189,7 @@ function heroDetail(id) {
     const hs = SKILLS[d.hidden], wpn = ITEMS[d.weapon];
     if (s.hiddenOn) hiddenHtml = `<div class="skill hid on"><b>${hs.name}</b><span class="tag gold">발동 중</span><p>${hs.desc}</p></div>`;
     else if (G.seen[d.weapon]) hiddenHtml = `<div class="skill hid"><b>${hs.name}</b><span class="tag">봉인</span><p>${hs.desc}</p><p class="muted small">「${wpn.name}」을(를) 장착하면 열립니다.</p></div>`;
-    else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">이 영웅에게 야간 소문 탐색을 시키면 고유 무기의 소문을 들을 수 있다.</p></div>`;
+    else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">이 영웅에게 소문 탐색을 시키면 고유 무기의 소문을 들을 수 있다.</p></div>`;
   }
   const slots = ['w1', 'w2', 'armor', 'acc0', 'acc1', 'acc2', 'acc3'].map((sl) => {
     const iid = getSlot(h.equip, sl), it = ITEMS[iid];
@@ -5257,7 +5257,7 @@ function rumorView() {
     return `<button class="row rumor-row ${done ? 'done' : ''}" data-place="${id}"><span class="chip violet">${done ? '✓' : '?'}</span><span class="row-main">${p.name}<span class="muted small">${esc(p.hint)}</span></span></button>`;
   }).join('');
   const log = G.log.slice(0, 12).map((l) => `<li><span class="muted">${l.day}일 ${PHASES[l.phase].name}</span> ${esc(l.text)}</li>`).join('');
-  return `<p class="label">들은 소문</p><div class="list">${places || '<p class="muted small">아직 들은 소문이 없습니다. 야간에 소문 탐색을 하면 숨겨진 장소가 들립니다.</p>'}</div>
+  return `<p class="label">들은 소문</p><div class="list">${places || '<p class="muted small">아직 들은 소문이 없습니다. 소문 탐색을 하면 숨겨진 장소가 들립니다.</p>'}</div>
     ${log ? `<p class="label">기록</p><ul class="log">${log}</ul>` : ''}`;
 }
 
@@ -5360,9 +5360,9 @@ function openShop(mode = 'buy') {
 
 /* ---------- 시간대 안내와 야간 비밀 장터 ---------- */
 function phaseCard() {
-  if (!isNight()) return `<div class="phase-card day"><b>${phaseName()}</b><span>내정과 출병을 할 수 있는 시간입니다. 남은 행동 ${freeHeroes().length}</span></div>`;
+  if (!isNight()) return `<div class="phase-card day"><b>${phaseName()}</b><span>내정, 소문 탐색, 출병을 할 수 있는 시간입니다. 남은 행동 ${freeHeroes().length}</span></div>`;
   const m = G.market;
-  return `<div class="phase-card night"><b>야간</b><span>백성이 잠들었습니다. 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 휴식, 소문 탐색, 야간 기습을 할 수 있습니다.</span>
+  return `<div class="phase-card night"><b>야간</b><span>백성이 잠들었습니다. 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉽니다. 밤에 움직이면 다음날 능력치가 20% 떨어집니다. 휴식, 소문 탐색, 야간 기습을 할 수 있습니다.</span>
     ${m ? `<button class="btn sm market" data-act="market">비밀 장터 · ${CITIES[m.city].name} <small>오늘 밤만</small></button>` : ''}</div>`;
 }
 const MARKET_GEAR = ['m_gamtu', 'm_yeouiju', 'm_gatkkeun', 'm_heukdo', 'a_yongrin', 'w_heukgak', 'w_woldo', 'a_dujeong', 'n_yeomju', 'w_ungeom'];
@@ -5702,8 +5702,20 @@ function endTurn() {
 }
 function applyTurnAdvance() {
   const autoLog = [];
+  if (isNight()) {
+    G.roster.forEach((id) => {
+      const hh = G.heroes[id];
+      if (!hh || hh.acted || hh.travel) return;
+      const r = doCommand('rest', id, hh.city);
+      if (r.ok) autoLog.push(r.msg);
+    });
+  }
   ownedCities().forEach((c) => { if (G.cities[c].auto) autoLog.push(...autoDomestic(c)); });
-  if (autoLog.length) { autoLog.forEach(logEvent); setTimeout(() => toast(`위임 내정 ${autoLog.length}건 · 탐색 탭 기록에서 볼 수 있습니다`), 300); }
+  if (autoLog.length) {
+    autoLog.forEach(logEvent);
+    const nightRest = isNight() && autoLog.some((m) => /쉬며|기운/.test(m));
+    setTimeout(() => toast(nightRest ? `남은 장수 ${autoLog.filter((m) => /쉬며|기운/.test(m)).length}명이 알아서 쉬었습니다` : `위임 내정 ${autoLog.length}건 · 탐색 탭 기록에서 볼 수 있습니다`), 300);
+  }
   const wasNight = isNight();
   G.phase = (G.phase + 1) % PHASES.length;
   let extra = '';
@@ -5962,15 +5974,15 @@ function howTo() {
       <p class="muted small">조종하지 않는 영웅은 부대 명령을 따르며 기술을 알아서 씁니다. 화면 아래 영웅 카드의 버튼으로도 기술을 쓸 수 있습니다.</p>
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다.</li>
-      <li>오전·오후: 개간·상업·성벽·선정·징병·훈련·인재 탐색·병력 이동 같은 내정과 출병, 장터.</li>
-      <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음), 소문 탐색, 병력 이동, 야간 기습(초반 5초 허둥, 적 사기 -8, 성벽 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
+      <li>오전·오후: 개간·상업·성벽·선정·징병·훈련·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
+      <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음. 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉼), 소문 탐색, 병력 이동, 야간 기습(초반 5초 허둥, 적 사기 -8, 성벽 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
       <li>매일 아침 상업에서 금, 농업에서 군량이 들어오고 병사들이 군량을 먹습니다. 출병에는 병사당 군량 0.5가 듭니다.</li>
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
       <li>영웅은 병과에 맞는 무기만 찹니다. 검병·활병·창병·기마병·책사에서 시작해, 레벨 5에 특수 직업, 레벨 8과 고유 무기로 고유 직업으로 승급합니다. 세종·광개토대왕처럼 한 사람뿐인 직업도 있습니다.</li>
       <li>인재 탐색은 장수가 늘수록 발견 확률이 떨어집니다. 적 세력도 낮에 인재를 찾습니다.</li>
-      <li>숨겨진 장소는 야간 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
+      <li>숨겨진 장소는 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,
   (card) => { card.onclick = (e) => { if (e.target.closest('[data-close]')) closeModal(); }; });
 }

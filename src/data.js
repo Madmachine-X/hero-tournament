@@ -1,7 +1,7 @@
 'use strict';
 /* ===== 게임 데이터: 시간대, 세력, 영웅, 스킬, 장비, 도시, 숨겨진 장소 ===== */
 
-/* 하루는 오전 → 오후 → 야간. 오전·오후는 내정, 야간은 휴식·기습·소문 탐색 */
+/* 하루는 오전 → 오후 → 야간. 오전·오후는 내정·소문 탐색, 야간은 휴식·기습·소문 탐색 */
 const PHASES = [
   { id: 'morning', name: '오전', day: true },
   { id: 'noon', name: '오후', day: true },
@@ -203,8 +203,8 @@ const COMMANDS = {
   draft: { name: '징병', key: 'troops', label: '병력', cost: { goldPer: 1.5 }, desc: '혼불 병사를 모은다. 민심이 조금 떨어지고 훈련도가 묽어진다.', stat: '통솔', when: 'day' },
   train: { name: '훈련', key: 'train', label: '훈련', cost: { food: 20 }, desc: '병사를 조련한다. 훈련도가 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
   move:  { name: '병력 이동', key: null, label: '', cost: {}, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다.', stat: '', when: 'any' },
-  rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '밤새 쉬며 체력을 모두 회복한다. 쉬지 않고 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
-  scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '어둠을 틈타 주막과 장터를 돌며 소문을 모은다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다. 고유 무기의 소문은 그 장군이 직접 들을 때만 이어진다.', stat: '지력', when: 'night' },
+  rest:  { name: '휴식', key: null, label: '', cost: {}, desc: '쉬며 체력을 모두 회복한다. 야간에 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉰다. 밤에 움직인 장수는 다음날 능력치가 20% 떨어진다.', stat: '', when: 'night' },
+  scout: { name: '소문 탐색', key: null, label: '', cost: {}, desc: '주막과 장터를 돌며 소문을 모은다. 오전·오후·야간 모두 할 수 있다. 숨겨진 장소, 적의 형편, 떨어진 재물, 비밀 장터 소식을 얻을 수 있다. 고유 무기의 소문은 그 장군이 직접 들을 때만 이어진다.', stat: '지력', when: 'any' },
   search: { name: '인재 탐색', key: null, label: '', cost: { gold: 30 }, desc: '고을을 돌며 이름 없는 문관·무관의 혼을 찾는다. 장수가 늘수록 발견 확률이 떨어진다. 정원이 가득하면 다른 도시로 보내거나 해고·등용 취소를 해야 한다.', stat: '지력', when: 'day' },
 };
 

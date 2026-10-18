@@ -385,7 +385,7 @@ function pendingWeaponScout(hid) {
     return true;
   });
 }
-/* 야간 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다. 고유 무기는 그 장군이 직접 들을 때만 이어진다. */
+/* 소문 탐색: 지력이 높을수록 쓸 만한 소문을 듣는다. 고유 무기는 그 장군이 직접 들을 때만 이어진다. */
 function scoutRumor(hid, cityId) {
   const wev = pendingWeaponScout(hid);
   if (wev) return { ok: true, event: wev, msg: `${heroName(hid)}이(가) 고유 무기의 소문을 따라갔습니다.` };
