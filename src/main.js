@@ -387,6 +387,13 @@ function jobBlock(id) {
     ${chips ? `<div class="job-next">${chips}</div>` : job.tier >= 2 ? '<p class="muted small">더 올릴 직업이 없습니다.</p>' : ''}`;
 }
 
+function revealEquipPicker() {
+  const pick = $('#equip-picker');
+  if (!pick) return;
+  requestAnimationFrame(() => {
+    pick.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  });
+}
 function heroDetail(id) {
   const h = G.heroes[id], s = computeStats(id), d = HEROES[id];
   const sk = SKILLS[d.skill];
@@ -410,7 +417,7 @@ function heroDetail(id) {
     const cur = getSlot(h.equip, sl);
     const cands = [...new Set(G.inv)].filter((iid) => slotAccepts(sl, iid) && (ITEMS[iid].slot !== 'weapon' || canWield(id, iid)));
     const w1two = sl === 'w2' && ITEMS[h.equip.w1] && ITEMS[h.equip.w1].hands === 2;
-    picker = `<div class="picker"><p class="label">${SLOT_LABEL[sl]}에 장착할 물건</p>
+    picker = `<div class="picker" id="equip-picker"><p class="label">${SLOT_LABEL[sl]}에 장착할 물건</p>
       ${w1two ? '<p class="hint">무기 1에 양손무기를 들고 있어 비워 둡니다. 한손무기로 바꾸면 쌍무기나 검방을 쓸 수 있습니다.</p>' : ''}
       ${!w1two && cands.length ? cands.map((iid) => { const it = ITEMS[iid]; const n = G.inv.filter((x) => x === iid).length;
         return `<button class="pick ${it.unique ? 'uniq' : ''}" data-equip="${iid}"><b>${esc(it.name)}${n > 1 ? ` ×${n}` : ''}</b><span class="muted small">${itemKind(it)} · ${itemLine(it)}${it.owner ? ` · ${HEROES[it.owner].name} 전용 특수기` : ''}</span></button>`; }).join('') : !w1two ? '<p class="muted small">맞는 물건이 소지품에 없습니다.</p>' : ''}
@@ -474,7 +481,12 @@ function onPanelClick(e) {
   if (b.dataset.city) { UI.sel = { type: 'city', id: b.dataset.city }; MapView.setSel(UI.sel); renderPanel(); return; }
   if (b.dataset.place) { UI.sel = { type: 'place', id: b.dataset.place }; MapView.setSel(UI.sel); UI.tab = 'info'; renderPanel(); return; }
   if (b.dataset.hero) { UI.heroView = b.dataset.hero; UI.equipSlot = null; renderPanel(); return; }
-  if (b.dataset.slot) { UI.equipSlot = UI.equipSlot === b.dataset.slot ? null : b.dataset.slot; renderPanel(); return; }
+  if (b.dataset.slot) {
+    UI.equipSlot = UI.equipSlot === b.dataset.slot ? null : b.dataset.slot;
+    renderPanel();
+    if (UI.equipSlot) revealEquipPicker();
+    return;
+  }
   if (b.dataset.equip) {
     const msg = equipItem(UI.heroView, UI.equipSlot, b.dataset.equip);
     if (msg) toast(msg, msg.includes('특수기') ? 'gold' : '');
