@@ -1078,6 +1078,10 @@ function registerOfficers() {
   for (const id in G.officers) { HEROES[id] = G.officers[id]; HERO_GEAR[id] = G.officers[id].gear; }
 }
 function isOfficer(id) { return !!(G && G.officers && G.officers[id]); }
+function portraitSrc(id) {
+  if (!id || isOfficer(id)) return 'img/portraits/officer.jpg';
+  return `img/portraits/${id}.jpg`;
+}
 function makeOfficer(kind, level, city, title) {
   const id = 'o' + (++G.offSeq);
   const r = () => Math.floor(Math.random() * 5);
@@ -1704,7 +1708,7 @@ const Dialog = (() => {
         faceImg.classList.remove('ok');
         faceImg.onload = () => faceImg.classList.add('ok');
         faceImg.onerror = () => faceImg.classList.remove('ok');
-        faceImg.src = `img/portraits/${sp.id}.jpg`;
+        faceImg.src = portraitSrc(sp.id);
       } else {
         faceImg.hidden = true;
         faceImg.removeAttribute('src');
@@ -3346,7 +3350,7 @@ const Battle = (() => {
     const d = document.createElement('div');
     d.className = 'ci' + (u.team === 1 ? ' foe' : '') + (mini ? ' mini' : '');
     d.style.setProperty('--c', u.color);
-    const face = u.hid ? `<img class="ci-face" src="img/portraits/${u.hid}.jpg" alt="">` : `<div class="ci-glyph">${esc(u.glyph)}</div>`;
+    const face = u.hid ? `<img class="ci-face" src="${portraitSrc(u.hid)}" alt="">` : `<div class="ci-glyph">${esc(u.glyph)}</div>`;
     d.innerHTML = `<div class="ci-band">${face}<div class="ci-text"><span class="ci-hero">${esc(u.name)}</span><span class="ci-skill">${esc(name)}</span></div></div>`;
     el.appendChild(d);
     setTimeout(() => { d.remove(); ciOn = false; pumpCutin(); }, mini ? 1000 : 1500);
@@ -4923,7 +4927,7 @@ function closeModal() {
 
 function medallion(id, size = '') {
   const d = HEROES[id];
-  return `<span class="medal ${size}" style="--c:${d.color}"><img src="img/portraits/${id}.jpg" alt="" width="256" height="256" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
+  return `<span class="medal ${size}" style="--c:${d.color}"><img src="${portraitSrc(id)}" alt="" width="256" height="256" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
 }
 function itemLine(it) {
   const bits = [];

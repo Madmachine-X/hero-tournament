@@ -51,7 +51,7 @@ const Dialog = (() => {
         faceImg.classList.remove('ok');
         faceImg.onload = () => faceImg.classList.add('ok');
         faceImg.onerror = () => faceImg.classList.remove('ok');
-        faceImg.src = `img/portraits/${sp.id}.jpg`;
+        faceImg.src = portraitSrc(sp.id);
       } else {
         faceImg.hidden = true;
         faceImg.removeAttribute('src');

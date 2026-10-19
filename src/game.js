@@ -57,6 +57,10 @@ function registerOfficers() {
   for (const id in G.officers) { HEROES[id] = G.officers[id]; HERO_GEAR[id] = G.officers[id].gear; }
 }
 function isOfficer(id) { return !!(G && G.officers && G.officers[id]); }
+function portraitSrc(id) {
+  if (!id || isOfficer(id)) return 'img/portraits/officer.jpg';
+  return `img/portraits/${id}.jpg`;
+}
 function makeOfficer(kind, level, city, title) {
   const id = 'o' + (++G.offSeq);
   const r = () => Math.floor(Math.random() * 5);

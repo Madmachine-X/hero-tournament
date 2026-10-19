@@ -1109,7 +1109,7 @@ const Battle = (() => {
     const d = document.createElement('div');
     d.className = 'ci' + (u.team === 1 ? ' foe' : '') + (mini ? ' mini' : '');
     d.style.setProperty('--c', u.color);
-    const face = u.hid ? `<img class="ci-face" src="img/portraits/${u.hid}.jpg" alt="">` : `<div class="ci-glyph">${esc(u.glyph)}</div>`;
+    const face = u.hid ? `<img class="ci-face" src="${portraitSrc(u.hid)}" alt="">` : `<div class="ci-glyph">${esc(u.glyph)}</div>`;
     d.innerHTML = `<div class="ci-band">${face}<div class="ci-text"><span class="ci-hero">${esc(u.name)}</span><span class="ci-skill">${esc(name)}</span></div></div>`;
     el.appendChild(d);
     setTimeout(() => { d.remove(); ciOn = false; pumpCutin(); }, mini ? 1000 : 1500);
