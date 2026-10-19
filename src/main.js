@@ -105,7 +105,7 @@ function renderTop() {
   $('#t-food').textContent = G.food.toLocaleString('ko-KR');
   $('#t-sol').textContent = totalTroops().toLocaleString('ko-KR');
   $('#t-karma').textContent = G.karma;
-  $('#t-heroes').textContent = `${namedCount()}/13 · 장수 ${G.roster.length}`;
+  $('#t-heroes').textContent = `${namedCount()}/${HERO_ORDER.length} · 장수 ${G.roster.length}`;
   const free = freeHeroes().length;
   $('#t-ap').textContent = `행동 ${free}/${G.roster.length}`;
   $('#t-ap').classList.toggle('spent', !free);
@@ -200,7 +200,7 @@ function overview() {
     <p class="eyebrow">1막 · 고향의 혼</p>
     <h3 class="h-display">한반도의 도시를 차지하라</h3>
     <div class="progress"><i style="width:${(owned / Object.keys(CITIES).length) * 100}%"></i></div>
-    <p class="muted">${owned} / ${Object.keys(CITIES).length} 도시 · 이름난 영웅 ${namedCount()} / 13 · 장수 ${G.roster.length}명 · 숨겨진 장소 ${G.places.length}곳</p>
+    <p class="muted">${owned} / ${Object.keys(CITIES).length} 도시 · 이름난 영웅 ${namedCount()} / ${HERO_ORDER.length} · 장수 ${G.roster.length}명 · 숨겨진 장소 ${G.places.length}곳</p>
     <dl class="kv small"><div><dt>매일 아침 금</dt><dd>+${gIn}</dd></div><div><dt>매일 아침 군량</dt><dd>+${fIn} / 병사 먹이 -${foodUpkeep()}</dd></div></dl>
   </div>
   ${phaseCard()}
@@ -404,7 +404,7 @@ function heroList() {
     return `<button class="hero-row" data-hero="${id}">${medallion(id)}<span class="hr-main"><b>${esc(heroName(id))}</b><span class="muted">${CITIES[tr.from].name} → ${CITIES[tr.to].name} · 남은 ${tr.left}턴</span></span><span class="hr-side"><em class="spent">길 위</em></span></button>`;
   }).join('')}</div>` : '';
   const groups = roadHtml + Object.keys(byCity).map((c) => `<p class="label">${CITIES[c] ? CITIES[c].name : c} <span class="muted small">${byCity[c].length}명</span></p><div class="list">${byCity[c].map(row).join('')}</div>`).join('');
-  const missing = 13 - namedCount();
+  const missing = HERO_ORDER.length - namedCount();
   return `${groups}
     ${missing ? `<p class="hint">아직 만나지 못한 이름난 영웅이 ${missing}명 있습니다. 소문 탐색을 하면 숨겨진 장소를 들을 수 있습니다.</p>` : ''}`;
 }
@@ -1125,7 +1125,7 @@ function finale() {
     openModal(`<div class="reward"><p class="eyebrow">1막 「고향의 혼」 완료</p><h3 class="h-display big">한반도 통일</h3>
       <dl class="kv">
         <div><dt>걸린 날</dt><dd>${G.day}일</dd></div>
-        <div><dt>만난 영웅</dt><dd>${namedCount()} / 13 (장수 ${G.roster.length})</dd></div>
+        <div><dt>만난 영웅</dt><dd>${namedCount()} / ${HERO_ORDER.length} (장수 ${G.roster.length})</dd></div>
         <div><dt>숨겨진 사건</dt><dd>${evDone} / ${evTotal}</dd></div>
         <div><dt>업</dt><dd>${G.karma}</dd></div>
         <div><dt>전투</dt><dd>${G.stats.wins}승 / ${G.stats.battles}전</dd></div>

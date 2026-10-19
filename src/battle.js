@@ -659,7 +659,7 @@ const Battle = (() => {
   function enemyTemper(u) {
     const src = (u.leader && u.leader.alive) ? u.leader : u;
     const id = src.hid;
-    if (['gaesomun', 'gyeonhwon', 'gyebaek', 'gwanggaeto', 'gildong'].includes(id)) return 'rush';
+    if (['gaesomun', 'gyeonhwon', 'gyebaek', 'gwanggaeto', 'gildong', 'cheok'].includes(id)) return 'rush';
     if (['yusin', 'sunsin'].includes(id)) return 'form';
     if (['eulji', 'sejong', 'heojun', 'gamchan'].includes(id)) return 'hold';
     const fac = src.faction || (B.cfg.enemy && B.cfg.enemy.faction);
@@ -1522,6 +1522,37 @@ const Battle = (() => {
       hit(u, t, u.atk * 2.6);
       slashFx(t.x, t.y, a + Math.PI, '#bffff0', 28);
       burst(t.x, t.y, 14, '#bffff0', 160, 3, 0.4, true);
+      return true;
+    },
+
+    danae(u) {
+      const fs = foes(u).filter((o) => dist(u, o) < 520).sort((a, b) => (b.kind === 'hero') - (a.kind === 'hero') || dist(u, a) - dist(u, b));
+      const t = fs[0];
+      if (!t) return false;
+      burst(u.x, u.y, 10, '#d4a574', 90, 3, 0.35, true);
+      const a = Math.atan2(t.y - u.y, t.x - u.x);
+      u.x = clamp(t.x - Math.cos(a) * (t.r + u.r + 8), 16, W - 16);
+      u.y = clamp(t.y - Math.sin(a) * (t.r + u.r + 8), 16, H - 16);
+      u.face = a;
+      hit(u, t, u.atk * 2.8);
+      t.stun = Math.max(t.stun || 0, 0.8);
+      slashFx(t.x, t.y, a, '#f0d2a8', 30);
+      burst(t.x, t.y, 16, '#f0d2a8', 180, 3, 0.45, true);
+      glyphFx(u.x, u.y - 44, '斷崖', '#d4a574', 32, 0.9, 22);
+      return true;
+    },
+
+    ildo(u) {
+      const d = densest(u, 580, 110) || (nearestFoe(u, 700) && { x: nearestFoe(u, 700).x, y: nearestFoe(u, 700).y });
+      if (!d) return false;
+      const a = Math.atan2(d.y - u.y, d.x - u.x);
+      [-0.4, -0.2, 0, 0.2, 0.4].forEach((da, i) => later(i * 0.08, () => {
+        B.proj.push({ type: 'cres', x: u.x, y: u.y, a: a + da, sp: 780, life: 700, dmg: u.atk * 2.2, src: u, team: u.team, size: 36, color: '#e8c090', hit: new Set(), trav: 0, life: 2, big: true });
+        foes(u).forEach((o) => { if (dist(u, o) < 220) o.stun = Math.max(o.stun || 0, 0.6); });
+        B.shake = Math.max(B.shake, 6);
+      }));
+      B.flash = 0.55;
+      glyphFx(u.x, u.y - 50, '一劍', '#f5dfb4', 44, 1.2, 30);
       return true;
     },
 

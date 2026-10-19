@@ -59,18 +59,23 @@ const HEROES = {
   gildong:    { name: '홍길동', title: '활빈당 두령', glyph: '洪', color: '#3fc6a8', era: '고전소설',
                 stats: { str: 15, lea: 10, int: 15, agi: 22, vit: 12 }, job: 'sword', unit: 'melee', skill: 'chukji', hidden: 'bunsin', weapon: 'u_gildong',
                 bio: '고전소설 속 의적. 축지법과 분신술로 탐관오리를 혼내고 재물을 백성에게 나눴다.' },
+  cheok:      { name: '척준경', title: '철령의 검성', glyph: '拓', color: '#d4a574', era: '고려',
+                stats: { str: 20, lea: 14, int: 11, agi: 18, vit: 16 }, job: 'sword', unit: 'melee', skill: 'danae', hidden: 'ildo', weapon: 'u_cheok',
+                bio: '고려의 명장. 절벽을 타오르듯 적진에 뛰어들어, 칼 하나로 여진을 무너뜨렸다는 전설이 있다.' },
 };
-const HERO_ORDER = ['hero','gangrim','eulji','sunsin','sejong','gwanggaeto','gamchan','yusin','gaesomun','gyeonhwon','heojun','gyebaek','gildong'];
+const HERO_ORDER = ['hero','gangrim','eulji','sunsin','sejong','gwanggaeto','gamchan','yusin','gaesomun','gyeonhwon','heojun','gyebaek','gildong','cheok'];
 
 /* 병과: 기본 → 공유 특수 → 고유 특수(레벨+고유 무기). 무기는 직업 wtypes만 찬다. */
 const JOBS = {
-  sword: { name: '검병', tier: 0, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'], next: ['geomsa', 'chasa'] },
+  sword: { name: '검병', tier: 0, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'], next: ['geomsa', 'chasa', 'geomseong'] },
   bow: { name: '활병', tier: 0, unit: 'archer', wtypes: ['bow'], next: ['gungsa', 'sugun'] },
   spear: { name: '창병', tier: 0, unit: 'melee', wtypes: ['spear', 'glaive'], next: ['changjang'] },
   horse: { name: '기마병', tier: 0, unit: 'cavalry', wtypes: ['spear', 'sword', 'glaive'], next: ['gimajang'] },
   sage: { name: '책사', tier: 0, unit: 'archer', wtypes: ['fan', 'brush', 'talisman'], next: ['gunsa', 'uiwon'] },
   geomsa: { name: '검사', tier: 1, needLv: 5, shared: true, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'],
             heroes: ['hero', 'yusin', 'gaesomun', 'gyebaek', 'gildong'], next: ['honju', 'hwarang', 'daemak', 'gyeoljang', 'hwalbin'], atk: 1.08 },
+  geomseong: { name: '검성', tier: 1, needLv: 5, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'],
+               heroes: ['cheok'], next: ['swordmaster'], atk: 1.12, spd: 1.06 },
   chasa: { name: '차사', tier: 1, needLv: 5, unit: 'melee', wtypes: ['sword', 'dagger', 'talisman'],
            heroes: ['gangrim'], next: ['jeokcha'], atk: 1.06 },
   gungsa: { name: '궁사', tier: 1, needLv: 5, shared: true, unit: 'archer', wtypes: ['bow'],
@@ -98,6 +103,7 @@ const JOBS = {
   sinui: { name: '신의', tier: 2, unique: true, hero: 'heojun', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['dagger', 'brush', 'talisman'] },
   gyeoljang: { name: '결사장', tier: 2, unique: true, hero: 'gyebaek', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'shield'], atk: 1.12, def: 1.12 },
   hwalbin: { name: '활빈두령', tier: 2, unique: true, hero: 'gildong', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['dagger', 'sword'], atk: 1.1, spd: 1.12 },
+  swordmaster: { name: '소드마스터', tier: 2, unique: true, hero: 'cheok', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'dagger'], atk: 1.18, spd: 1.12 },
 };
 
 /* 스킬. ai: aoe(무리), target(단일), heal, buff, global(전장), self */
@@ -127,6 +133,8 @@ const SKILLS = {
   ochon:       { name: '오천 결사대', cd: 34, ai: 'global', desc: '결사대 혼령 열둘을 불러내고 모든 아군을 고무한다.' },
   chukji:      { name: '축지법', cd: 6, ai: 'target', desc: '순식간에 적장 뒤로 이동해 강하게 벤다.' },
   bunsin:      { name: '분신술', cd: 28, ai: 'global', desc: '분신 넷을 만들어 10초 동안 함께 싸운다.' },
+  danae:       { name: '단애돌격', cd: 7, ai: 'target', desc: '절벽을 타오르듯 적장에게 뛰어올라 강하게 벤다.' },
+  ildo:        { name: '일검파천', cd: 28, ai: 'aoe', desc: '검성 일섬으로 앞을 다섯 번 가른다. 맞은 적은 잠시 기절한다.' },
   gyeokryeo:   { name: '격려', cd: 12, ai: 'buff', desc: '주변 병사를 격려해 사기를 올리고 잠시 공격력을 높인다.' },
   /* 적 장수 전용 */
   ghostfire:   { name: '귀화', cd: 9, ai: 'target', desc: '' },
@@ -168,6 +176,8 @@ const ITEMS = {
                 desc: '오천 결사대를 이끌던 칼. 날이 많이 상했다.' },
   u_gildong:  { name: '홍길동의 단도', slot: 'weapon', wtype: 'dagger', hands: 1, atk: 16, agi: 10, owner: 'gildong', unique: true,
                 desc: '활빈당 두령의 단도. 손잡이에 부적이 감겨 있다.' },
+  u_cheok:    { name: '철령의 환도', slot: 'weapon', wtype: 'sword', hands: 1, atk: 26, agi: 6, owner: 'cheok', unique: true,
+                desc: '철령 벼랑을 오를 때 찼던 칼. 날이 얇고 빠르다.' },
   u_gangrim:  { name: '강림의 적패지', slot: 'weapon', wtype: 'talisman', hands: 1, int: 12, atk: 8, owner: 'gangrim', unique: true,
                 desc: '염라대왕이 내린 붉은 패. 이름을 적으면 그 혼을 데려간다.' },
 
@@ -235,6 +245,7 @@ const HERO_GEAR = {
   heojun:     { w1: 'u_heojun', armor: 'a_dopo' },
   gyebaek:    { w1: 'u_gyebaek', w2: 'w_deungpae', armor: 'a_chalgap' },
   gildong:    { w1: 'u_gildong', w2: 'w_bisu', armor: 'a_dopo' },
+  cheok:      { w1: 'w_ungeom', armor: 'a_chalgap' },
 };
 
 /* 도시 (현재 지도 좌표) */
@@ -291,6 +302,8 @@ const PLACES = {
                  hint: '이른 오전마다 무너진 궁터에 말발굽 소리가 울린다. 고구려의 대막리지가 함께라면 태왕이 응답할지 모른다.', events: ['ev_gwang'] },
   cheomseong:  { name: '첨성대', lon: 128.92, lat: 35.55, region: 'gyeongju',
                  hint: '별을 보던 대 아래 무언가 묻혀 있다. 별과 인연이 있는 장수가 밤에 찾아야 한다.', events: ['ev_gamchan_bow'] },
+  cheollyeong: { name: '철령', lon: 127.80, lat: 39.40, region: 'hamheung',
+                 hint: '북녘 절벽길. 칼 하나로 벼랑을 오른 고려의 검성이 아직 서 있다는 소문이 있다.', events: ['ev_cheok', 'ev_cheok_sword'] },
 };
 
 const SPEAKERS = {

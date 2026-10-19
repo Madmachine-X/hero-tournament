@@ -359,4 +359,30 @@ const EVENTS = {
     ],
     reward: () => { giveItem('u_gamchan'); return '「낙성궁」을 얻었습니다. 강감찬에게 장착하세요.'; },
   },
+  ev_cheok: {
+    need: () => {
+      if (G.roster.filter((h) => !isOfficer(h)).length < 4) return '절벽 위에서 칼바람이 분다. "아직 깃발이 약하군." (이름난 영웅 4명 이상)';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '철령 벼랑. 한 사람이 칼 한 자루만 차고 절벽 끝에 서 있다.' },
+      { who: 'cheok', text: '나는 척준경이다. 여진이 성을 쌓아도 나는 벼랑을 올랐다.' },
+      { who: 'cheok', text: '칼이 무디면 사람도 무뎌진다. 네 깃발에 날이 서 있다면, 내가 앞장을 서지.' },
+    ],
+    reward: () => { addHero('cheok'); return '척준경이 합류했습니다.'; },
+  },
+  ev_cheok_sword: {
+    scoutBy: 'cheok',
+    after: 'ev_cheok',
+    need: () => {
+      if (!G.roster.includes('cheok')) return '벼랑은 바람만 분다.';
+      if (G.phase !== 0) return '척준경이 말한다. "아침 안개가 걷힐 때 다시 오라. 두고 온 칼이 있다."';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '아침 철령. 안개 속 바위에 환도 한 자루가 꽂혀 있다.' },
+      { who: 'cheok', text: '이 칼로 벼랑을 올랐다. 다시 내 손에 오니, 검성의 길이 열린다.' },
+    ],
+    reward: () => { giveItem('u_cheok'); return '「철령의 환도」를 얻었습니다. 척준경에게 장착하면 「일검파천」이 열립니다.'; },
+  },
 };
