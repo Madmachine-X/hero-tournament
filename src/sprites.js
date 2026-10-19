@@ -39,16 +39,27 @@ const Art = (() => {
     x.drawImage(im, 0, 0);
     const img = x.getImageData(0, 0, w, h);
     const d = img.data;
-    /* jpg 시트는 검정·짙은 회색 바탕. 너무 약하게 지우면 전장에서 캐릭터가 배경에 묻힌다. */
-    const isBg = (p) => {
-      const r = d[p], g = d[p + 1], b = d[p + 2];
+    const isMagenta = (r, g, b) => {
+      /* jpg 압축된 핫핑크/보라 키 색 — 전역 제거 (테두리 flood만으로는 남음) */
+      if (r < 130 || b < 110) return false;
+      if (g > 165) return false;
+      if (r + b < g * 2.05 + 40) return false;
+      return (r > g + 25 && b > g + 15) || (r > 200 && b > 180 && g < 140);
+    };
+    const isDarkBg = (r, g, b) => {
       const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       const span = Math.max(r, g, b) - Math.min(r, g, b);
-      /* 마젠타/핑크 키 (jpg 압축 후 분홍빛 포함) */
-      if (r > 180 && b > 180 && g < 120 && r + b > g * 2.4) return true;
       if (lum < 52 && span < 42) return true;
-      if (lum < 62 && span < 18) return true; /* 연기에 가까운 회색 가장자리 */
+      if (lum < 62 && span < 18) return true;
       return false;
+    };
+    /* 1) 마젠타 키는 전체에 적용 — 보라 사각 잔상 방지 */
+    for (let p = 0; p < d.length; p += 4) {
+      if (isMagenta(d[p], d[p + 1], d[p + 2])) d[p + 3] = 0;
+    }
+    const isBg = (p) => {
+      if (d[p + 3] === 0) return true;
+      return isDarkBg(d[p], d[p + 1], d[p + 2]);
     };
     const seen = new Uint8Array(w * h);
     const stack = [];
@@ -65,6 +76,18 @@ const Art = (() => {
       const xx = n % w, yy = (n / w) | 0;
       d[n * 4 + 3] = 0;
       push(xx - 1, yy); push(xx + 1, yy); push(xx, yy - 1); push(xx, yy + 1);
+    }
+    /* 2) 키잉 가장자리 1px 침식 — jpg 핑크 헤일로 제거 */
+    const alpha = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) alpha[i] = d[i * 4 + 3];
+    for (let yy = 1; yy < h - 1; yy++) for (let xx = 1; xx < w - 1; xx++) {
+      const n = yy * w + xx;
+      if (alpha[n] === 0) continue;
+      if (!alpha[n - 1] || !alpha[n + 1] || !alpha[n - w] || !alpha[n + w]) {
+        const p = n * 4;
+        if (isMagenta(d[p], d[p + 1], d[p + 2]) || isDarkBg(d[p], d[p + 1], d[p + 2])) d[p + 3] = 0;
+        else if (d[p] > 160 && d[p + 2] > 140 && d[p + 1] < 170) d[p + 3] = 0;
+      }
     }
     x.putImageData(img, 0, 0);
     return cv;
@@ -95,10 +118,15 @@ const Art = (() => {
   }
 
   function frameOf(u, t) {
-    if (u.swing > 0) return u.swing > 0.08 ? 2 : 3;
+    if (u.swing > 0) {
+      const k = 1 - Math.max(0, Math.min(1, u.swing / 0.22));
+      if (k < 0.28) return 1;
+      if (k < 0.72) return 2;
+      return 3;
+    }
     const moving = Math.hypot(u.vx || 0, u.vy || 0) > 8 && (u.stun || 0) <= 0;
-    if (moving) return Math.floor(t * 9 + (u.bob || 0)) % 2;
-    return Math.sin(t * 2.4 + (u.bob || 0)) > 0.55 ? 1 : 0;
+    if (moving) return Math.floor(t * 14 + (u.bob || 0) * 3) % 2;
+    return Math.sin(t * 3.2 + (u.bob || 0)) > 0.62 ? 1 : 0;
   }
 
   function blitSheet(c, spr, frame, x, y, h, dir, stunT) {
@@ -118,31 +146,43 @@ const Art = (() => {
     const spr = sheetOf(id) || sheetOf('generic');
     if (!spr) return false;
     const dir = Math.cos(u.face || 0) >= 0 ? 1 : -1;
-    const moving = Math.hypot(u.vx || 0, u.vy || 0) > 8 && (u.stun || 0) <= 0;
-    const bob = moving ? Math.abs(Math.sin(t * 13 + (u.bob || 0))) * 1.6 : Math.sin(t * 2.2 + (u.bob || 0)) * 0.5;
+    const spd = Math.hypot(u.vx || 0, u.vy || 0);
+    const moving = spd > 8 && (u.stun || 0) <= 0;
+    const bob = moving ? Math.abs(Math.sin(t * 18 + (u.bob || 0))) * 2.2 : Math.sin(t * 2.8 + (u.bob || 0)) * 0.65;
     const sc = u.boss ? 1.18 : 1;
     const hh = 92 * sc;
     const fr = frameOf(u, t);
-    const sw = u.swing > 0 ? Math.sin((u.swing / 0.2) * Math.PI) * 4 : 0;
-    const stun = u.stun > 0 ? t * 20 : 0;
+    const sw = u.swing > 0 ? Math.sin((1 - Math.min(1, u.swing / 0.22)) * Math.PI) * 6 : 0;
+    const lean = moving ? Math.min(0.12, spd / 900) * dir : 0;
+    const stun = u.stun > 0 ? t * 22 : 0;
     c.save();
+    c.translate(u.x, u.y + 10);
+    c.rotate(lean);
+    c.translate(-u.x, -(u.y + 10));
     c.translate(dir * sw, -bob);
-    /* 어두운 시트도 전장에서 보이게: 밝은 실루엣 → 본체 */
+    /* 어두운 시트도 전장에서 보이게: 은은한 실루엣 → 본체 (키잉 실패 시 보라 번짐 약화) */
     c.save();
-    c.globalAlpha = 0.55;
-    c.filter = 'brightness(2.8) contrast(0.7)';
-    blitSheet(c, spr, fr, u.x + 1, u.y + 11, hh, dir, stun);
-    blitSheet(c, spr, fr, u.x - 1, u.y + 9, hh, dir, stun);
+    c.globalAlpha = 0.28;
+    c.filter = 'brightness(1.9) contrast(0.85)';
+    blitSheet(c, spr, fr, u.x, u.y + 11, hh, dir, stun);
     c.restore();
-    c.filter = 'contrast(1.28) brightness(1.38) saturate(1.2)';
+    c.filter = 'contrast(1.22) brightness(1.32) saturate(1.15)';
     blitSheet(c, spr, fr, u.x, u.y + 10, hh, dir, stun);
     c.filter = 'none';
     if (u.flash > 0) {
       c.globalCompositeOperation = 'lighter';
-      c.globalAlpha = 0.5;
+      c.globalAlpha = Math.min(0.75, u.flash * 4);
       blitSheet(c, spr, fr, u.x, u.y + 10, hh, dir, 0);
       c.globalAlpha = 1;
       c.globalCompositeOperation = 'source-over';
+    }
+    /* 이동 잔상 — 전투 밀도감 */
+    if (moving && spd > 40) {
+      c.globalAlpha = 0.18;
+      blitSheet(c, spr, fr, u.x - dir * 7, u.y + 10, hh * 0.98, dir, 0);
+      c.globalAlpha = 0.1;
+      blitSheet(c, spr, fr, u.x - dir * 14, u.y + 10, hh * 0.96, dir, 0);
+      c.globalAlpha = 1;
     }
     c.restore();
     return true;

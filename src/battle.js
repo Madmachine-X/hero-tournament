@@ -396,13 +396,14 @@ const Battle = (() => {
   function loop(ts) {
     if (!active) return;
     raf = requestAnimationFrame(loop);
-    const dt = Math.min(0.05, Math.max(0, (ts - lastT) / 1000));
+    const dt = Math.min(1 / 20, Math.max(0, (ts - lastT) / 1000));
     lastT = ts;
     if (!B) return;
     if (!B.paused) {
       if (B.slowT > 0) B.slowT -= dt;
-      let rem = dt * (B.speed || 1) * (B.slowT > 0 ? 0.3 : 1);
-      while (rem > 1e-6 && B && !B.paused) { const d = Math.min(rem, 1 / 30); step(d); rem -= d; }
+      let rem = dt * (B.speed || 1) * (B.slowT > 0 ? 0.28 : 1);
+      /* 60Hz 고정 스텝 — 고주사율에서도 타격·이동이 매끄럽게 */
+      while (rem > 1e-6 && B && !B.paused) { const d = Math.min(rem, 1 / 60); step(d); rem -= d; }
       if (B && !B.over) {
         const a = B.units.filter((u) => u.team === 0 && u.alive).length, e = B.units.filter((u) => u.team === 1 && u.alive).length;
         Sfx.tick(dt, a < e * 0.7 || B.units.some((u) => u.boss && u.alive && u.team === 1));
@@ -803,14 +804,22 @@ const Battle = (() => {
     let crit = false;
     if (!o.pure && src && src.kind === 'hero' && Math.random() < 0.08) { d *= 1.6; crit = true; Sfx.play('crit'); B.slowT = Math.max(B.slowT, 0.07); B.shake = Math.max(B.shake, 3); }
     t.hp -= d;
-    t.flash = 0.12;
+    t.flash = Math.max(t.flash, crit ? 0.2 : 0.14);
     if (o.stun) t.stun = Math.max(t.stun, t.boss ? o.stun * 0.5 : o.stun);
     if (o.slow) t.slowT = Math.max(t.slowT, o.slow);
     if (o.knock) knock(t, o.kx != null ? o.kx : src ? src.x : t.x - 1, o.ky != null ? o.ky : src ? src.y : t.y, o.knock);
     if (o.burn) { t.burnT = o.burn; t.burnD = o.burnD || amt * 0.25; t.burnSrc = src; }
-    if (!o.quiet && (t.kind === 'hero' || d >= 25 || crit)) {
-      const col = o.color || (t.team === 0 ? '#ff8f7a' : crit ? '#ffe08a' : '#f3ead6');
-      floatText(t.x + rand(-6, 6), t.y - t.r - 8, Math.round(d) + (crit ? '!' : ''), col, crit ? 17 : t.kind === 'hero' ? 14 : 12);
+    if (!o.quiet) {
+      const big = t.kind === 'hero' || d >= 22 || crit;
+      if (big || Math.random() < 0.35) {
+        const col = o.color || (t.team === 0 ? '#ff8f7a' : crit ? '#ffe08a' : '#f3ead6');
+        if (big) floatText(t.x + rand(-6, 6), t.y - t.r - 8, Math.round(d) + (crit ? '!' : ''), col, crit ? 18 : t.kind === 'hero' ? 14 : 12);
+        spark(t.x + rand(-4, 4), t.y - t.r * 0.4, crit ? '#ffe08a' : (src && src.color) || '#ffd9a0', crit ? 8 : big ? 5 : 3);
+        if (crit || d >= 40) {
+          ring(t.x, t.y, 4, 28 + d * 0.15, 0.22, crit ? '#ffe08a' : '#ffb070', 2);
+          B.shake = Math.max(B.shake, crit ? 4.5 : 2.2);
+        }
+      }
     }
     if (t.hp <= 0) kill(t, src);
     return d;
