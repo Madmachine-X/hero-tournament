@@ -161,7 +161,13 @@ const Art = (() => {
     return true;
   }
 
-  function skillFx(id) { return SKILL_FX[id] || 'slash'; }
+  function skillFx(id) {
+    if (SKILL_FX[id]) return SKILL_FX[id];
+    const m = typeof SKILLS !== 'undefined' ? SKILLS[id] : null;
+    const base = m && (m.cast || m.upgradeOf);
+    if (base && SKILL_FX[base]) return SKILL_FX[base];
+    return 'slash';
+  }
 
   return { portraits, ok, drawActor, blitFx, skillFx, fxOf, sheetOf, warm };
 })();

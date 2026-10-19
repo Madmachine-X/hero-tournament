@@ -427,12 +427,17 @@ function revealEquipPicker() {
 }
 function heroDetail(id) {
   const h = G.heroes[id], s = computeStats(id), d = HEROES[id];
-  const sk = SKILLS[d.skill];
+  const basicId = heroBasicSkill(id);
+  const sk = SKILLS[basicId] || SKILLS[d.skill];
+  const tier = heroSkillTier(id);
+  const skTag = tier >= 2 ? '3차 강화' : tier >= 1 ? '2차 강화' : '기본 기술';
   let hiddenHtml = '';
   if (d.hidden) {
-    const hs = SKILLS[d.hidden], wpn = ITEMS[d.weapon];
-    if (s.hiddenOn) hiddenHtml = `<div class="skill hid on"><b>${hs.name}</b><span class="tag gold">발동 중</span><p>${hs.desc}</p></div>`;
-    else if (G.seen[d.weapon]) hiddenHtml = `<div class="skill hid"><b>${hs.name}</b><span class="tag">봉인</span><p>${hs.desc}</p><p class="muted small">「${wpn.name}」을(를) 장착하면 열립니다.</p></div>`;
+    const hidId = heroHiddenSkill(id);
+    const hs = SKILLS[hidId] || SKILLS[d.hidden], wpn = ITEMS[d.weapon];
+    const hTag = tier >= 2 ? '3차 특수기' : '특수기';
+    if (s.hiddenOn) hiddenHtml = `<div class="skill hid on"><b>${hs.name}</b><span class="tag gold">${hTag} · 발동 중</span><p>${hs.desc}</p></div>`;
+    else if (G.seen[d.weapon]) hiddenHtml = `<div class="skill hid"><b>${hs.name}</b><span class="tag">${hTag} · 봉인</span><p>${hs.desc}</p><p class="muted small">「${wpn.name}」을(를) 장착하면 열립니다.</p></div>`;
     else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">이 영웅에게 소문 탐색을 시키면 고유 무기의 소문을 들을 수 있다.</p></div>`;
   }
   const slots = ['w1', 'w2', 'armor', 'acc0', 'acc1', 'acc2', 'acc3'].map((sl) => {
@@ -487,7 +492,7 @@ function heroDetail(id) {
       <div><dt>부대 정원</dt><dd>${s.squad}명</dd></div>
     </dl>
     <p class="label">기술</p>
-    <div class="skill"><b>${sk.name}</b><span class="tag">고유 기술</span><p>${sk.desc}</p></div>
+    <div class="skill"><b>${esc(sk.name)}</b><span class="tag">${skTag}</span><p>${esc(sk.desc)}</p></div>
     ${hiddenHtml}
     <p class="label">장비 <span class="muted small">${heroJob(id).name}은(는) ${jobWepText(jobIdOf(id))}만 찹니다. 고유 무기는 주인만. 무기 2는 한손무기나 방패.</span></p>
     <div class="slots">${slots}</div>
@@ -1243,7 +1248,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차부터는 영웅마다 고유 직업이 됩니다. 레벨 8과 고유 무기로 3차 최종 직업에 오릅니다. 예: 척준경 검병→검성→소드마스터. 을지문덕은 창병(장군) 계열입니다.</li>
+      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차·레벨 8 3차로 고유 직업에 오르면 기술도 ·진 / ·극으로 강화됩니다. 3차 특수기는 고유 무기 장착 시 열립니다. 예: 척준경 검병→검성→소드마스터.</li>
       <li>인재 탐색은 장수가 늘수록 발견 확률이 떨어집니다. 적 세력도 낮에 인재를 찾습니다.</li>
       <li>숨겨진 장소는 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,

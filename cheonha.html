@@ -946,6 +946,56 @@ const SKILLS = {
   madol:       { name: '마돌격', cd: 8, ai: 'target', desc: '말을 몰아 적진을 뚫고 지나며 앞길을 쓸어버린다.' },
   pyeonggang:  { name: '평강의 깃발', cd: 30, ai: 'global', desc: '평강공주의 깃발을 올리며 기병 혼령을 불러 전장을 가로지른다.' },
   gyeokryeo:   { name: '격려', cd: 12, ai: 'buff', desc: '주변 병사를 격려해 사기를 올리고 잠시 공격력을 높인다.' },
+
+  /* 전직 강화 (2차·진 / 3차·극). cast=시전 함수, pow=위력 배율 */
+  honbul2: { name: '혼불·진', cd: 6, ai: 'target', cast: 'honbul', pow: 1.28, desc: '더 뜨거운 혼불 세 개를 날린다. (2차)' },
+  honbul3: { name: '혼불·극', cd: 5, ai: 'target', cast: 'honbul', pow: 1.55, desc: '명부의 불꽃으로 적을 태운다. (3차)' },
+  orat2: { name: '오랏줄·진', cd: 8, ai: 'target', cast: 'orat', pow: 1.25, desc: '더 질긴 오랏줄로 묶고 끌어온다. (2차)' },
+  orat3: { name: '오랏줄·극', cd: 7, ai: 'target', cast: 'orat', pow: 1.5, desc: '저승의 사슬로 적의 혼을 붙잡는다. (3차)' },
+  jeokpae2: { name: '적패지·극', cd: 18, ai: 'aoe', cast: 'jeokpae', pow: 1.35, desc: '강화된 적패로 주변 적을 짓누른다. (3차)' },
+  cheongcheon2: { name: '청천강·진', cd: 7, ai: 'aoe', cast: 'cheongcheon', pow: 1.28, desc: '더 거센 물살로 밀어낸다. (2차)' },
+  cheongcheon3: { name: '청천강·극', cd: 6, ai: 'aoe', cast: 'cheongcheon', pow: 1.55, desc: '살수의 전조처럼 강물이 덮친다. (3차)' },
+  salsu2: { name: '살수대첩·극', cd: 26, ai: 'global', cast: 'salsu', pow: 1.35, desc: '둑이 무너지는 물결이 한층 맹렬하다. (3차)' },
+  hakik2: { name: '학익진·진', cd: 8, ai: 'aoe', cast: 'hakik', pow: 1.28, desc: '학익의 화살이 더 촘촘히 쏟아진다. (2차)' },
+  hakik3: { name: '학익진·극', cd: 7, ai: 'aoe', cast: 'hakik', pow: 1.55, desc: '날개를 편 학처럼 전장을 감싼다. (3차)' },
+  geobuk2: { name: '거북선·극', cd: 28, ai: 'global', cast: 'geobuk', pow: 1.35, desc: '강화된 거북선이 포와 불을 퍼붓는다. (3차)' },
+  hunmin2: { name: '훈민정음·진', cd: 9, ai: 'aoe', cast: 'hunmin', pow: 1.25, desc: '글자가 더 빠르게 퍼져 적을 멈춘다. (2차)' },
+  hunmin3: { name: '훈민정음·극', cd: 8, ai: 'aoe', cast: 'hunmin', pow: 1.5, desc: '성군의 글이 적을 짓누른다. (3차)' },
+  banpo2: { name: '만백성의 글·극', cd: 28, ai: 'global', cast: 'banpo', pow: 1.35, desc: '하늘에서 쏟아지는 글이 한층 무겁다. (3차)' },
+  gaema2: { name: '개마돌격·진', cd: 7, ai: 'target', cast: 'gaema', pow: 1.28, desc: '더 빠른 돌격으로 적진을 뚫는다. (2차)' },
+  gaema3: { name: '개마돌격·극', cd: 6, ai: 'target', cast: 'gaema', pow: 1.55, desc: '태왕의 기세로 전장을 가른다. (3차)' },
+  musa2: { name: '개마무사·극', cd: 26, ai: 'global', cast: 'musa', pow: 1.35, desc: '더 많은 기병 혼령이 돌격한다. (3차)' },
+  hwasal2: { name: '화살비·진', cd: 8, ai: 'aoe', cast: 'hwasal', pow: 1.28, desc: '귀주의 화살비가 더 길게 내린다. (2차)' },
+  hwasal3: { name: '화살비·극', cd: 7, ai: 'aoe', cast: 'hwasal', pow: 1.55, desc: '별빛이 어린 화살이 적진을 덮는다. (3차)' },
+  nakseong2: { name: '낙성·극', cd: 26, ai: 'global', cast: 'nakseong', pow: 1.35, desc: '떨어지는 별이 더 무겁게 내리꽂힌다. (3차)' },
+  geomgi2: { name: '화랑 검기·진', cd: 6, ai: 'target', cast: 'geomgi', pow: 1.28, desc: '검기가 더 날카롭게 가른다. (2차)' },
+  geomgi3: { name: '화랑 검기·극', cd: 5, ai: 'target', cast: 'geomgi', pow: 1.55, desc: '화랑의 일섬이 적을 벤다. (3차)' },
+  samhan2: { name: '삼한일통·극', cd: 24, ai: 'aoe', cast: 'samhan', pow: 1.35, desc: '세 갈래 검기가 한층 거세다. (3차)' },
+  odo2: { name: '오도난무·진', cd: 8, ai: 'aoe', cast: 'odo', pow: 1.28, desc: '다섯 칼이 더 빠르게 돈다. (2차)' },
+  odo3: { name: '오도난무·극', cd: 7, ai: 'aoe', cast: 'odo', pow: 1.55, desc: '대막리지의 칼바람이 휘몰아친다. (3차)' },
+  bigeom2: { name: '비검 오월·극', cd: 22, ai: 'global', cast: 'bigeom', pow: 1.35, desc: '날아가는 칼이 더 매섭게 벤다. (3차)' },
+  maengho2: { name: '맹호 포효·진', cd: 9, ai: 'aoe', cast: 'maengho', pow: 1.28, desc: '포효가 더 멀리 퍼진다. (2차)' },
+  maengho3: { name: '맹호 포효·극', cd: 8, ai: 'aoe', cast: 'maengho', pow: 1.55, desc: '백호의 울음이 적을 얼린다. (3차)' },
+  baekho2: { name: '백호 강림·극', cd: 26, ai: 'global', cast: 'baekho', pow: 1.35, desc: '백호가 더 오래 적진을 덮친다. (3차)' },
+  donguibogam2: { name: '동의보감·진', cd: 9, ai: 'heal', cast: 'donguibogam', pow: 1.25, desc: '처방의 회복량이 늘어난다. (2차)' },
+  donguibogam3: { name: '동의보감·극', cd: 8, ai: 'heal', cast: 'donguibogam', pow: 1.5, desc: '신의의 처방으로 상처를 다스린다. (3차)' },
+  guguep2: { name: '구급 회생·극', cd: 34, ai: 'revive', cast: 'guguep', pow: 1.25, desc: '회생의 기운이 한층 깊다. (3차)' },
+  gyeolsa2: { name: '결사·진', cd: 11, ai: 'buff', cast: 'gyeolsa', pow: 1.25, desc: '결사의 기운이 더 짙다. (2차)' },
+  gyeolsa3: { name: '결사·극', cd: 10, ai: 'buff', cast: 'gyeolsa', pow: 1.5, desc: '오천의 각오로 아군을 일으킨다. (3차)' },
+  ochon2: { name: '오천 결사·극', cd: 30, ai: 'global', cast: 'ochon', pow: 1.35, desc: '결사대 혼령이 더 강하게 일어선다. (3차)' },
+  chukji2: { name: '축지법·진', cd: 5, ai: 'target', cast: 'chukji', pow: 1.28, desc: '더 빠르게 적장 뒤로 붙는다. (2차)' },
+  chukji3: { name: '축지법·극', cd: 4.5, ai: 'target', cast: 'chukji', pow: 1.55, desc: '한 걸음에 전장을 가로지른다. (3차)' },
+  bunsin2: { name: '분신술·극', cd: 24, ai: 'global', cast: 'bunsin', pow: 1.3, desc: '분신이 더 오래 싸운다. (3차)' },
+  danae2: { name: '단애돌격·진', cd: 6, ai: 'target', cast: 'danae', pow: 1.28, desc: '벼랑을 오르듯 더 세게 내려친다. (2차)' },
+  danae3: { name: '단애돌격·극', cd: 5, ai: 'target', cast: 'danae', pow: 1.55, desc: '검성의 돌격이 적장을 가른다. (3차)' },
+  ildo2: { name: '일검파천·극', cd: 24, ai: 'aoe', cast: 'ildo', pow: 1.35, desc: '일섬이 다섯 번 더 깊게 가른다. (3차)' },
+  jucheon2: { name: '주천 화살·진', cd: 6, ai: 'target', cast: 'jucheon', pow: 1.28, desc: '화살이 강을 가르듯 더 세다. (2차)' },
+  jucheon3: { name: '주천 화살·극', cd: 5, ai: 'target', cast: 'jucheon', pow: 1.55, desc: '건국의 일격이 적장을 뚫는다. (3차)' },
+  goguryeo2: { name: '건국 활시위·극', cd: 26, ai: 'global', cast: 'goguryeo', pow: 1.35, desc: '건국의 화살이 더 맹렬히 쏟아진다. (3차)' },
+  madol2: { name: '마돌격·진', cd: 7, ai: 'target', cast: 'madol', pow: 1.28, desc: '말발굽이 더 거세게 적진을 가른다. (2차)' },
+  madol3: { name: '마돌격·극', cd: 6, ai: 'target', cast: 'madol', pow: 1.55, desc: '평강의 기세로 전장을 뚫는다. (3차)' },
+  pyeonggang2: { name: '평강의 깃발·극', cd: 26, ai: 'global', cast: 'pyeonggang', pow: 1.35, desc: '깃발 아래 기병 혼령이 더 강하다. (3차)' },
+
   /* 적 장수 전용 */
   ghostfire:   { name: '귀화', cd: 9, ai: 'target', desc: '' },
   tide:        { name: '망령의 해일', cd: 11, ai: 'aoe', desc: '' },
@@ -1399,11 +1449,43 @@ function stripMisfitWeapons(hid) {
     if (id && !canWield(hid, id)) { G.inv.push(id); e[sl] = null; }
   });
 }
+function skillCastId(sid) {
+  const m = SKILLS[sid];
+  return (m && (m.cast || m.upgradeOf)) || sid;
+}
+function heroSkillTier(hid) {
+  const t = heroJob(hid).tier;
+  return t == null ? 0 : t;
+}
+/** 직업 단계에 맞는 기본기 / 특수기 id */
+function heroBasicSkill(hid) {
+  const d = HEROES[hid] || {};
+  const base = d.skill;
+  if (!base) return null;
+  const tier = heroSkillTier(hid);
+  if (tier >= 2 && SKILLS[base + '3']) return base + '3';
+  if (tier >= 1 && SKILLS[base + '2']) return base + '2';
+  return base;
+}
+function heroHiddenSkill(hid) {
+  const d = HEROES[hid] || {};
+  const base = d.hidden;
+  if (!base) return null;
+  if (heroSkillTier(hid) >= 2 && SKILLS[base + '2']) return base + '2';
+  return base;
+}
 function promoteJob(hid, jid) {
   if (!availablePromos(hid).includes(jid)) return { ok: false, msg: '아직 이 직업을 얻을 수 없습니다.' };
+  const before = heroBasicSkill(hid);
+  const beforeH = heroHiddenSkill(hid);
   G.heroes[hid].job = jid;
   stripMisfitWeapons(hid);
-  return { ok: true, msg: `${heroName(hid)}이(가) 「${JOBS[jid].name}」(으)로 승급했습니다.` };
+  const after = heroBasicSkill(hid);
+  const afterH = heroHiddenSkill(hid);
+  let extra = '';
+  if (after && after !== before && SKILLS[after]) extra += ` · 기술 「${SKILLS[after].name}」`;
+  if (afterH && afterH !== beforeH && SKILLS[afterH]) extra += ` · 특수기 「${SKILLS[afterH].name}」`;
+  return { ok: true, msg: `${heroName(hid)}이(가) 「${JOBS[jid].name}」(으)로 승급했습니다.${extra}` };
 }
 function jobNeedHint(hid, jid) {
   const n = JOBS[jid], h = G.heroes[hid], d = HEROES[hid] || {};
@@ -2408,7 +2490,13 @@ const Art = (() => {
     return true;
   }
 
-  function skillFx(id) { return SKILL_FX[id] || 'slash'; }
+  function skillFx(id) {
+    if (SKILL_FX[id]) return SKILL_FX[id];
+    const m = typeof SKILLS !== 'undefined' ? SKILLS[id] : null;
+    const base = m && (m.cast || m.upgradeOf);
+    if (base && SKILL_FX[base]) return SKILL_FX[base];
+    return 'slash';
+  }
 
   return { portraits, ok, drawActor, blitFx, skillFx, fxOf, sheetOf, warm };
 })();
@@ -2660,8 +2748,10 @@ const Battle = (() => {
       cdr: s.cdr, squad: s.squad, style: s.style, hiddenOn: s.hiddenOn, lea: s.lea, level: level != null ? level : G.heroes[hid].level,
       w1: w1 ? w1.wtype : null, w2: w2 ? w2.wtype : null,
     });
-    u.skills = [{ id: d.skill, t: 1.5 + Math.random() * 2, hidden: false }];
-    if (d.hidden) u.skills.push({ id: d.hidden, t: team === 0 ? 3 : 15, hidden: true });
+    const basic = (typeof heroBasicSkill === 'function' ? heroBasicSkill(hid) : null) || d.skill;
+    const hidSk = (typeof heroHiddenSkill === 'function' ? heroHiddenSkill(hid) : null) || d.hidden;
+    u.skills = [{ id: basic, t: 1.5 + Math.random() * 2, hidden: false }];
+    if (hidSk) u.skills.push({ id: hidSk, t: team === 0 ? 3 : 15, hidden: true });
     return u;
   }
 
@@ -3542,20 +3632,26 @@ const Battle = (() => {
   }
 
   function cast(u, s) {
-    const fn = SK[s.id];
-    if (!fn || !u.alive || u.stun > 0) return false;
-    const ok = fn(u);
+    const meta = SKILLS[s.id];
+    if (!meta || !u.alive || u.stun > 0) return false;
+    const castId = (typeof skillCastId === 'function' ? skillCastId(s.id) : null) || meta.cast || meta.upgradeOf || s.id;
+    const fn = SK[castId] || SK[s.id];
+    if (!fn) return false;
+    const pow = meta.pow || 1;
+    const prevSp = u.sp, prevAtk = u.atk;
+    if (pow !== 1) { u.sp *= pow; u.atk *= pow; }
+    let ok = false;
+    try { ok = fn(u); } finally { u.sp = prevSp; u.atk = prevAtk; }
     if (ok) {
-      s.t = SKILLS[s.id].cd * 1.3;
+      s.t = meta.cd * 1.3;
       const big = s.hidden || u.boss;
       Sfx.play('skill', big);
       punch(big ? 1 : 0.4, u.x, u.y, big ? 1 : 0.5);
-      if (s.hidden) cutin(u, SKILLS[s.id].name);
+      if (s.hidden) cutin(u, meta.name);
       else {
-        label(u, SKILLS[s.id].name);
-        // 보스 기술은 큰 컷인, 아군 영웅 기술은 짧은 띠 (너무 잦지 않게)
-        if (u.boss && B.t > B.ciT.boss) { B.ciT.boss = B.t + 6; cutin(u, SKILLS[s.id].name); }
-        else if (u.team === 0 && u.kind === 'hero' && B.t > B.ciT.mini) { B.ciT.mini = B.t + 3; cutin(u, SKILLS[s.id].name, true); }
+        label(u, meta.name);
+        if (u.boss && B.t > B.ciT.boss) { B.ciT.boss = B.t + 6; cutin(u, meta.name); }
+        else if (u.team === 0 && u.kind === 'hero' && B.t > B.ciT.mini) { B.ciT.mini = B.t + 3; cutin(u, meta.name, true); }
       }
     }
     return ok;
@@ -5622,12 +5718,17 @@ function revealEquipPicker() {
 }
 function heroDetail(id) {
   const h = G.heroes[id], s = computeStats(id), d = HEROES[id];
-  const sk = SKILLS[d.skill];
+  const basicId = heroBasicSkill(id);
+  const sk = SKILLS[basicId] || SKILLS[d.skill];
+  const tier = heroSkillTier(id);
+  const skTag = tier >= 2 ? '3차 강화' : tier >= 1 ? '2차 강화' : '기본 기술';
   let hiddenHtml = '';
   if (d.hidden) {
-    const hs = SKILLS[d.hidden], wpn = ITEMS[d.weapon];
-    if (s.hiddenOn) hiddenHtml = `<div class="skill hid on"><b>${hs.name}</b><span class="tag gold">발동 중</span><p>${hs.desc}</p></div>`;
-    else if (G.seen[d.weapon]) hiddenHtml = `<div class="skill hid"><b>${hs.name}</b><span class="tag">봉인</span><p>${hs.desc}</p><p class="muted small">「${wpn.name}」을(를) 장착하면 열립니다.</p></div>`;
+    const hidId = heroHiddenSkill(id);
+    const hs = SKILLS[hidId] || SKILLS[d.hidden], wpn = ITEMS[d.weapon];
+    const hTag = tier >= 2 ? '3차 특수기' : '특수기';
+    if (s.hiddenOn) hiddenHtml = `<div class="skill hid on"><b>${hs.name}</b><span class="tag gold">${hTag} · 발동 중</span><p>${hs.desc}</p></div>`;
+    else if (G.seen[d.weapon]) hiddenHtml = `<div class="skill hid"><b>${hs.name}</b><span class="tag">${hTag} · 봉인</span><p>${hs.desc}</p><p class="muted small">「${wpn.name}」을(를) 장착하면 열립니다.</p></div>`;
     else hiddenHtml = `<div class="skill hid"><b>숨겨진 특수기 ???</b><span class="tag">봉인</span><p class="muted">이 영웅에게 소문 탐색을 시키면 고유 무기의 소문을 들을 수 있다.</p></div>`;
   }
   const slots = ['w1', 'w2', 'armor', 'acc0', 'acc1', 'acc2', 'acc3'].map((sl) => {
@@ -5682,7 +5783,7 @@ function heroDetail(id) {
       <div><dt>부대 정원</dt><dd>${s.squad}명</dd></div>
     </dl>
     <p class="label">기술</p>
-    <div class="skill"><b>${sk.name}</b><span class="tag">고유 기술</span><p>${sk.desc}</p></div>
+    <div class="skill"><b>${esc(sk.name)}</b><span class="tag">${skTag}</span><p>${esc(sk.desc)}</p></div>
     ${hiddenHtml}
     <p class="label">장비 <span class="muted small">${heroJob(id).name}은(는) ${jobWepText(jobIdOf(id))}만 찹니다. 고유 무기는 주인만. 무기 2는 한손무기나 방패.</span></p>
     <div class="slots">${slots}</div>
@@ -6438,7 +6539,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차부터는 영웅마다 고유 직업이 됩니다. 레벨 8과 고유 무기로 3차 최종 직업에 오릅니다. 예: 척준경 검병→검성→소드마스터. 을지문덕은 창병(장군) 계열입니다.</li>
+      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차·레벨 8 3차로 고유 직업에 오르면 기술도 ·진 / ·극으로 강화됩니다. 3차 특수기는 고유 무기 장착 시 열립니다. 예: 척준경 검병→검성→소드마스터.</li>
       <li>인재 탐색은 장수가 늘수록 발견 확률이 떨어집니다. 적 세력도 낮에 인재를 찾습니다.</li>
       <li>숨겨진 장소는 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,

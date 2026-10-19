@@ -177,8 +177,10 @@ const Battle = (() => {
       cdr: s.cdr, squad: s.squad, style: s.style, hiddenOn: s.hiddenOn, lea: s.lea, level: level != null ? level : G.heroes[hid].level,
       w1: w1 ? w1.wtype : null, w2: w2 ? w2.wtype : null,
     });
-    u.skills = [{ id: d.skill, t: 1.5 + Math.random() * 2, hidden: false }];
-    if (d.hidden) u.skills.push({ id: d.hidden, t: team === 0 ? 3 : 15, hidden: true });
+    const basic = (typeof heroBasicSkill === 'function' ? heroBasicSkill(hid) : null) || d.skill;
+    const hidSk = (typeof heroHiddenSkill === 'function' ? heroHiddenSkill(hid) : null) || d.hidden;
+    u.skills = [{ id: basic, t: 1.5 + Math.random() * 2, hidden: false }];
+    if (hidSk) u.skills.push({ id: hidSk, t: team === 0 ? 3 : 15, hidden: true });
     return u;
   }
 
@@ -1059,20 +1061,26 @@ const Battle = (() => {
   }
 
   function cast(u, s) {
-    const fn = SK[s.id];
-    if (!fn || !u.alive || u.stun > 0) return false;
-    const ok = fn(u);
+    const meta = SKILLS[s.id];
+    if (!meta || !u.alive || u.stun > 0) return false;
+    const castId = (typeof skillCastId === 'function' ? skillCastId(s.id) : null) || meta.cast || meta.upgradeOf || s.id;
+    const fn = SK[castId] || SK[s.id];
+    if (!fn) return false;
+    const pow = meta.pow || 1;
+    const prevSp = u.sp, prevAtk = u.atk;
+    if (pow !== 1) { u.sp *= pow; u.atk *= pow; }
+    let ok = false;
+    try { ok = fn(u); } finally { u.sp = prevSp; u.atk = prevAtk; }
     if (ok) {
-      s.t = SKILLS[s.id].cd * 1.3;
+      s.t = meta.cd * 1.3;
       const big = s.hidden || u.boss;
       Sfx.play('skill', big);
       punch(big ? 1 : 0.4, u.x, u.y, big ? 1 : 0.5);
-      if (s.hidden) cutin(u, SKILLS[s.id].name);
+      if (s.hidden) cutin(u, meta.name);
       else {
-        label(u, SKILLS[s.id].name);
-        // 보스 기술은 큰 컷인, 아군 영웅 기술은 짧은 띠 (너무 잦지 않게)
-        if (u.boss && B.t > B.ciT.boss) { B.ciT.boss = B.t + 6; cutin(u, SKILLS[s.id].name); }
-        else if (u.team === 0 && u.kind === 'hero' && B.t > B.ciT.mini) { B.ciT.mini = B.t + 3; cutin(u, SKILLS[s.id].name, true); }
+        label(u, meta.name);
+        if (u.boss && B.t > B.ciT.boss) { B.ciT.boss = B.t + 6; cutin(u, meta.name); }
+        else if (u.team === 0 && u.kind === 'hero' && B.t > B.ciT.mini) { B.ciT.mini = B.t + 3; cutin(u, meta.name, true); }
       }
     }
     return ok;

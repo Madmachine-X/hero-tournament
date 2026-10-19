@@ -262,11 +262,43 @@ function stripMisfitWeapons(hid) {
     if (id && !canWield(hid, id)) { G.inv.push(id); e[sl] = null; }
   });
 }
+function skillCastId(sid) {
+  const m = SKILLS[sid];
+  return (m && (m.cast || m.upgradeOf)) || sid;
+}
+function heroSkillTier(hid) {
+  const t = heroJob(hid).tier;
+  return t == null ? 0 : t;
+}
+/** 직업 단계에 맞는 기본기 / 특수기 id */
+function heroBasicSkill(hid) {
+  const d = HEROES[hid] || {};
+  const base = d.skill;
+  if (!base) return null;
+  const tier = heroSkillTier(hid);
+  if (tier >= 2 && SKILLS[base + '3']) return base + '3';
+  if (tier >= 1 && SKILLS[base + '2']) return base + '2';
+  return base;
+}
+function heroHiddenSkill(hid) {
+  const d = HEROES[hid] || {};
+  const base = d.hidden;
+  if (!base) return null;
+  if (heroSkillTier(hid) >= 2 && SKILLS[base + '2']) return base + '2';
+  return base;
+}
 function promoteJob(hid, jid) {
   if (!availablePromos(hid).includes(jid)) return { ok: false, msg: '아직 이 직업을 얻을 수 없습니다.' };
+  const before = heroBasicSkill(hid);
+  const beforeH = heroHiddenSkill(hid);
   G.heroes[hid].job = jid;
   stripMisfitWeapons(hid);
-  return { ok: true, msg: `${heroName(hid)}이(가) 「${JOBS[jid].name}」(으)로 승급했습니다.` };
+  const after = heroBasicSkill(hid);
+  const afterH = heroHiddenSkill(hid);
+  let extra = '';
+  if (after && after !== before && SKILLS[after]) extra += ` · 기술 「${SKILLS[after].name}」`;
+  if (afterH && afterH !== beforeH && SKILLS[afterH]) extra += ` · 특수기 「${SKILLS[afterH].name}」`;
+  return { ok: true, msg: `${heroName(hid)}이(가) 「${JOBS[jid].name}」(으)로 승급했습니다.${extra}` };
 }
 function jobNeedHint(hid, jid) {
   const n = JOBS[jid], h = G.heroes[hid], d = HEROES[hid] || {};
