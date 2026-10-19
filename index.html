@@ -6416,6 +6416,34 @@ function enemyDomestic() {
   if (notes.length) { const n = pick(notes); logEvent('적 동향: ' + n); setTimeout(() => toast('적 동향 · ' + n, 'violet'), 900); }
 }
 
+/* 피습 도시 + 이웃 아군 도시 = 같은 맹주 지원망 */
+function defendAllies(tgt) {
+  const cities = [tgt, ...neighbors(tgt).filter((n) => G.cities[n].owner === 'player')];
+  const heroes = [];
+  cities.forEach((c) => heroesIn(c).forEach((h) => { if (!heroes.includes(h)) heroes.push(h); }));
+  const troops = cities.reduce((a, c) => a + G.cities[c].troops, 0);
+  const nearNames = cities.filter((c) => c !== tgt).map((c) => `${CITIES[c].name} ${G.cities[c].troops}`);
+  return { cities, heroes, troops, nearNames };
+}
+/* 본성 우선으로 병력 차감. 가중 조련도 반환 */
+function takeDefendTroops(tgt, cities, need) {
+  let rem = Math.max(0, Math.min(need, cities.reduce((a, c) => a + G.cities[c].troops, 0)));
+  const order = [tgt, ...cities.filter((c) => c !== tgt)];
+  const taken = {};
+  let trainSum = 0, nSum = 0;
+  for (const c of order) {
+    if (rem <= 0) break;
+    const n = Math.min(G.cities[c].troops, rem);
+    if (!n) continue;
+    G.cities[c].troops -= n;
+    taken[c] = n;
+    trainSum += G.cities[c].train * n;
+    nSum += n;
+    rem -= n;
+  }
+  return { taken, train: nSum ? trainSum / nSum : G.cities[tgt].train, sent: nSum };
+}
+
 function maybeEnemyAttack(force) {
   if (!force) {
     if (G.phase === 0 || G.day < 3 || G.attackDay === G.day) return;
@@ -6434,9 +6462,13 @@ function maybeEnemyAttack(force) {
   const preview = enemyForce(tgt, { attacker: src, faction: owner });
   G.cities[src].troops = Math.max(0, G.cities[src].troops - preview.send);
   const T = G.cities[tgt];
+  const ally = defendAllies(tgt);
+  const supportNote = ally.nearNames.length
+    ? `이웃 아군 지원 가능 · ${ally.nearNames.join(' · ')} (합 병력 ${ally.troops}, 장수 ${ally.heroes.length}명)`
+    : `합 병력 ${ally.troops} · 이웃 아군 도시 없음`;
   EventQ.push(() => openModal(`<div class="modal-head warn"><h3 class="h-display">${isNight() ? '적의 야습' : '적의 침공'}</h3></div>
     <p><b style="color:${fac.color}">${fac.name}</b>이(가) ${CITIES[src].name}에서 병력 ${preview.send}으로 <b>${CITIES[tgt].name}</b>을(를) 칩니다.</p>
-    <p class="muted small">${CITIES[tgt].name} 병력 ${T.troops} · 조련 ${T.train} · 결계 ${T.wall}. 직접 지휘하면 실시간 전투로 막습니다. 방어 전투는 영웅의 행동을 쓰지 않습니다.</p>
+    <p class="muted small">${CITIES[tgt].name} 본성 병력 ${T.troops} · 조련 ${T.train} · 결계 ${T.wall}. ${supportNote}. 직접 지휘하면 실시간 전투로 막습니다. 방어·지원은 영웅 행동을 쓰지 않습니다.</p>
     <div class="actions"><button class="btn primary" data-a="fight">직접 지휘</button><button class="btn" data-a="auto">자동 방어</button></div>`, (card) => {
     card.onclick = (e) => {
       const b = e.target.closest('[data-a]');
@@ -6444,18 +6476,27 @@ function maybeEnemyAttack(force) {
       closeModal();
       if (b.dataset.a === 'fight') {
         choosePartyThen(`${CITIES[tgt].name} 방어`, (party, sent) => {
-          T.troops -= sent;
+          const pulled = takeDefendTroops(tgt, ally.cities, sent);
           const enemy = enemyForce(tgt, { attacker: src, faction: owner, party: party.length });
           enemy.soldiers = preview.send;
           startBattle({ title: `${CITIES[tgt].name} 방어전`, theme: CITIES[tgt].theme || 'ruin', type: 'defend', party, enemy,
-            playerSoldiers: sent, playerTrain: T.train, wall: { team: 0, value: T.wall }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])), onEnd: (res) => {
+            playerSoldiers: pulled.sent, playerTrain: pulled.train, wall: { team: 0, value: T.wall }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])), onEnd: (res) => {
               applyBattle(res, party, false);
               showScreen('scr-map');
-              if (res.win) { T.troops += res.survivors; G.cities[src].troops += 0; toast(`${CITIES[tgt].name}을(를) 지켜 냈습니다.`, 'gold'); logEvent(`${CITIES[tgt].name} 방어 성공`); }
-              else { T.troops += res.survivors; loseCity(tgt, src, Math.max(10, res.enemyLeft)); }
+              if (res.win) {
+                T.troops += res.survivors;
+                toast(`${CITIES[tgt].name}을(를) 지켜 냈습니다.${ally.nearNames.length ? ' 이웃 지원이 합류했습니다.' : ''}`, 'gold');
+                logEvent(`${CITIES[tgt].name} 방어 성공${ally.nearNames.length ? ' (이웃 지원)' : ''}`);
+              } else {
+                T.troops += res.survivors;
+                loseCity(tgt, src, Math.max(10, res.enemyLeft));
+              }
               renderAll(); saveGame();
             } });
-        }, () => autoDefend(src, tgt, preview.send), { only: heroesIn(tgt), troops: T.troops, allowEmpty: true, formation: true, note: `${CITIES[tgt].name} 병력 ${T.troops}으로 막습니다. 영웅 없이 나가면 혼불 대장이 지휘합니다.` });
+        }, () => autoDefend(src, tgt, preview.send), {
+          only: ally.heroes, troops: ally.troops, allowEmpty: true, formation: true,
+          note: `${CITIES[tgt].name} 본성 ${T.troops} · ${supportNote}. 이웃 도시 장수·병력도 고를 수 있습니다. 영웅 없이 나가면 혼불 대장이 지휘합니다.`,
+        });
       } else autoDefend(src, tgt, preview.send);
     };
   }));
@@ -6463,18 +6504,22 @@ function maybeEnemyAttack(force) {
 
 function autoDefend(src, tgt, send) {
   const T = G.cities[tgt], S = G.cities[src];
-  const lv = G.roster.map((h) => G.heroes[h].level).sort((a, b) => b - a).slice(0, 3).reduce((a, b) => a + b, 0);
-  const p = T.troops * (0.5 + T.train / 100) * (1 + T.wall / 200) + lv * 8;
+  const ally = defendAllies(tgt);
+  const trainAvg = ally.troops
+    ? ally.cities.reduce((a, c) => a + G.cities[c].train * G.cities[c].troops, 0) / ally.troops
+    : T.train;
+  const lv = ally.heroes.map((h) => G.heroes[h].level).sort((a, b) => b - a).slice(0, 5).reduce((a, b) => a + b, 0);
+  const p = ally.troops * (0.5 + trainAvg / 100) * (1 + T.wall / 200) + lv * 8;
   const e = send * (0.5 + S.train / 100) + CITIES[src].level * 20;
   const win = Math.random() < p / (p + e);
   if (win) {
     const loss = Math.round(send * 0.3 * (0.5 + Math.random() * 0.5));
-    T.troops = Math.max(0, T.troops - loss);
+    takeDefendTroops(tgt, ally.cities, loss);
     S.troops += Math.round(send * 0.3);
-    toast(`${CITIES[tgt].name} 자동 방어 성공 · 병사 ${loss}명을 잃었습니다.`, 'gold');
-    logEvent(`${CITIES[tgt].name} 자동 방어 성공`);
+    toast(`${CITIES[tgt].name} 자동 방어 성공 · 병사 ${loss}명을 잃었습니다.${ally.nearNames.length ? ' (이웃 지원 포함)' : ''}`, 'gold');
+    logEvent(`${CITIES[tgt].name} 자동 방어 성공${ally.nearNames.length ? ' (이웃 지원)' : ''}`);
   } else {
-    T.troops = Math.round(T.troops * 0.3);
+    takeDefendTroops(tgt, ally.cities, Math.round(ally.troops * 0.7));
     loseCity(tgt, src, Math.round(send * 0.6));
   }
   renderAll(); saveGame();
@@ -6617,7 +6662,7 @@ function howTo() {
       <li>오전·오후: 공양·명부·결계·위무·소환·조련·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
       <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음. 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉼), 소문 탐색, 병력 이동, 야간 기습(초반 5초 허둥, 적 사기 -8, 결계 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
       <li>매일 아침 명부에서 업전(금), 공양에서 혼식(군량)이 들어오고 혼병들이 혼식을 먹습니다. 출병에는 병사당 혼식 0.5가 듭니다.</li>
-      <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
+      <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다. 적이 쳐들어오면 이웃한 아군 도시의 장수·병력이 지원에 합류할 수 있습니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(신망 하락)하거나 등용을 취소해야 합니다.</li>
       <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차·레벨 8 3차로 고유 직업에 오르면 기술도 ·진 / ·극으로 강화됩니다. 3차 특수기는 고유 무기 장착 시 열립니다. 예: 척준경 검병→검성→소드마스터.</li>
