@@ -290,9 +290,12 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .cmd { padding: 8px 4px; border: 1px solid var(--line-2); border-radius: 3px; background: linear-gradient(180deg, var(--paper-3), var(--paper-2)); cursor: pointer; font-family: var(--f-display); font-size: 0.95rem; }
 .cmd:hover { border-color: var(--gold); }
 .cmd.on { border-color: var(--gold); color: var(--gold); }
-.cmdpick em { margin-left: auto; font-style: normal; white-space: nowrap; }
+.cmdpick em { margin-left: auto; font-style: normal; white-space: nowrap; max-width: 55%; overflow: hidden; text-overflow: ellipsis; }
 .cmdpick em.warn { color: #f08b72; }
+.cmdpick.blocked { opacity: 0.72; border-color: #6a3a2a; cursor: help; }
 .cmdpick:disabled { opacity: 0.55; cursor: not-allowed; }
+.hint.warn-hint { color: #f08b72; }
+.move-row button:disabled { opacity: 0.75; font-size: 0.78rem; max-width: 11em; overflow: hidden; text-overflow: ellipsis; }
 .move-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px dashed var(--line); }
 .move-row b { font-family: var(--f-display); font-weight: 400; min-width: 40px; }
 .move-row .muted { margin-right: auto; }
@@ -345,7 +348,9 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .job-chip { font-size: 0.78rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--ink); color: var(--ash); cursor: pointer; font-family: var(--f-display); }
 .job-chip.ready { border-color: var(--gold); color: var(--gold); cursor: pointer; }
 .job-chip.uniq.ready { background: rgba(217,171,74,0.12); }
+.job-chip.blocked { opacity: 0.75; border-color: #6a3a2a; color: #f08b72; cursor: help; }
 .job-chip:disabled { opacity: 0.7; cursor: default; }
+.btn.blocked { opacity: 0.85; border-color: #6a3a2a; cursor: help; }
 .reward { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .reward-msg { font-size: 1.05rem; margin: 6px 0; }
 .reward .kv { width: 100%; text-align: left; }

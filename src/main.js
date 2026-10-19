@@ -171,11 +171,20 @@ function renderCmdRail() {
     bindMarchPicker();
   } else {
     const adj = adjacentToPlayer(sel);
-    const free = neighbors(sel).filter(function(n) { return G.cities[n].owner === "player"; }).reduce(function(a, n) { return a + freeIn(n).length; }, 0);
-    if (noteEl) noteEl.textContent = adj && free ? (isNight() ? "야간 기습 가능" : "출병 가능") : "아직 칠 수 없습니다";
+    const nbrs = neighbors(sel).filter(function(n) { return G.cities[n].owner === "player"; });
+    const free = nbrs.reduce(function(a, n) { return a + freeIn(n).length; }, 0);
+    const troopsOk = nbrs.some(function(n) { return G.cities[n].troops > 0; });
+    let atkWhy = '';
+    if (!adj) atkWhy = '이웃한 아군 도시가 없습니다';
+    else if (!free) atkWhy = '이웃 도시에 행동 가능한 장수가 없습니다';
+    else if (!troopsOk) atkWhy = '이웃 도시에 병력이 없습니다';
+    const canAtk = !atkWhy;
+    if (noteEl) noteEl.textContent = canAtk ? (isNight() ? "야간 기습 가능" : "출병 가능") : atkWhy;
     if (btns) {
       btns.className = "cmds";
-      btns.innerHTML = '<button class="btn primary' + (isNight() ? ' raid' : '') + '" data-act="attack" ' + (adj && free ? '' : 'disabled') + '>' + (isNight() ? '야간 기습' : '출병') + '</button>';
+      btns.innerHTML = canAtk
+        ? '<button class="btn primary' + (isNight() ? ' raid' : '') + '" data-act="attack">' + (isNight() ? '야간 기습' : '출병') + '</button>'
+        : '<button class="btn primary blocked" data-block="' + esc(atkWhy) + '">' + (isNight() ? '야간 기습' : '출병') + ' · ' + esc(atkWhy) + '</button>';
     }
     if (picker) picker.innerHTML = "";
   }
@@ -279,55 +288,60 @@ function commandPicker(cityId) {
       ${heroBtns || '<p class="muted small">이 도시에 이번 턴 떠날 수 있는 장수가 없습니다.</p>'}
       <label class="troop-slide"><span>병력 <b data-troopn>${UI.cmdTroops}</b> / ${st.troops} <span class="muted small">기본 절반 ${Math.floor(st.troops / 2)}</span></span>
         <input type="range" min="0" max="${st.troops}" step="1" value="${UI.cmdTroops}" data-troops ${st.troops ? '' : 'disabled'}></label>
+      ${!free.length && !st.troops ? '<p class="hint warn-hint">보낼 장수도 병력도 없습니다.</p>' : !free.length ? '<p class="hint warn-hint">이번 시간대에 떠날 수 있는 장수가 없습니다. 병력만 이웃으로 보낼 수 있습니다.</p>' : ''}
       ${dests.length ? dests.map((d) => {
         const hops = Math.max(1, cityHops(cityId, d));
         const adj = neighbors(cityId).includes(d);
         const room = cityCap(d) - cityPop(d);
         const full = going > 0 && going > room;
-        const can = (going > 0 && !full) || (UI.cmdTroops > 0 && adj);
-        return `<div class="move-row"><b>${CITIES[d].name}</b><span class="muted small">${cityPop(d)}/${cityCap(d)} · ${hops}턴${adj ? ' · 병력 가능' : ''}</span>
-          <button class="btn sm" data-march="${d}" ${can ? '' : 'disabled'}>${full ? '정원' : '보내기'}</button></div>`;
+        const canHero = going > 0 && !full;
+        const canTroop = UI.cmdTroops > 0 && adj;
+        const can = canHero || canTroop;
+        let why = '';
+        if (!can) {
+          if (going > 0 && full) why = `정원 부족(${cityPop(d)}/${cityCap(d)})`;
+          else if (UI.cmdTroops > 0 && !adj && !going) why = '병력은 이웃 도시만';
+          else if (!going && !UI.cmdTroops) why = '장수 또는 병력 선택';
+          else if (!going && UI.cmdTroops > 0 && !adj) why = '병력은 이웃만 · 장수는 원거리 가능';
+          else why = '보낼 수 없음';
+        }
+        return `<div class="move-row"><b>${CITIES[d].name}</b><span class="muted small">${cityPop(d)}/${cityCap(d)} · ${hops}턴${adj ? ' · 병력 가능' : ' · 병력 불가'}</span>
+          <button class="btn sm" ${can ? `data-march="${d}"` : `data-block="${esc(why)}"`} title="${can ? '' : why}">${can ? '보내기' : why}</button></div>`;
       }).join('') : '<p class="muted small">다른 아군 도시가 없습니다.</p>'}
       <button class="btn ghost sm" data-act="cmdcancel">취소</button></div>`;
   }
   const rows = free.map((h) => {
     const s = computeStats(h);
-    let eff = '', cost = { gold: 0, food: 0 }, ok = true, block = '';
+    let eff = '', cost = { gold: 0, food: 0 };
     if (cmd === 'rest') eff = `체력 ${Math.round(G.heroes[h].hp * 100)}% → 100% · 지침 해제`;
     else if (cmd === 'scout') eff = '소문 듣기';
-    else if (cmd === 'move') eff = '';
     else if (cmd === 'search') { cost = commandCost(cmd, h, cityId); eff = `발견 확률 ${commandGain(cmd, h, cityId)}%`; }
     else {
       const g = commandGain(cmd, h, cityId);
       cost = commandCost(cmd, h, cityId);
       eff = cmd === 'draft' ? `혼병 +${g}` : `${meta.label} +${Math.min(g, 100 - (st[meta.key] || 0))}`;
     }
-    if (cmd === 'draft') {
-      const g = commandGain(cmd, h, cityId);
-      if (st.loyal < 30) { ok = false; block = `신망 ${st.loyal}/30 · 위무 필요`; }
-      else if (g <= 0) { ok = false; block = '병력 포화(400)'; }
-      else if (!canAfford(cost)) { ok = false; block = `업전 ${cost.gold} 필요 (보유 ${G.gold})`; }
-    } else if (cmd !== 'rest' && cmd !== 'move' && !canAfford(cost)) {
-      ok = false;
-      block = cost.gold && G.gold < cost.gold ? `업전 ${cost.gold} 필요` : cost.food && G.food < cost.food ? `혼식 ${cost.food} 필요` : '자원 부족';
-    }
-    if (cmd !== 'rest' && cmd !== 'move' && ok) {
+    const block = commandBlockReason(cmd, h, cityId);
+    const ok = !block;
+    if (ok && cmd !== 'rest') {
       const drain = cmdHpCost(cmd);
       const next = Math.max(0.05, G.heroes[h].hp - drain);
-      eff = (eff ? `${eff} · ` : '') + `체력 -${Math.round(drain * 100)}%`;
-      if (next <= 0.5) eff += ' · 지침';
+      if (drain > 0) {
+        eff = (eff ? `${eff} · ` : '') + `체력 -${Math.round(drain * 100)}%`;
+        if (next <= 0.5) eff += ' · 지침';
+      }
     }
     const costTxt = [cost.gold ? `업전 ${cost.gold}` : '', cost.food ? `혼식 ${cost.food}` : ''].filter(Boolean).join(' · ');
     const key = cmd === 'search' || cmd === 'scout' ? s.int : cmd === 'draft' ? s.lea : cmd === 'agri' ? Math.round(s.int * 0.6 + s.lea * 0.4) : cmd === 'comm' || cmd === 'loyal' ? s.int : cmd === 'wall' ? Math.round(s.lea * 0.6 + s.str * 0.4) : cmd === 'train' ? Math.round((s.str + s.lea) / 2) : 0;
     return { h, eff: block || eff, costTxt, ok, key, blocked: !!block };
-  }).sort((a, b) => b.key - a.key);
-  const draftHint = cmd === 'draft'
-    ? `<p class="hint">소환은 신망 30 이상 · 업전(소환 인원×1)이 필요합니다. 지금 신망 ${st.loyal} · 업전 ${G.gold} · 병력 ${st.troops}/400.</p>`
-    : '';
+  }).sort((a, b) => (a.blocked === b.blocked ? b.key - a.key : a.blocked ? 1 : -1));
+  const statusHint = cmd === 'draft'
+    ? `<p class="hint">지금 신망 ${st.loyal} · 업전 ${G.gold} · 병력 ${st.troops}/400 · 혼식 ${G.food}</p>`
+    : `<p class="hint muted">보유 업전 ${G.gold} · 혼식 ${G.food}${meta.key && meta.key !== 'troops' ? ` · ${meta.label} ${st[meta.key] || 0}/100` : ''}</p>`;
   return `<div class="picker"><p class="label">${meta.name} <span class="muted small">${meta.desc}${meta.stat ? ` · ${meta.stat}이 높을수록 효과가 큽니다` : ''}</span></p>
-    ${draftHint}
-    ${rows.length ? rows.map((r) => `<button class="pick-hero cmdpick ${r.blocked ? 'blocked' : ''}" data-doer="${r.h}" ${r.ok ? '' : 'disabled'}>${medallion(r.h)}<span><b>${esc(heroName(r.h))}</b><span class="muted small">${r.key ? `${meta.stat} ${r.key} · ` : ''}${r.costTxt || '비용 없음'}</span></span><em class="${r.blocked ? 'warn' : 'gold'}">${r.eff}</em></button>`).join('')
-      : '<p class="muted small">이 도시에 이번 턴 행동할 수 있는 장수가 없습니다.</p>'}
+    ${statusHint}
+    ${rows.length ? rows.map((r) => `<button class="pick-hero cmdpick ${r.blocked ? 'blocked' : ''}" data-doer="${r.h}" ${r.blocked ? `data-block="${esc(r.eff)}"` : ''} title="${r.blocked ? esc(r.eff) : ''}">${medallion(r.h)}<span><b>${esc(heroName(r.h))}</b><span class="muted small">${r.key ? `${meta.stat} ${r.key} · ` : ''}${r.costTxt || '비용 없음'}</span></span><em class="${r.blocked ? 'warn' : 'gold'}">${esc(r.eff)}</em></button>`).join('')
+      : '<p class="hint warn-hint">이 도시에 이번 시간대 행동할 수 있는 장수가 없습니다. (이미 행동했거나 이동 중)</p>'}
     <button class="btn ghost sm" data-act="cmdcancel">닫기</button></div>`;
 }
 
@@ -435,7 +449,7 @@ function heroList() {
 function jobBlock(id) {
   const job = heroJob(id);
   const hints = nextJobHints(id);
-  const chips = hints.map((j) => `<button class="job-chip ${j.ready ? 'ready' : ''} ${j.unique ? 'uniq' : ''}" data-job="${j.id}" ${j.ready ? '' : 'disabled'}>${esc(j.name)}${j.need ? ` · ${esc(j.need)}` : j.ready ? ' · 승급' : ''}</button>`).join('');
+  const chips = hints.map((j) => `<button class="job-chip ${j.ready ? 'ready' : 'blocked'} ${j.unique ? 'uniq' : ''}" ${j.ready ? `data-job="${j.id}"` : `data-block="${esc(j.need || '아직 전직할 수 없습니다')}"`}>${esc(j.name)}${j.need ? ` · ${esc(j.need)}` : j.ready ? ' · 승급' : ''}</button>`).join('');
   return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '1차 · 공유 병과' : job.tier === 1 ? (job.shared ? '2차 · 장수 공용' : '2차 · 고유') : '3차 · 고유 최종'} · ${jobWepText(jobIdOf(id))}</span></p>
     <p class="job-now">${esc(job.name)}</p>
     ${chips ? `<div class="job-next">${chips}</div>` : job.tier >= 2 ? '<p class="muted small">더 올릴 직업이 없습니다.</p>' : ''}`;
@@ -581,6 +595,7 @@ function onPanelClick(e) {
     UI.cmdTroops = next === 'move' && id ? Math.floor(G.cities[id].troops / 2) : null;
     renderPanel(); return;
   }
+  if (b.dataset.block) { toast(b.dataset.block, 'warn'); return; }
   if (b.dataset.marchh) {
     if (!UI.cmdParty) UI.cmdParty = new Set();
     const h = b.dataset.marchh;
@@ -594,6 +609,7 @@ function onPanelClick(e) {
     return;
   }
   if (b.dataset.doer) {
+    if (b.dataset.block) { toast(b.dataset.block, 'warn'); return; }
     const r = doCommand(UI.cmd, b.dataset.doer, id);
     if (r.ok && r.event) {
       UI.cmd = null;
@@ -782,7 +798,17 @@ function applyBattle(res, party, markActed = true) {
 
 function launchAttack(cityId) {
   const srcs = neighbors(cityId).filter((n) => G.cities[n].owner === 'player' && G.cities[n].troops > 0 && freeIn(n).length).sort((a, b) => freeIn(b).length - freeIn(a).length || G.cities[b].troops - G.cities[a].troops);
-  if (!srcs.length) { toast('병력과 행동 가능한 장수가 함께 있는 이웃 도시가 없습니다.'); return; }
+  if (!srcs.length) {
+    const nbrs = neighbors(cityId).filter((n) => G.cities[n].owner === 'player');
+    let why = '이웃한 아군 도시가 없습니다';
+    if (nbrs.length) {
+      if (!nbrs.some((n) => freeIn(n).length)) why = '이웃 도시에 행동 가능한 장수가 없습니다';
+      else if (!nbrs.some((n) => G.cities[n].troops > 0)) why = '이웃 도시에 병력이 없습니다';
+      else why = '병력과 행동 가능한 장수가 함께 있는 이웃 도시가 없습니다';
+    }
+    toast(why, 'warn');
+    return;
+  }
   const go = (srcIdx) => {
     const src = srcs[srcIdx];
     const st = G.cities[src];

@@ -517,18 +517,46 @@ function scoutRumor(hid, cityId) {
 
 function canAfford(cost) { return G.gold >= (cost.gold || 0) && G.food >= (cost.food || 0); }
 
+/** 행동이 막힌 이유. 빈 문자열이면 가능 */
+function commandBlockReason(cmd, hid, cityId) {
+  const meta = COMMANDS[cmd];
+  if (!meta) return '알 수 없는 명령';
+  const h = G.heroes[hid], c = G.cities[cityId];
+  if (!h) return '장수 없음';
+  if (!c) return '도시 없음';
+  if (h.acted) return '이번 시간대 행동 완료';
+  if (h.travel) return '이동 중 · 도착 후 가능';
+  if (!cmdAllowed(cmd)) {
+    return meta.when === 'night' ? '야간에만 가능' : '오전·오후에만 가능';
+  }
+  if (cmd === 'rest' || cmd === 'scout' || cmd === 'move') return '';
+  const cost = commandCost(cmd, hid, cityId);
+  const gain = commandGain(cmd, hid, cityId);
+  if (cmd === 'draft') {
+    if ((c.loyal || 0) < 30) return `신망 ${c.loyal || 0}/30 · 위무 필요`;
+    if (gain <= 0) return '병력 포화(400)';
+  }
+  if (cmd === 'search' && G.roster.length >= 30) return '장수 최대(30명)';
+  if (meta.key && meta.key !== 'troops' && (c[meta.key] || 0) >= 100) return `${meta.label} 이미 최대(100)`;
+  if (!canAfford(cost)) {
+    const bits = [];
+    if ((cost.gold || 0) > G.gold) bits.push(`업전 ${cost.gold} 필요(보유 ${G.gold})`);
+    if ((cost.food || 0) > G.food) bits.push(`혼식 ${cost.food} 필요(보유 ${G.food})`);
+    return bits.join(' · ') || '자원 부족';
+  }
+  return '';
+}
+
 function doCommand(cmd, hid, cityId) {
   const c = G.cities[cityId], h = G.heroes[hid];
-  if (h.acted) return { ok: false, msg: '이번 턴에 이미 행동했습니다.' };
-  if (!cmdAllowed(cmd)) return { ok: false, msg: COMMANDS[cmd].when === 'night' ? `${COMMANDS[cmd].name} 명령은 야간에만 할 수 있습니다.` : `${COMMANDS[cmd].name} 명령은 오전·오후에만 할 수 있습니다. 백성도 밤에는 잡니다.` };
+  const block = commandBlockReason(cmd, hid, cityId);
+  if (block) return { ok: false, msg: block };
   if (cmd === 'rest') { h.hp = 1; h.acted = true; h.nightWork = false; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다. 체력이 가득 찼습니다.` }; }
   if (cmd === 'scout') { h.acted = true; markNightWork(hid); grantExp(hid, 5); const r = scoutRumor(hid, cityId); spendActionHp(hid, cmdHpCost('scout')); if (r && r.msg) r.msg += wearyNote(hid); return r; }
   const cost = commandCost(cmd, hid, cityId);
-  if (!canAfford(cost)) return { ok: false, msg: '업전이나 혼식이 모자랍니다.' };
   const gain = commandGain(cmd, hid, cityId);
   let msg = '';
   if (cmd === 'search') {
-    if (G.roster.length >= 30) return { ok: false, msg: '더는 장수를 거둘 수 없습니다 (최대 30명).' };
     G.gold -= cost.gold || 0;
     h.acted = true;
     markNightWork(hid);
@@ -543,8 +571,6 @@ function doCommand(cmd, hid, cityId) {
     return { ok: true, msg: `${heroName(hid)}이(가) 인재를 찾지 못했습니다.` + wearyNote(hid) };
   }
   if (cmd === 'draft') {
-    if (c.loyal < 30) return { ok: false, msg: '신망이 30 아래라 소환할 수 없습니다. 먼저 위무를 하세요.' };
-    if (gain <= 0) return { ok: false, msg: '이 도시는 병력이 가득 찼습니다 (최대 400).' };
     c.train = Math.round((c.train * c.troops + 20 * gain) / (c.troops + gain));
     c.troops += gain;
     c.loyal = Math.max(0, c.loyal - 4);
