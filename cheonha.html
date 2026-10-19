@@ -73,20 +73,37 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 .x { margin-left: auto; width: 32px; height: 32px; border: 1px solid var(--line); background: transparent; border-radius: 50%; cursor: pointer; color: var(--ash); font-size: 1.1rem; flex: none; }
 .x:hover { color: var(--bone); border-color: var(--gold); }
 
-/* 메달(영웅 초상) */
-.medal { --c: var(--soul); display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex: none; overflow: hidden; position: relative;
+/* 메달(영웅 초상) — 얼굴만 그림, 등급은 코드 배지 */
+.medal { --c: var(--soul); display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex: none; overflow: visible; position: relative;
   background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c) 32%, #141210), #0c0b0a 72%);
   border: 2px solid var(--c); box-shadow: 0 0 0 3px #0c0b0a, 0 0 0 4px color-mix(in srgb, var(--c) 45%, transparent), 0 0 18px color-mix(in srgb, var(--c) 30%, transparent); }
-.medal span { font-family: var(--f-glyph); font-weight: 900; color: var(--c); font-size: 1.25rem; line-height: 1; }
-.medal img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.medal .medal-glyph { font-family: var(--f-glyph); font-weight: 900; color: var(--c); font-size: 1.25rem; line-height: 1; z-index: 1; }
+.medal img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; border-radius: 50%; }
 .medal img.ok { opacity: 1; }
-.medal img.ok + span { display: none; }
+.medal img.ok + .medal-glyph { display: none; }
+.medal-grade { position: absolute; right: -4px; bottom: -4px; z-index: 2; min-width: 1.15em; height: 1.15em; padding: 0 3px;
+  display: inline-grid; place-items: center; border-radius: 999px; font-style: normal; font-family: var(--f-glyph); font-weight: 900; font-size: 0.62rem; line-height: 1;
+  color: #1a1408; background: var(--gold); border: 1.5px solid #0c0b0a; box-shadow: 0 1px 0 rgba(0,0,0,0.45); }
+.medal.grade-lord .medal-grade { background: #7fd3e6; color: #061018; }
+.medal.grade-legend .medal-grade { background: #d9ab4a; color: #1a1408; }
+.medal.grade-vet .medal-grade { background: #c4bba8; color: #1a1408; }
+.medal.grade-ace .medal-grade { background: #8fa8b8; color: #0c1014; }
+.medal.grade-rookie .medal-grade { background: #6a6558; color: #f0ead8; }
 .medal.sm { width: 26px; height: 26px; box-shadow: none; border-width: 1.5px; }
-.medal.sm span { font-size: 0.8rem; }
+.medal.sm .medal-glyph { font-size: 0.8rem; }
+.medal.sm .medal-grade { font-size: 0.5rem; right: -3px; bottom: -3px; min-width: 1em; height: 1em; padding: 0 2px; border-width: 1px; }
 .medal.lg { width: 64px; height: 64px; }
-.medal.lg span { font-size: 1.8rem; }
+.medal.lg .medal-glyph { font-size: 1.8rem; }
+.medal.lg .medal-grade { font-size: 0.78rem; min-width: 1.35em; height: 1.35em; right: -5px; bottom: -5px; }
 .medal.xl { width: 110px; height: 110px; }
-.medal.xl span { font-size: 3.2rem; }
+.medal.xl .medal-glyph { font-size: 3.2rem; }
+.medal.xl .medal-grade { font-size: 1rem; min-width: 1.5em; height: 1.5em; }
+.grade-chip { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; vertical-align: middle;
+  padding: 2px 8px 2px 8px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--ink-2); font-size: 0.78rem; }
+.grade-chip b { font-family: var(--f-display); font-weight: 400; color: var(--gold); }
+.grade-chip i { font-style: normal; color: #e0b24a; letter-spacing: 0.04em; font-size: 0.72rem; }
+.grade-chip.grade-lord b { color: var(--soul); }
+.grade-chip.grade-rookie b, .grade-chip.grade-ace b, .grade-chip.grade-vet b { color: var(--ash); }
 .chip { --c: var(--ash); display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--c); color: var(--c); font-family: var(--f-glyph); font-weight: 900; font-size: 0.72rem; flex: none; background: #0d0c0b; }
 .chip.violet, .seal.violet { --c: var(--violet); }
 .seal { --c: var(--gold); display: inline-grid; place-items: center; width: 48px; height: 48px; border: 2px solid var(--c); color: var(--c); font-family: var(--f-glyph); font-weight: 900; font-size: 1.4rem; border-radius: 6px; transform: rotate(-4deg); flex: none; background: color-mix(in srgb, var(--c) 10%, #0d0c0b); }
@@ -209,9 +226,11 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .hd-head p { margin: 0; }
 .bio { color: var(--ash); font-size: 0.9rem; margin: 12px 0; }
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.stats div { background: var(--ink-2); border: 1px solid var(--line); border-radius: 3px; padding: 6px 4px; text-align: center; display: flex; flex-direction: column; }
+.stats div { background: var(--ink-2); border: 1px solid var(--line); border-radius: 3px; padding: 8px 6px 7px; text-align: center; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .stats span { font-size: 0.72rem; color: var(--dim); }
 .stats b { font-family: var(--f-display); font-weight: 400; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.stats .stat-bar { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: #000; position: relative; overflow: hidden; }
+.stats .stat-bar::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--v, 40%); background: linear-gradient(90deg, color-mix(in srgb, var(--c, var(--gold)) 70%, #fff), var(--c, var(--gold))); }
 .skill { border: 1px solid var(--line); background: var(--paper); border-radius: 3px; padding: 10px 12px; margin-bottom: 8px; }
 .skill b { font-family: var(--f-display); font-weight: 400; font-size: 1.05rem; }
 .skill p { margin: 4px 0 0; font-size: 0.88rem; color: var(--ash); }
@@ -509,6 +528,9 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   .ci.mini { height: 64px; }
   .ci.mini .ci-glyph { font-size: 2.2rem; }
   .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grade-chip { margin-left: 4px; font-size: 0.72rem; padding: 2px 6px; }
+  .grade-chip i { font-size: 0.68rem; }
+  .medal.lg .medal-grade { font-size: 0.85rem; }
   .nations { grid-template-columns: repeat(2, 1fr); }
   .modal-card { padding: 16px; }
   .howto { font-size: 0.9rem; }
@@ -1082,6 +1104,18 @@ function portraitSrc(id) {
   if (!id || isOfficer(id)) return 'img/portraits/officer.jpg';
   return `img/portraits/${id}.jpg`;
 }
+/* 등급: 그림이 아니라 코드로만 표시한다 */
+function heroGrade(id) {
+  if (id === 'hero') return { id: 'lord', name: '맹주', short: '主', stars: 5 };
+  if (isOfficer(id)) {
+    const lv = (G.heroes[id] && G.heroes[id].level) || 1;
+    if (lv >= 8) return { id: 'vet', name: '노장', short: '老', stars: 3 };
+    if (lv >= 5) return { id: 'ace', name: '중견', short: '中', stars: 2 };
+    return { id: 'rookie', name: '신진', short: '新', stars: 1 };
+  }
+  return { id: 'legend', name: '명장', short: '名', stars: 4 };
+}
+function heroGradeStars(n) { return '★'.repeat(Math.max(0, Math.min(5, n | 0))); }
 function makeOfficer(kind, level, city, title) {
   const id = 'o' + (++G.offSeq);
   const r = () => Math.floor(Math.random() * 5);
@@ -4927,7 +4961,22 @@ function closeModal() {
 
 function medallion(id, size = '') {
   const d = HEROES[id];
-  return `<span class="medal ${size}" style="--c:${d.color}"><img src="${portraitSrc(id)}" alt="" width="256" height="256" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
+  const g = heroGrade(id);
+  return `<span class="medal ${size} grade-${g.id}" style="--c:${d.color}" title="${esc(g.name)}"><img src="${portraitSrc(id)}" alt="" width="256" height="256" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"><span class="medal-glyph">${esc(d.glyph)}</span><em class="medal-grade" aria-label="${esc(g.name)}">${esc(g.short)}</em></span>`;
+}
+function gradeChip(id) {
+  const g = heroGrade(id);
+  return `<span class="grade-chip grade-${g.id}" title="${esc(g.name)}"><b>${esc(g.name)}</b><i>${heroGradeStars(g.stars)}</i></span>`;
+}
+function statsBlock(id) {
+  const s = computeStats(id);
+  const rows = [
+    ['무력', s.str], ['통솔', s.lea], ['지력', s.int], ['민첩', s.agi], ['체력', s.vit],
+  ];
+  return `<div class="stats">${rows.map(([lab, v]) => {
+    const pct = Math.round(clamp((v / 28) * 100, 6, 100));
+    return `<div><span>${lab}</span><b>${v}</b><i class="stat-bar" style="--v:${pct}%"></i></div>`;
+  }).join('')}</div>`;
 }
 function itemLine(it) {
   const bits = [];
@@ -5301,14 +5350,12 @@ function heroDetail(id) {
   }
   return `<div class="hero-detail">
     <button class="back" data-act="heroback">← 영웅 목록</button>
-    <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title} · ${heroJob(id).name}</p><h3 class="h-display">${esc(heroName(id))}</h3>
+    <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title} · ${heroJob(id).name}</p><h3 class="h-display">${esc(heroName(id))} ${gradeChip(id)}</h3>
       <p class="muted">Lv ${h.level} · 경험 ${h.exp}/${needExp(h.level)}${isWeary(id) ? ' · 지침 (능력치 -20%)' : ''}${h.travel ? ` · ${CITIES[h.travel.from].name} → ${CITIES[h.travel.to].name} (${h.travel.left}턴)` : ''}</p><span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></div></div>
     <p class="bio">${esc(d.bio)}</p>
     ${jobBlock(id)}
-    <div class="stats">
-      <div><span>무력</span><b>${s.str}</b></div><div><span>통솔</span><b>${s.lea}</b></div><div><span>지력</span><b>${s.int}</b></div>
-      <div><span>민첩</span><b>${s.agi}</b></div><div><span>체력</span><b>${s.vit}</b></div>
-    </div>
+    <p class="label">능력치</p>
+    ${statsBlock(id)}
     <dl class="kv small">
       <div><dt>공격 / 방어</dt><dd>${s.atk} / ${s.def}</dd></div>
       <div><dt>최대 체력</dt><dd>${s.maxHp}</dd></div>

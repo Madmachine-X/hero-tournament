@@ -61,6 +61,18 @@ function portraitSrc(id) {
   if (!id || isOfficer(id)) return 'img/portraits/officer.jpg';
   return `img/portraits/${id}.jpg`;
 }
+/* 등급: 그림이 아니라 코드로만 표시한다 */
+function heroGrade(id) {
+  if (id === 'hero') return { id: 'lord', name: '맹주', short: '主', stars: 5 };
+  if (isOfficer(id)) {
+    const lv = (G.heroes[id] && G.heroes[id].level) || 1;
+    if (lv >= 8) return { id: 'vet', name: '노장', short: '老', stars: 3 };
+    if (lv >= 5) return { id: 'ace', name: '중견', short: '中', stars: 2 };
+    return { id: 'rookie', name: '신진', short: '新', stars: 1 };
+  }
+  return { id: 'legend', name: '명장', short: '名', stars: 4 };
+}
+function heroGradeStars(n) { return '★'.repeat(Math.max(0, Math.min(5, n | 0))); }
 function makeOfficer(kind, level, city, title) {
   const id = 'o' + (++G.offSeq);
   const r = () => Math.floor(Math.random() * 5);

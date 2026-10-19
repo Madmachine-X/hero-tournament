@@ -67,7 +67,22 @@ function closeModal() {
 
 function medallion(id, size = '') {
   const d = HEROES[id];
-  return `<span class="medal ${size}" style="--c:${d.color}"><img src="${portraitSrc(id)}" alt="" width="256" height="256" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"><span>${esc(d.glyph)}</span></span>`;
+  const g = heroGrade(id);
+  return `<span class="medal ${size} grade-${g.id}" style="--c:${d.color}" title="${esc(g.name)}"><img src="${portraitSrc(id)}" alt="" width="256" height="256" decoding="async" onload="this.classList.add('ok')" onerror="this.remove()"><span class="medal-glyph">${esc(d.glyph)}</span><em class="medal-grade" aria-label="${esc(g.name)}">${esc(g.short)}</em></span>`;
+}
+function gradeChip(id) {
+  const g = heroGrade(id);
+  return `<span class="grade-chip grade-${g.id}" title="${esc(g.name)}"><b>${esc(g.name)}</b><i>${heroGradeStars(g.stars)}</i></span>`;
+}
+function statsBlock(id) {
+  const s = computeStats(id);
+  const rows = [
+    ['무력', s.str], ['통솔', s.lea], ['지력', s.int], ['민첩', s.agi], ['체력', s.vit],
+  ];
+  return `<div class="stats">${rows.map(([lab, v]) => {
+    const pct = Math.round(clamp((v / 28) * 100, 6, 100));
+    return `<div><span>${lab}</span><b>${v}</b><i class="stat-bar" style="--v:${pct}%"></i></div>`;
+  }).join('')}</div>`;
 }
 function itemLine(it) {
   const bits = [];
@@ -441,14 +456,12 @@ function heroDetail(id) {
   }
   return `<div class="hero-detail">
     <button class="back" data-act="heroback">← 영웅 목록</button>
-    <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title} · ${heroJob(id).name}</p><h3 class="h-display">${esc(heroName(id))}</h3>
+    <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title} · ${heroJob(id).name}</p><h3 class="h-display">${esc(heroName(id))} ${gradeChip(id)}</h3>
       <p class="muted">Lv ${h.level} · 경험 ${h.exp}/${needExp(h.level)}${isWeary(id) ? ' · 지침 (능력치 -20%)' : ''}${h.travel ? ` · ${CITIES[h.travel.from].name} → ${CITIES[h.travel.to].name} (${h.travel.left}턴)` : ''}</p><span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></div></div>
     <p class="bio">${esc(d.bio)}</p>
     ${jobBlock(id)}
-    <div class="stats">
-      <div><span>무력</span><b>${s.str}</b></div><div><span>통솔</span><b>${s.lea}</b></div><div><span>지력</span><b>${s.int}</b></div>
-      <div><span>민첩</span><b>${s.agi}</b></div><div><span>체력</span><b>${s.vit}</b></div>
-    </div>
+    <p class="label">능력치</p>
+    ${statsBlock(id)}
     <dl class="kv small">
       <div><dt>공격 / 방어</dt><dd>${s.atk} / ${s.def}</dd></div>
       <div><dt>최대 체력</dt><dd>${s.maxHp}</dd></div>
