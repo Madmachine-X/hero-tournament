@@ -143,7 +143,7 @@ function dismissHero(id, asCancel) {
   delete G.heroes[id];
   if (G.officers && G.officers[id]) { delete G.officers[id]; delete HEROES[id]; }
   if (asCancel) return { ok: true, msg: `${who} 등용을 취소했습니다.` };
-  return { ok: true, msg: `${who}을(를) 해고했습니다.${city && CITIES[city] ? ` ${CITIES[city].name} 민심이 떨어졌습니다.` : ''}` };
+  return { ok: true, msg: `${who}을(를) 해고했습니다.${city && CITIES[city] ? ` ${CITIES[city].name} 신망이 떨어졌습니다.` : ''}` };
 }
 function namedCount() { return G.roster.filter((h) => !isOfficer(h)).length; }
 
@@ -508,7 +508,7 @@ function scoutRumor(hid, cityId) {
   if (luck > 35 && foes.length) {
     const f = pick(foes), st = G.cities[f];
     st.scouted = G.day;
-    return { ok: true, msg: `${who}의 정탐: ${CITIES[f].name} 병력 ${st.troops}, 훈련 ${st.train}, 성벽 ${st.wall}. 야간 기습을 노려볼 만합니다.` };
+    return { ok: true, msg: `${who}의 정탐: ${CITIES[f].name} 병력 ${st.troops}, 조련 ${st.train}, 결계 ${st.wall}. 야간 기습을 노려볼 만합니다.` };
   }
   const g = 30 + Math.floor(Math.random() * 50) + s.int;
   G.gold += g;
@@ -524,7 +524,7 @@ function doCommand(cmd, hid, cityId) {
   if (cmd === 'rest') { h.hp = 1; h.acted = true; h.nightWork = false; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다. 체력이 가득 찼습니다.` }; }
   if (cmd === 'scout') { h.acted = true; markNightWork(hid); grantExp(hid, 5); const r = scoutRumor(hid, cityId); spendActionHp(hid, cmdHpCost('scout')); if (r && r.msg) r.msg += wearyNote(hid); return r; }
   const cost = commandCost(cmd, hid, cityId);
-  if (!canAfford(cost)) return { ok: false, msg: '금이나 군량이 모자랍니다.' };
+  if (!canAfford(cost)) return { ok: false, msg: '업전이나 혼식이 모자랍니다.' };
   const gain = commandGain(cmd, hid, cityId);
   let msg = '';
   if (cmd === 'search') {
@@ -543,12 +543,12 @@ function doCommand(cmd, hid, cityId) {
     return { ok: true, msg: `${heroName(hid)}이(가) 인재를 찾지 못했습니다.` + wearyNote(hid) };
   }
   if (cmd === 'draft') {
-    if (c.loyal < 30) return { ok: false, msg: '민심이 30 아래라 징병할 수 없습니다. 먼저 선정을 하세요.' };
+    if (c.loyal < 30) return { ok: false, msg: '신망이 30 아래라 소환할 수 없습니다. 먼저 위무를 하세요.' };
     if (gain <= 0) return { ok: false, msg: '이 도시는 병력이 가득 찼습니다 (최대 400).' };
     c.train = Math.round((c.train * c.troops + 20 * gain) / (c.troops + gain));
     c.troops += gain;
     c.loyal = Math.max(0, c.loyal - 4);
-    msg = `${heroName(hid)}이(가) 병사 ${gain}명을 모았습니다. (병력 ${c.troops}, 민심 -4)`;
+    msg = `${heroName(hid)}이(가) 혼병 ${gain}명을 소환했습니다. (병력 ${c.troops}, 신망 -4)`;
   } else {
     const key = COMMANDS[cmd].key;
     const before = c[key];
