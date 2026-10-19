@@ -39,11 +39,16 @@ const Art = (() => {
     x.drawImage(im, 0, 0);
     const img = x.getImageData(0, 0, w, h);
     const d = img.data;
+    /* jpg 시트는 검정·짙은 회색 바탕. 너무 약하게 지우면 전장에서 캐릭터가 배경에 묻힌다. */
     const isBg = (p) => {
       const r = d[p], g = d[p + 1], b = d[p + 2];
       const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       const span = Math.max(r, g, b) - Math.min(r, g, b);
-      return lum < 38 && span < 30;
+      /* 마젠타/핑크 키 (jpg 압축 후 분홍빛 포함) */
+      if (r > 180 && b > 180 && g < 120 && r + b > g * 2.4) return true;
+      if (lum < 52 && span < 42) return true;
+      if (lum < 62 && span < 18) return true; /* 연기에 가까운 회색 가장자리 */
+      return false;
     };
     const seen = new Uint8Array(w * h);
     const stack = [];
@@ -115,16 +120,26 @@ const Art = (() => {
     const dir = Math.cos(u.face || 0) >= 0 ? 1 : -1;
     const moving = Math.hypot(u.vx || 0, u.vy || 0) > 8 && (u.stun || 0) <= 0;
     const bob = moving ? Math.abs(Math.sin(t * 13 + (u.bob || 0))) * 1.6 : Math.sin(t * 2.2 + (u.bob || 0)) * 0.5;
-    const sc = u.boss ? 1.14 : 1;
-    const hh = 70 * sc;
+    const sc = u.boss ? 1.18 : 1;
+    const hh = 92 * sc;
     const fr = frameOf(u, t);
     const sw = u.swing > 0 ? Math.sin((u.swing / 0.2) * Math.PI) * 4 : 0;
+    const stun = u.stun > 0 ? t * 20 : 0;
     c.save();
     c.translate(dir * sw, -bob);
-    blitSheet(c, spr, fr, u.x, u.y + 10, hh, dir, u.stun > 0 ? t * 20 : 0);
+    /* 어두운 시트도 전장에서 보이게: 밝은 실루엣 → 본체 */
+    c.save();
+    c.globalAlpha = 0.55;
+    c.filter = 'brightness(2.8) contrast(0.7)';
+    blitSheet(c, spr, fr, u.x + 1, u.y + 11, hh, dir, stun);
+    blitSheet(c, spr, fr, u.x - 1, u.y + 9, hh, dir, stun);
+    c.restore();
+    c.filter = 'contrast(1.28) brightness(1.38) saturate(1.2)';
+    blitSheet(c, spr, fr, u.x, u.y + 10, hh, dir, stun);
+    c.filter = 'none';
     if (u.flash > 0) {
       c.globalCompositeOperation = 'lighter';
-      c.globalAlpha = 0.45;
+      c.globalAlpha = 0.5;
       blitSheet(c, spr, fr, u.x, u.y + 10, hh, dir, 0);
       c.globalAlpha = 1;
       c.globalCompositeOperation = 'source-over';
