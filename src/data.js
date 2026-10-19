@@ -308,7 +308,7 @@ const COMMANDS = {
   comm:  { name: '명부', key: 'comm', label: '명부', cost: { gold: 50 }, hp: 0.18, desc: '명부 장부를 정리하고 업전을 징수한다. 매일 아침 들어오는 금(업전)이 는다.', stat: '지력', when: 'day' },
   wall:  { name: '결계', key: 'wall', label: '결계', cost: { gold: 60 }, hp: 0.18, desc: '성 대신 혼을 가두는 결계를 친다. 이 도시를 지킬 때 방어력이 오른다.', stat: '통솔·무력', when: 'day' },
   loyal: { name: '위무', key: 'loyal', label: '신망', cost: { food: 40 }, hp: 0.18, desc: '떠도는 혼에게 공양을 나눠 신망을 얻는다. 신망은 업전·소환에 영향을 준다.', stat: '지력', when: 'day' },
-  draft: { name: '소환', key: 'troops', label: '혼병', cost: { goldPer: 1.5 }, hp: 0.18, desc: '이름 없는 혼불을 불러 병사로 세운다. 신망이 조금 떨어지고 조련도가 묽어진다.', stat: '통솔', when: 'day' },
+  draft: { name: '소환', key: 'troops', label: '혼병', cost: { goldPer: 1 }, hp: 0.18, desc: '이름 없는 혼불을 불러 병사로 세운다. 신망 30 이상 필요. 신망이 조금 떨어지고 조련도가 묽어진다. 비용은 소환 인원×1 업전.', stat: '통솔', when: 'day' },
   train: { name: '조련', key: 'train', label: '조련', cost: { food: 20 }, hp: 0.18, desc: '혼병의 진형과 살기를 다듬는다. 조련이 높을수록 병사가 강하고 사기도 높다.', stat: '무력·통솔', when: 'day' },
   move:  { name: '병력 이동', key: null, label: '', cost: {}, hp: 0.15, desc: '장수와 병력을 다른 아군 도시로 보낸다. 장수는 여러 명을 고를 수 있고 먼 길은 칸 수만큼 턴을 쓴다. 병력은 이웃 도시로만 옮긴다. 길을 떠난 장수는 체력이 더 단다.', stat: '', when: 'any' },
   rest:  { name: '휴식', key: null, label: '', cost: {}, hp: 0, desc: '쉬며 체력을 모두 회복한다. 야간에 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉰다. 체력이 절반 이하면 능력치가 20% 떨어진다.', stat: '', when: 'night' },

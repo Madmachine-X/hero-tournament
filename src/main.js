@@ -292,7 +292,7 @@ function commandPicker(cityId) {
   }
   const rows = free.map((h) => {
     const s = computeStats(h);
-    let eff = '', cost = { gold: 0, food: 0 };
+    let eff = '', cost = { gold: 0, food: 0 }, ok = true, block = '';
     if (cmd === 'rest') eff = `체력 ${Math.round(G.heroes[h].hp * 100)}% → 100% · 지침 해제`;
     else if (cmd === 'scout') eff = '소문 듣기';
     else if (cmd === 'move') eff = '';
@@ -300,21 +300,33 @@ function commandPicker(cityId) {
     else {
       const g = commandGain(cmd, h, cityId);
       cost = commandCost(cmd, h, cityId);
-      eff = cmd === 'draft' ? `병사 +${g}` : `${meta.label} +${Math.min(g, 100 - st[meta.key])}`;
+      eff = cmd === 'draft' ? `혼병 +${g}` : `${meta.label} +${Math.min(g, 100 - (st[meta.key] || 0))}`;
     }
-    if (cmd !== 'rest' && cmd !== 'move') {
+    if (cmd === 'draft') {
+      const g = commandGain(cmd, h, cityId);
+      if (st.loyal < 30) { ok = false; block = `신망 ${st.loyal}/30 · 위무 필요`; }
+      else if (g <= 0) { ok = false; block = '병력 포화(400)'; }
+      else if (!canAfford(cost)) { ok = false; block = `업전 ${cost.gold} 필요 (보유 ${G.gold})`; }
+    } else if (cmd !== 'rest' && cmd !== 'move' && !canAfford(cost)) {
+      ok = false;
+      block = cost.gold && G.gold < cost.gold ? `업전 ${cost.gold} 필요` : cost.food && G.food < cost.food ? `혼식 ${cost.food} 필요` : '자원 부족';
+    }
+    if (cmd !== 'rest' && cmd !== 'move' && ok) {
       const drain = cmdHpCost(cmd);
       const next = Math.max(0.05, G.heroes[h].hp - drain);
       eff = (eff ? `${eff} · ` : '') + `체력 -${Math.round(drain * 100)}%`;
       if (next <= 0.5) eff += ' · 지침';
     }
     const costTxt = [cost.gold ? `업전 ${cost.gold}` : '', cost.food ? `혼식 ${cost.food}` : ''].filter(Boolean).join(' · ');
-    const ok = canAfford(cost);
     const key = cmd === 'search' || cmd === 'scout' ? s.int : cmd === 'draft' ? s.lea : cmd === 'agri' ? Math.round(s.int * 0.6 + s.lea * 0.4) : cmd === 'comm' || cmd === 'loyal' ? s.int : cmd === 'wall' ? Math.round(s.lea * 0.6 + s.str * 0.4) : cmd === 'train' ? Math.round((s.str + s.lea) / 2) : 0;
-    return { h, eff, costTxt, ok, key };
+    return { h, eff: block || eff, costTxt, ok, key, blocked: !!block };
   }).sort((a, b) => b.key - a.key);
+  const draftHint = cmd === 'draft'
+    ? `<p class="hint">소환은 신망 30 이상 · 업전(소환 인원×1)이 필요합니다. 지금 신망 ${st.loyal} · 업전 ${G.gold} · 병력 ${st.troops}/400.</p>`
+    : '';
   return `<div class="picker"><p class="label">${meta.name} <span class="muted small">${meta.desc}${meta.stat ? ` · ${meta.stat}이 높을수록 효과가 큽니다` : ''}</span></p>
-    ${rows.length ? rows.map((r) => `<button class="pick-hero cmdpick" data-doer="${r.h}" ${r.ok ? '' : 'disabled'}>${medallion(r.h)}<span><b>${esc(heroName(r.h))}</b><span class="muted small">${r.key ? `${meta.stat} ${r.key} · ` : ''}${r.costTxt || '비용 없음'}</span></span><em class="gold">${r.eff}</em></button>`).join('')
+    ${draftHint}
+    ${rows.length ? rows.map((r) => `<button class="pick-hero cmdpick ${r.blocked ? 'blocked' : ''}" data-doer="${r.h}" ${r.ok ? '' : 'disabled'}>${medallion(r.h)}<span><b>${esc(heroName(r.h))}</b><span class="muted small">${r.key ? `${meta.stat} ${r.key} · ` : ''}${r.costTxt || '비용 없음'}</span></span><em class="${r.blocked ? 'warn' : 'gold'}">${r.eff}</em></button>`).join('')
       : '<p class="muted small">이 도시에 이번 턴 행동할 수 있는 장수가 없습니다.</p>'}
     <button class="btn ghost sm" data-act="cmdcancel">닫기</button></div>`;
 }

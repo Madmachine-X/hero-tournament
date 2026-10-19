@@ -291,7 +291,8 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .cmd:hover { border-color: var(--gold); }
 .cmd.on { border-color: var(--gold); color: var(--gold); }
 .cmdpick em { margin-left: auto; font-style: normal; white-space: nowrap; }
-.cmdpick:disabled { opacity: 0.4; cursor: not-allowed; }
+.cmdpick em.warn { color: #f08b72; }
+.cmdpick:disabled { opacity: 0.55; cursor: not-allowed; }
 .move-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px dashed var(--line); }
 .move-row b { font-family: var(--f-display); font-weight: 400; min-width: 40px; }
 .move-row .muted { margin-right: auto; }
