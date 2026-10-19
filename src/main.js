@@ -454,11 +454,28 @@ function heroDetail(id) {
         return `<button class="pick ${it.unique ? 'uniq' : ''}" data-equip="${iid}"><b>${esc(it.name)}${n > 1 ? ` ×${n}` : ''}</b><span class="muted small">${itemKind(it)} · ${itemLine(it)}${it.owner ? ` · ${HEROES[it.owner].name} 전용 특수기` : ''}</span></button>`; }).join('') : !w1two ? '<p class="muted small">맞는 물건이 소지품에 없습니다.</p>' : ''}
       ${cur ? '<button class="btn ghost" data-act="unequip">벗기</button>' : ''}</div>`;
   }
+  const metaBits = [
+    `Lv ${h.level}`,
+    `경험 ${h.exp}/${needExp(h.level)}`,
+    isWeary(id) ? '지침 (능력치 -20%)' : '',
+    h.travel ? `${CITIES[h.travel.from].name} → ${CITIES[h.travel.to].name} (${h.travel.left}턴)` : '',
+  ].filter(Boolean).join(' · ');
   return `<div class="hero-detail">
     <button class="back" data-act="heroback">← 영웅 목록</button>
-    <div class="hd-head">${medallion(id, 'lg')}<div><p class="eyebrow">${d.era} · ${d.title} · ${heroJob(id).name}</p><h3 class="h-display">${esc(heroName(id))} ${gradeChip(id)}</h3>
-      <p class="muted">Lv ${h.level} · 경험 ${h.exp}/${needExp(h.level)}${isWeary(id) ? ' · 지침 (능력치 -20%)' : ''}${h.travel ? ` · ${CITIES[h.travel.from].name} → ${CITIES[h.travel.to].name} (${h.travel.left}턴)` : ''}</p><span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span></div></div>
-    <p class="bio">${esc(d.bio)}</p>
+    <div class="hd-banner" style="--c:${d.color}">
+      <img class="hd-bg" src="${portraitSrc(id)}" alt="" width="512" height="512" decoding="async" onerror="this.remove()">
+      <div class="hd-scrim" aria-hidden="true"></div>
+      <div class="hd-top">
+        <p class="eyebrow">${esc(d.era)} · ${esc(d.title)} · ${esc(heroJob(id).name)}</p>
+        ${gradeChip(id)}
+      </div>
+      <div class="hd-bottom">
+        <h3 class="h-display">${esc(heroName(id))}</h3>
+        <p class="hd-meta muted">${esc(metaBits)}</p>
+        <span class="bar"><i style="width:${Math.round(h.hp * 100)}%"></i></span>
+        <p class="bio">${esc(d.bio)}</p>
+      </div>
+    </div>
     ${jobBlock(id)}
     <p class="label">능력치</p>
     ${statsBlock(id)}

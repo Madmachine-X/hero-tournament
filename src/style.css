@@ -211,11 +211,32 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .hr-side em, em.gold { font-style: normal; color: var(--gold); }
 .hero-detail .back { background: none; border: 0; color: var(--ash); cursor: pointer; padding: 0; margin-bottom: 12px; }
 .hero-detail .back:hover { color: var(--bone); }
+/* 초상을 크게 배경으로 — 얼굴(가운데)은 비우고 위·아래에만 텍스트 */
+.hd-banner { --c: var(--soul); position: relative; isolation: isolate; overflow: hidden; border-radius: 6px;
+  min-height: min(58dvh, 420px); margin: 0 0 14px; border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line));
+  background: #0a0908; box-shadow: 0 0 0 1px #0c0b0a inset, 0 12px 28px rgba(0,0,0,0.35); }
+.hd-banner .hd-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 28%;
+  z-index: 0; filter: contrast(1.06) saturate(1.04); }
+.hd-banner .hd-scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8,7,6,0.82) 0%, rgba(8,7,6,0.28) 14%, transparent 28%, transparent 58%, rgba(8,7,6,0.45) 78%, rgba(8,7,6,0.92) 100%),
+    linear-gradient(90deg, rgba(8,7,6,0.55) 0%, transparent 18%, transparent 82%, rgba(8,7,6,0.35) 100%); }
+.hd-banner .hd-top { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  padding: 12px 14px 0; pointer-events: none; }
+.hd-banner .hd-top .eyebrow { margin: 0; max-width: 70%; text-shadow: 0 1px 8px rgba(0,0,0,0.85); }
+.hd-banner .hd-top .grade-chip { margin-left: 0; flex: none; pointer-events: auto; background: rgba(12,11,10,0.72); backdrop-filter: blur(4px); }
+.hd-banner .hd-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 0 14px 14px;
+  display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+.hd-banner .hd-bottom .h-display { font-size: clamp(1.55rem, 5.5vw, 2.05rem); margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,0.9); }
+.hd-banner .hd-meta { margin: 0; font-size: 0.82rem; text-shadow: 0 1px 6px rgba(0,0,0,0.8); }
+.hd-banner .hd-bottom .bar { margin-top: 2px; max-width: 220px; }
+.hd-banner .bio { margin: 6px 0 0; color: #ddd6c8; font-size: 0.88rem; line-height: 1.45; max-width: 36em;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.85); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.bio { color: var(--ash); font-size: 0.9rem; margin: 12px 0; }
 .hd-head { display: flex; gap: 16px; align-items: center; }
 .hd-head > div { flex: 1; min-width: 0; }
 .hd-head .h-display { font-size: 1.7rem; }
 .hd-head p { margin: 0; }
-.bio { color: var(--ash); font-size: 0.9rem; margin: 12px 0; }
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .stats div { background: var(--ink-2); border: 1px solid var(--line); border-radius: 3px; padding: 8px 6px 7px; text-align: center; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .stats span { font-size: 0.72rem; color: var(--dim); }
@@ -519,6 +540,11 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   .ci.mini { height: 64px; }
   .ci.mini .ci-glyph { font-size: 2.2rem; }
   .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hd-banner { min-height: min(52dvh, 360px); }
+  .hd-banner .hd-bg { object-position: center 22%; }
+  .hd-banner .hd-top { padding: 10px 10px 0; }
+  .hd-banner .hd-bottom { padding: 0 10px 12px; }
+  .hd-banner .bio { -webkit-line-clamp: 4; font-size: 0.84rem; }
   .grade-chip { margin-left: 4px; font-size: 0.72rem; padding: 2px 6px; }
   .grade-chip i { font-size: 0.68rem; }
   .medal.lg .medal-grade { font-size: 0.85rem; }
