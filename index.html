@@ -791,11 +791,11 @@ const HEROES = {
                 stats: { str: 13, lea: 12, int: 13, agi: 14, vit: 14 }, job: 'sword', unit: 'melee', skill: 'honbul', hidden: null, weapon: null,
                 bio: '저승 명부에 이름이 없는 혼. 바리공주가 명부 틈에 자리를 만들어 대회에 세웠다.' },
   gangrim:    { name: '강림도령', title: '저승차사', glyph: '冥', color: '#c4bba8', era: '저승 설화',
-                stats: { str: 15, lea: 10, int: 13, agi: 16, vit: 13 }, job: 'sword', unit: 'melee', skill: 'orat', hidden: 'jeokpae', weapon: 'u_gangrim',
+                stats: { str: 15, lea: 10, int: 13, agi: 16, vit: 13 }, job: 'sage', unit: 'melee', skill: 'orat', hidden: 'jeokpae', weapon: 'u_gangrim',
                 bio: '염라대왕의 명으로 산 자를 데려가는 저승차사. 투덜대지만 한번 맡은 일은 끝까지 한다.' },
-  eulji:      { name: '을지문덕', title: '살수의 지장', glyph: '乙', color: '#5aa7d6', era: '고구려',
-                stats: { str: 11, lea: 18, int: 20, agi: 12, vit: 12 }, job: 'sage', unit: 'archer', skill: 'cheongcheon', hidden: 'salsu', weapon: 'u_eulji',
-                bio: '고구려의 장수. 수나라 대군을 깊이 끌어들여 지치게 한 뒤 살수에서 무너뜨렸다.' },
+  eulji:      { name: '을지문덕', title: '살수의 장군', glyph: '乙', color: '#5aa7d6', era: '고구려',
+                stats: { str: 16, lea: 19, int: 18, agi: 12, vit: 15 }, job: 'spear', unit: 'melee', skill: 'cheongcheon', hidden: 'salsu', weapon: 'u_eulji',
+                bio: '고구려의 장군. 수나라 대군을 깊이 끌어들여 지치게 한 뒤 살수에서 무너뜨렸다.' },
   sunsin:     { name: '이순신', title: '바다의 수호자', glyph: '舜', color: '#e8603f', era: '조선',
                 stats: { str: 16, lea: 20, int: 17, agi: 12, vit: 16 }, job: 'bow', unit: 'archer', skill: 'hakik', hidden: 'geobuk', weapon: 'u_sunsin',
                 bio: '조선 수군의 통제사. 남은 배 열두 척으로 바다를 지켜 냈다.' },
@@ -821,7 +821,7 @@ const HEROES = {
                 stats: { str: 8, lea: 10, int: 20, agi: 12, vit: 13 }, job: 'sage', unit: 'melee', skill: 'donguibogam', hidden: 'guguep', weapon: 'u_heojun',
                 bio: '조선의 의원. 동의보감을 지어 백성의 병을 다스렸다.' },
   gyebaek:    { name: '계백', title: '황산벌의 결사', glyph: '階', color: '#aeb4bc', era: '백제',
-                stats: { str: 18, lea: 17, int: 11, agi: 13, vit: 19 }, job: 'sword', unit: 'melee', skill: 'gyeolsa', hidden: 'ochon', weapon: 'u_gyebaek',
+                stats: { str: 18, lea: 17, int: 11, agi: 13, vit: 19 }, job: 'spear', unit: 'melee', skill: 'gyeolsa', hidden: 'ochon', weapon: 'u_gyebaek',
                 bio: '백제의 장군. 오천 결사대로 황산벌에서 신라의 대군에 맞섰다.' },
   gildong:    { name: '홍길동', title: '활빈당 두령', glyph: '洪', color: '#3fc6a8', era: '고전소설',
                 stats: { str: 15, lea: 10, int: 15, agi: 22, vit: 12 }, job: 'sword', unit: 'melee', skill: 'chukji', hidden: 'bunsin', weapon: 'u_gildong',
@@ -829,22 +829,28 @@ const HEROES = {
   cheok:      { name: '척준경', title: '철령의 검성', glyph: '拓', color: '#d4a574', era: '고려',
                 stats: { str: 20, lea: 14, int: 11, agi: 18, vit: 16 }, job: 'sword', unit: 'melee', skill: 'danae', hidden: 'ildo', weapon: 'u_cheok',
                 bio: '고려의 명장. 절벽을 타오르듯 적진에 뛰어들어, 칼 하나로 여진을 무너뜨렸다는 전설이 있다.' },
+  jumong:     { name: '주몽', title: '부여를 떠난 궁수', glyph: '朱', color: '#5ec4a0', era: '고구려',
+                stats: { str: 15, lea: 16, int: 14, agi: 20, vit: 14 }, job: 'bow', unit: 'archer', skill: 'jucheon', hidden: 'goguryeo', weapon: 'u_jumong',
+                bio: '주몽왕. 활로 강을 가르고 졸본에 나라를 세웠다는 건국 설화의 영웅.' },
+  ondal:      { name: '온달', title: '평강의 부마', glyph: '溫', color: '#c4785a', era: '고구려',
+                stats: { str: 18, lea: 15, int: 11, agi: 16, vit: 17 }, job: 'horse', unit: 'cavalry', skill: 'madol', hidden: 'pyeonggang', weapon: 'u_ondal',
+                bio: '바보 온달이라 불렸으나 평강공주의 가르침으로 고구려의 기마 명장이 되었다.' },
 };
-const HERO_ORDER = ['hero','gangrim','eulji','sunsin','sejong','gwanggaeto','gamchan','yusin','gaesomun','gyeonhwon','heojun','gyebaek','gildong','cheok'];
+const HERO_ORDER = ['hero','gangrim','eulji','sunsin','sejong','gwanggaeto','gamchan','yusin','gaesomun','gyeonhwon','heojun','gyebaek','gildong','cheok','jumong','ondal'];
 
 /* 병과: 1차(기본) 공유 → 2차부터 영웅별 고유 → 3차 고유(Lv8+고유무기). 장수용 공유 2차는 shared. */
 const JOBS = {
   /* —— 1차: 공유 기본 —— */
   sword: { name: '검병', tier: 0, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'],
-           next: ['hongeom', 'chasa', 'hwarangdo', 'odosa', 'gyeolgeom', 'uiryeok', 'geomseong', 'geomsa'] },
+           next: ['hongeom', 'hwarangdo', 'odosa', 'uiryeok', 'geomseong', 'geomsa'] },
   bow: { name: '활병', tier: 0, unit: 'archer', wtypes: ['bow'],
-         next: ['sugunjang', 'gwijugung', 'gungsa'] },
+         next: ['sugunjang', 'gwijugung', 'jumungung', 'gungsa'] },
   spear: { name: '창병', tier: 0, unit: 'melee', wtypes: ['spear', 'glaive'],
-           next: ['maenghojang', 'changjang'] },
+           next: ['maenghojang', 'salsujang', 'gyeolchang', 'changjang'] },
   horse: { name: '기마병', tier: 0, unit: 'cavalry', wtypes: ['spear', 'sword', 'glaive'],
-           next: ['gaemajang', 'gimajang'] },
+           next: ['gaemajang', 'ondalgi', 'gimajang'] },
   sage: { name: '책사', tier: 0, unit: 'archer', wtypes: ['fan', 'brush', 'talisman'],
-          next: ['salsuryak', 'munchi', 'uiwon', 'gunsa'] },
+          next: ['chasa', 'munchi', 'uiwon', 'gunsa'] },
 
   /* —— 2차: 영웅 고유 —— */
   hongeom: { name: '혼검사', tier: 1, needLv: 5, unique: true, hero: 'hero', unit: 'melee',
@@ -855,8 +861,8 @@ const JOBS = {
                wtypes: ['sword', 'dagger', 'shield'], next: ['hwarang'], atk: 1.1 },
   odosa: { name: '오도사', tier: 1, needLv: 5, unique: true, hero: 'gaesomun', unit: 'melee',
            wtypes: ['sword', 'dagger', 'shield'], next: ['daemak'], atk: 1.1 },
-  gyeolgeom: { name: '결사검', tier: 1, needLv: 5, unique: true, hero: 'gyebaek', unit: 'melee',
-               wtypes: ['sword', 'dagger', 'shield'], next: ['gyeoljang'], atk: 1.08, def: 1.06 },
+  gyeolchang: { name: '결사창', tier: 1, needLv: 5, unique: true, hero: 'gyebaek', unit: 'melee',
+                wtypes: ['spear', 'glaive', 'shield', 'sword'], next: ['gyeoljang'], atk: 1.08, def: 1.06 },
   uiryeok: { name: '활빈객', tier: 1, needLv: 5, unique: true, hero: 'gildong', unit: 'melee',
              wtypes: ['sword', 'dagger', 'shield'], next: ['hwalbin'], atk: 1.06, spd: 1.08 },
   geomseong: { name: '검성', tier: 1, needLv: 5, unique: true, hero: 'cheok', unit: 'melee',
@@ -865,12 +871,16 @@ const JOBS = {
                wtypes: ['bow', 'sword'], next: ['sudo'], atk: 1.06, def: 1.06 },
   gwijugung: { name: '귀주궁', tier: 1, needLv: 5, unique: true, hero: 'gamchan', unit: 'archer',
                wtypes: ['bow'], next: ['nakjang'], atk: 1.1 },
+  jumungung: { name: '주몽궁', tier: 1, needLv: 5, unique: true, hero: 'jumong', unit: 'archer',
+               wtypes: ['bow'], next: ['goguryeowang'], atk: 1.1, spd: 1.05 },
   maenghojang: { name: '맹호장', tier: 1, needLv: 5, unique: true, hero: 'gyeonhwon', unit: 'melee',
                  wtypes: ['spear', 'glaive'], next: ['baekho'], atk: 1.1 },
+  salsujang: { name: '살수장군', tier: 1, needLv: 5, unique: true, hero: 'eulji', unit: 'melee',
+               wtypes: ['spear', 'glaive', 'fan'], next: ['salsuji'], atk: 1.08 },
   gaemajang: { name: '개마장', tier: 1, needLv: 5, unique: true, hero: 'gwanggaeto', unit: 'cavalry',
                wtypes: ['spear', 'sword', 'glaive'], next: ['taewang'], atk: 1.08, spd: 1.08 },
-  salsuryak: { name: '살수지략', tier: 1, needLv: 5, unique: true, hero: 'eulji', unit: 'archer',
-               wtypes: ['fan', 'brush', 'talisman'], next: ['salsuji'], atk: 1.06 },
+  ondalgi: { name: '온달기', tier: 1, needLv: 5, unique: true, hero: 'ondal', unit: 'cavalry',
+             wtypes: ['spear', 'sword', 'glaive'], next: ['pyeongjang'], atk: 1.1, spd: 1.06 },
   munchi: { name: '문치', tier: 1, needLv: 5, unique: true, hero: 'sejong', unit: 'archer',
             wtypes: ['fan', 'brush', 'talisman'], next: ['seongun'], atk: 1.05 },
   uiwon: { name: '의원', tier: 1, needLv: 5, unique: true, hero: 'heojun', unit: 'melee',
@@ -886,18 +896,20 @@ const JOBS = {
   /* —— 3차: 고유 최종 —— */
   honju: { name: '명부맹주', tier: 2, unique: true, hero: 'hero', needLv: 8, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'], atk: 1.12 },
   jeokcha: { name: '저승차사', tier: 2, unique: true, hero: 'gangrim', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'talisman', 'dagger'], atk: 1.12 },
-  salsuji: { name: '살수지장', tier: 2, unique: true, hero: 'eulji', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['fan', 'brush'], atk: 1.1 },
+  salsuji: { name: '살수지장', tier: 2, unique: true, hero: 'eulji', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['spear', 'glaive', 'fan'], atk: 1.12 },
   sudo: { name: '삼도통제사', tier: 2, unique: true, hero: 'sunsin', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['bow', 'sword'], atk: 1.12, def: 1.08 },
   seongun: { name: '성군', tier: 2, unique: true, hero: 'sejong', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['brush', 'fan'], atk: 1.08 },
   taewang: { name: '영락태왕', tier: 2, unique: true, hero: 'gwanggaeto', needLv: 8, needWeapon: true, unit: 'cavalry', wtypes: ['spear', 'glaive', 'sword'], atk: 1.15, spd: 1.1 },
   nakjang: { name: '낙성장군', tier: 2, unique: true, hero: 'gamchan', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['bow'], atk: 1.12 },
+  goguryeowang: { name: '고구려왕', tier: 2, unique: true, hero: 'jumong', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['bow'], atk: 1.14, spd: 1.08 },
   hwarang: { name: '화랑검성', tier: 2, unique: true, hero: 'yusin', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'shield'], atk: 1.14 },
   daemak: { name: '대막리지', tier: 2, unique: true, hero: 'gaesomun', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'dagger'], atk: 1.14 },
   baekho: { name: '백호왕', tier: 2, unique: true, hero: 'gyeonhwon', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['glaive', 'spear'], atk: 1.16 },
   sinui: { name: '신의', tier: 2, unique: true, hero: 'heojun', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['dagger', 'brush', 'talisman'] },
-  gyeoljang: { name: '결사장', tier: 2, unique: true, hero: 'gyebaek', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'shield'], atk: 1.12, def: 1.12 },
+  gyeoljang: { name: '결사장', tier: 2, unique: true, hero: 'gyebaek', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['spear', 'shield', 'sword'], atk: 1.12, def: 1.12 },
   hwalbin: { name: '활빈두령', tier: 2, unique: true, hero: 'gildong', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['dagger', 'sword'], atk: 1.1, spd: 1.12 },
   swordmaster: { name: '소드마스터', tier: 2, unique: true, hero: 'cheok', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'dagger'], atk: 1.18, spd: 1.12 },
+  pyeongjang: { name: '평강장군', tier: 2, unique: true, hero: 'ondal', needLv: 8, needWeapon: true, unit: 'cavalry', wtypes: ['spear', 'glaive', 'sword'], atk: 1.14, spd: 1.1 },
 };
 
 /* 스킬. ai: aoe(무리), target(단일), heal, buff, global(전장), self */
@@ -929,6 +941,10 @@ const SKILLS = {
   bunsin:      { name: '분신술', cd: 28, ai: 'global', desc: '분신 넷을 만들어 10초 동안 함께 싸운다.' },
   danae:       { name: '단애돌격', cd: 7, ai: 'target', desc: '절벽을 타오르듯 적장에게 뛰어올라 강하게 벤다.' },
   ildo:        { name: '일검파천', cd: 28, ai: 'aoe', desc: '검성 일섬으로 앞을 다섯 번 가른다. 맞은 적은 잠시 기절한다.' },
+  jucheon:     { name: '주천 화살', cd: 7, ai: 'target', desc: '주천의 강물을 가르듯 강한 화살 한 발을 적장에게 꽂는다.' },
+  goguryeo:    { name: '건국의 활시위', cd: 30, ai: 'global', desc: '일곱 발의 건국 화살이 하늘에서 떨어져 적진을 뚫는다.' },
+  madol:       { name: '마돌격', cd: 8, ai: 'target', desc: '말을 몰아 적진을 뚫고 지나며 앞길을 쓸어버린다.' },
+  pyeonggang:  { name: '평강의 깃발', cd: 30, ai: 'global', desc: '평강공주의 깃발을 올리며 기병 혼령을 불러 전장을 가로지른다.' },
   gyeokryeo:   { name: '격려', cd: 12, ai: 'buff', desc: '주변 병사를 격려해 사기를 올리고 잠시 공격력을 높인다.' },
   /* 적 장수 전용 */
   ghostfire:   { name: '귀화', cd: 9, ai: 'target', desc: '' },
@@ -974,6 +990,10 @@ const ITEMS = {
                 desc: '철령 벼랑을 오를 때 찼던 칼. 날이 얇고 빠르다.' },
   u_gangrim:  { name: '강림의 적패지', slot: 'weapon', wtype: 'talisman', hands: 1, int: 12, atk: 8, owner: 'gangrim', unique: true,
                 desc: '염라대왕이 내린 붉은 패. 이름을 적으면 그 혼을 데려간다.' },
+  u_jumong:   { name: '주몽의 신궁', slot: 'weapon', wtype: 'bow', hands: 2, atk: 26, agi: 6, owner: 'jumong', unique: true,
+                desc: '주천을 가르고 졸본으로 향하던 그 활.' },
+  u_ondal:    { name: '온달의 기창', slot: 'weapon', wtype: 'spear', hands: 2, atk: 28, hp: 40, owner: 'ondal', unique: true,
+                desc: '평강공주가 손질해 주었다는 기병의 창.' },
 
   a_dopo:     { name: '무명 도포', slot: 'armor', def: 3, int: 4, price: 80, desc: '무명천으로 지은 도포.' },
   a_chalgap:  { name: '찰갑', slot: 'armor', def: 10, price: 200, desc: '작은 쇳조각을 엮은 갑옷.' },
@@ -1027,8 +1047,8 @@ const WTYPE_LABEL = { sword: '검', dagger: '단도', spear: '창', glaive: '월
 /* 영웅이 합류할 때 들고 오는 장비 */
 const HERO_GEAR = {
   hero:       { w1: 'w_hwando', armor: 'a_dopo' },
-  gangrim:    { w1: 'w_hwando', armor: 'a_dopo' },
-  eulji:      { w1: 'w_hakuseon', armor: 'a_dopo' },
+  gangrim:    { w1: 'w_hakuseon', armor: 'a_dopo' },
+  eulji:      { w1: 'w_jangchang', armor: 'a_chalgap' },
   sunsin:     { w1: 'w_gakgung', armor: 'a_chalgap' },
   sejong:     { w1: 'w_hakuseon', armor: 'a_dopo' },
   gwanggaeto: { w1: 'u_gwang', armor: 'a_chalgap' },
@@ -1037,9 +1057,11 @@ const HERO_GEAR = {
   gaesomun:   { w1: 'u_gaesomun', w2: 'w_hwando', armor: 'a_chalgap' },
   gyeonhwon:  { w1: 'u_gyeonhwon', armor: 'a_chalgap' },
   heojun:     { w1: 'u_heojun', armor: 'a_dopo' },
-  gyebaek:    { w1: 'u_gyebaek', w2: 'w_deungpae', armor: 'a_chalgap' },
+  gyebaek:    { w1: 'w_jangchang', w2: 'w_deungpae', armor: 'a_chalgap' },
   gildong:    { w1: 'u_gildong', w2: 'w_bisu', armor: 'a_dopo' },
   cheok:      { w1: 'w_ungeom', armor: 'a_chalgap' },
+  jumong:     { w1: 'w_gakgung', armor: 'a_dopo' },
+  ondal:      { w1: 'w_jangchang', armor: 'a_chalgap' },
 };
 
 /* 도시 (현재 지도 좌표) */
@@ -1092,13 +1114,17 @@ const PLACES = {
   hansan:      { name: '한산도', lon: 128.62, lat: 34.62, region: 'tongyeong',
                  hint: '오전 바다 안개 속 한산도 바위에 칼 한 자루가 꽂혀 있다. 주인만 뽑을 수 있다.', events: ['ev_sunsin_sword'] },
   salsu:       { name: '살수', lon: 125.62, lat: 39.62, region: 'pyongyang',
-                 hint: '살수 강가에 깃부채 하나가 떠밀려 와 있다. 그 계책을 아는 장수를 기다린다.', events: ['ev_eulji_fan'] },
+                 hint: '살수 강가에 깃부채 하나가 떠밀려 와 있다. 살수의 장군을 기다린다.', events: ['ev_eulji_fan'] },
   anhak:       { name: '안학궁 터', lon: 126.10, lat: 39.30, region: 'pyongyang',
                  hint: '이른 오전마다 무너진 궁터에 말발굽 소리가 울린다. 고구려의 대막리지가 함께라면 태왕이 응답할지 모른다.', events: ['ev_gwang'] },
   cheomseong:  { name: '첨성대', lon: 128.92, lat: 35.55, region: 'gyeongju',
                  hint: '별을 보던 대 아래 무언가 묻혀 있다. 별과 인연이 있는 장수가 밤에 찾아야 한다.', events: ['ev_gamchan_bow'] },
   cheollyeong: { name: '철령', lon: 127.80, lat: 39.40, region: 'hamheung',
                  hint: '북녘 절벽길. 칼 하나로 벼랑을 오른 고려의 검성이 아직 서 있다는 소문이 있다.', events: ['ev_cheok', 'ev_cheok_sword'] },
+  jolbon:      { name: '졸본 터', lon: 126.55, lat: 40.15, region: 'hamheung',
+                 hint: '새벽녘 졸본 강가에 활시위 소리가 들린다. 건국의 궁수를 찾는다는 소문이다.', events: ['ev_jumong', 'ev_jumong_bow'] },
+  achasan:     { name: '아차산', lon: 127.10, lat: 37.55, region: 'seoul',
+                 hint: '아차산 능선에 말발굽 소리가 울린다. 바보라 불리던 기마 장수가 깃발을 기다린다.', events: ['ev_ondal', 'ev_ondal_spear'] },
 };
 
 const SPEAKERS = {
@@ -1393,20 +1419,20 @@ function nextJobHints(hid) {
     return { id: jid, name: n.name, unique: !!n.unique, shared: !!n.shared, ready: availablePromos(hid).includes(jid), need: jobNeedHint(hid, jid) };
   });
 }
-/* 옛 공유 2차 → 영웅별 고유 2차 */
+/* 옛 직업·병과 → 현재 고유 트리 */
 const JOB_MIGRATE = {
   hero: { geomsa: 'hongeom' },
-  gangrim: { geomsa: 'chasa' },
+  gangrim: { sword: 'sage', geomsa: 'chasa' },
   yusin: { geomsa: 'hwarangdo' },
   gaesomun: { geomsa: 'odosa' },
-  gyebaek: { geomsa: 'gyeolgeom' },
+  gyebaek: { sword: 'spear', geomsa: 'gyeolchang', gyeolgeom: 'gyeolchang' },
   gildong: { geomsa: 'uiryeok' },
   cheok: { geomsa: 'geomseong' },
   sunsin: { gungsa: 'sugunjang', sugun: 'sugunjang' },
   gamchan: { gungsa: 'gwijugung' },
   gyeonhwon: { changjang: 'maenghojang' },
   gwanggaeto: { gimajang: 'gaemajang' },
-  eulji: { gunsa: 'salsuryak' },
+  eulji: { sage: 'spear', gunsa: 'salsujang', salsuryak: 'salsujang' },
   sejong: { gunsa: 'munchi' },
   heojun: {},
 };
@@ -1418,6 +1444,8 @@ function ensureJobs() {
     if (!JOBS[h.job]) h.job = (HEROES[id] && HEROES[id].job) || 'sword';
     const map = JOB_MIGRATE[id];
     if (map && map[h.job]) h.job = map[h.job];
+    const base = HEROES[id] && HEROES[id].job;
+    if (base && JOBS[h.job] && JOBS[h.job].tier === 0 && h.job !== base) h.job = base;
     stripMisfitWeapons(id);
   });
 }
@@ -2100,13 +2128,65 @@ const EVENTS = {
   },
   ev_eulji_fan: {
     scoutBy: 'eulji',
-    need: () => G.roster.includes('eulji') ? null : '부채가 물살에 흔들린다. 그 계책을 아는 자가 필요하다.',
+    need: () => G.roster.includes('eulji') ? null : '부채가 물살에 흔들린다. 살수의 장군이 필요하다.',
     lines: [
       { who: 'narr', text: '살수 강가에 깃부채 하나가 떠밀려 와 있다.' },
-      { who: 'eulji', text: '신묘한 계책은 하늘의 이치를 꿰뚫었고, 기묘한 셈은 땅의 이치를 다했노라. 우중문에게 보낸 시가 생각나는군.' },
-      { who: 'eulji', text: '이 부채를 들면 강물도 내 편이 된다.' },
+      { who: 'eulji', text: '신묘한 계책은 하늘의 이치를 꿰뚫었고, 기묘한 셈은 땅의 이치를 다했노라. 장군의 깃발 아래 강물도 아군이다.' },
+      { who: 'eulji', text: '이 부채를 들면 살수의 물살이 다시 열린다.' },
     ],
-    reward: () => { giveItem('u_eulji'); return '「을지문덕의 깃부채」를 얻었습니다.'; },
+    reward: () => { giveItem('u_eulji'); return '「을지문덕의 깃부채」를 얻었습니다. 을지문덕에게 장착하면 「살수대첩」이 열립니다.'; },
+  },
+  ev_jumong: {
+    need: () => {
+      if (G.roster.filter((h) => !isOfficer(h)).length < 3) return '강가에 활시위만 울린다. (이름난 영웅 3명 이상)';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '졸본 터. 새벽 안개 속에 활을 멘 사내가 서 있다.' },
+      { who: 'jumong', text: '나는 주몽이다. 부여를 떠나 강을 가르고 나라를 세웠다.' },
+      { who: 'jumong', text: '네 깃발이 북쪽을 향한다면, 내 화살이 앞장을 서지.' },
+    ],
+    reward: () => { addHero('jumong'); return '주몽이 합류했습니다.'; },
+  },
+  ev_jumong_bow: {
+    scoutBy: 'jumong',
+    after: 'ev_jumong',
+    need: () => {
+      if (!G.roster.includes('jumong')) return '강가만 고요하다.';
+      if (G.phase !== 0) return '주몽이 말한다. "아침 물결이 밝을 때 다시 오라."';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '아침 졸본. 물가 바위에 신궁 한 자루가 기대어 있다.' },
+      { who: 'jumong', text: '이 활로 주천을 갈랐다. 다시 손에 오니 건국의 길이 열린다.' },
+    ],
+    reward: () => { giveItem('u_jumong'); return '「주몽의 신궁」을 얻었습니다. 주몽에게 장착하면 「건국의 활시위」가 열립니다.'; },
+  },
+  ev_ondal: {
+    need: () => {
+      if (ownedCities().length < 2) return '능선에 말발굽 소리만 울린다. (아군 도시 2곳 이상)';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '아차산. 투박한 갑옷의 기마병이 깃발을 바라본다.' },
+      { who: 'ondal', text: '사람들이 나를 바보 온달이라 불렀다. 평강이 나를 가르쳤다.' },
+      { who: 'ondal', text: '말이 닿는 곳까지, 내가 길을 열겠다.' },
+    ],
+    reward: () => { addHero('ondal'); return '온달이 합류했습니다.'; },
+  },
+  ev_ondal_spear: {
+    scoutBy: 'ondal',
+    after: 'ev_ondal',
+    need: () => {
+      if (!G.roster.includes('ondal')) return '능선은 바람만 분다.';
+      if (G.phase === NIGHT) return '온달이 말한다. "밤은 말에게 독하다. 낮에 다시 오라."';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '아차산 기슭. 평강이 손질했다는 기창이 꽂혀 있다.' },
+      { who: 'ondal', text: '이 창을 들면 평강의 깃발이 다시 선다.' },
+    ],
+    reward: () => { giveItem('u_ondal'); return '「온달의 기창」을 얻었습니다. 온달에게 장착하면 「평강의 깃발」이 열립니다.'; },
   },
   ev_gwang: {
     need: () => {
@@ -2179,9 +2259,9 @@ const Art = (() => {
   const SKILL_FX = {
     honbul: 'orbs', ghostfire: 'orbs', orat: 'rope', jeokpae: 'seal',
     cheongcheon: 'wave', salsu: 'wave', tide: 'wave',
-    hakik: 'arrows', hwasal: 'arrows', geobuk: 'turtle',
+    hakik: 'arrows', hwasal: 'arrows', jucheon: 'arrows', goguryeo: 'arrows', geobuk: 'turtle',
     hunmin: 'hangul', banpo: 'hangul',
-    gaema: 'cavalry', musa: 'cavalry',
+    gaema: 'cavalry', musa: 'cavalry', madol: 'cavalry', pyeonggang: 'cavalry',
     nakseong: 'meteor', geomgi: 'slash', samhan: 'slash', chukji: 'slash',
     odo: 'swords', bigeom: 'swords',
     maengho: 'tiger', baekho: 'tiger',
@@ -3062,7 +3142,7 @@ const Battle = (() => {
   function enemyTemper(u) {
     const src = (u.leader && u.leader.alive) ? u.leader : u;
     const id = src.hid;
-    if (['gaesomun', 'gyeonhwon', 'gyebaek', 'gwanggaeto', 'gildong', 'cheok'].includes(id)) return 'rush';
+    if (['gaesomun', 'gyeonhwon', 'gyebaek', 'gwanggaeto', 'gildong', 'cheok', 'ondal', 'eulji'].includes(id)) return 'rush';
     if (['yusin', 'sunsin'].includes(id)) return 'form';
     if (['eulji', 'sejong', 'heojun', 'gamchan'].includes(id)) return 'hold';
     const fac = src.faction || (B.cfg.enemy && B.cfg.enemy.faction);
@@ -3702,6 +3782,7 @@ const Battle = (() => {
       ring(u.x, u.y, 8, 50, 0.35, u.color, 3);
       return true;
     },
+    madol(u) { return SK.gaema(u); },
 
     musa(u) {
       const dir = u.team === 0 ? 1 : -1;
@@ -3742,6 +3823,16 @@ const Battle = (() => {
       });
       return true;
     },
+    jucheon(u) {
+      const t = nearestFoe(u, 520);
+      if (!t) return false;
+      const tx = t.x, ty = t.y;
+      arcArrow(u.x, u.y - 10, (u.x + tx) / 2, Math.min(u.y, ty) - 80, tx, ty, 0, 0.28, u.color, () => {
+        hit(u, t, u.sp * 1.55, { knock: 40, kx: tx, ky: ty });
+        spark(tx, ty, '#9ff0d0', 6);
+      });
+      return true;
+    },
 
     nakseong(u) {
       const fs = foes(u).filter((o) => o.kind !== 'summon');
@@ -3775,6 +3866,8 @@ const Battle = (() => {
       });
       return true;
     },
+    goguryeo(u) { return SK.nakseong(u); },
+    pyeonggang(u) { return SK.musa(u); },
 
     geomgi(u) {
       const t = nearestFoe(u, 440);
@@ -6345,7 +6438,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차부터는 영웅마다 고유 직업이 됩니다. 레벨 8과 고유 무기로 3차 최종 직업에 오릅니다. 예: 척준경 검병→검성→소드마스터.</li>
+      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차부터는 영웅마다 고유 직업이 됩니다. 레벨 8과 고유 무기로 3차 최종 직업에 오릅니다. 예: 척준경 검병→검성→소드마스터. 을지문덕은 창병(장군) 계열입니다.</li>
       <li>인재 탐색은 장수가 늘수록 발견 확률이 떨어집니다. 적 세력도 낮에 인재를 찾습니다.</li>
       <li>숨겨진 장소는 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,

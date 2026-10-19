@@ -282,20 +282,20 @@ function nextJobHints(hid) {
     return { id: jid, name: n.name, unique: !!n.unique, shared: !!n.shared, ready: availablePromos(hid).includes(jid), need: jobNeedHint(hid, jid) };
   });
 }
-/* 옛 공유 2차 → 영웅별 고유 2차 */
+/* 옛 직업·병과 → 현재 고유 트리 */
 const JOB_MIGRATE = {
   hero: { geomsa: 'hongeom' },
-  gangrim: { geomsa: 'chasa' },
+  gangrim: { sword: 'sage', geomsa: 'chasa' },
   yusin: { geomsa: 'hwarangdo' },
   gaesomun: { geomsa: 'odosa' },
-  gyebaek: { geomsa: 'gyeolgeom' },
+  gyebaek: { sword: 'spear', geomsa: 'gyeolchang', gyeolgeom: 'gyeolchang' },
   gildong: { geomsa: 'uiryeok' },
   cheok: { geomsa: 'geomseong' },
   sunsin: { gungsa: 'sugunjang', sugun: 'sugunjang' },
   gamchan: { gungsa: 'gwijugung' },
   gyeonhwon: { changjang: 'maenghojang' },
   gwanggaeto: { gimajang: 'gaemajang' },
-  eulji: { gunsa: 'salsuryak' },
+  eulji: { sage: 'spear', gunsa: 'salsujang', salsuryak: 'salsujang' },
   sejong: { gunsa: 'munchi' },
   heojun: {},
 };
@@ -307,6 +307,8 @@ function ensureJobs() {
     if (!JOBS[h.job]) h.job = (HEROES[id] && HEROES[id].job) || 'sword';
     const map = JOB_MIGRATE[id];
     if (map && map[h.job]) h.job = map[h.job];
+    const base = HEROES[id] && HEROES[id].job;
+    if (base && JOBS[h.job] && JOBS[h.job].tier === 0 && h.job !== base) h.job = base;
     stripMisfitWeapons(id);
   });
 }

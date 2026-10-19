@@ -322,13 +322,65 @@ const EVENTS = {
   },
   ev_eulji_fan: {
     scoutBy: 'eulji',
-    need: () => G.roster.includes('eulji') ? null : '부채가 물살에 흔들린다. 그 계책을 아는 자가 필요하다.',
+    need: () => G.roster.includes('eulji') ? null : '부채가 물살에 흔들린다. 살수의 장군이 필요하다.',
     lines: [
       { who: 'narr', text: '살수 강가에 깃부채 하나가 떠밀려 와 있다.' },
-      { who: 'eulji', text: '신묘한 계책은 하늘의 이치를 꿰뚫었고, 기묘한 셈은 땅의 이치를 다했노라. 우중문에게 보낸 시가 생각나는군.' },
-      { who: 'eulji', text: '이 부채를 들면 강물도 내 편이 된다.' },
+      { who: 'eulji', text: '신묘한 계책은 하늘의 이치를 꿰뚫었고, 기묘한 셈은 땅의 이치를 다했노라. 장군의 깃발 아래 강물도 아군이다.' },
+      { who: 'eulji', text: '이 부채를 들면 살수의 물살이 다시 열린다.' },
     ],
-    reward: () => { giveItem('u_eulji'); return '「을지문덕의 깃부채」를 얻었습니다.'; },
+    reward: () => { giveItem('u_eulji'); return '「을지문덕의 깃부채」를 얻었습니다. 을지문덕에게 장착하면 「살수대첩」이 열립니다.'; },
+  },
+  ev_jumong: {
+    need: () => {
+      if (G.roster.filter((h) => !isOfficer(h)).length < 3) return '강가에 활시위만 울린다. (이름난 영웅 3명 이상)';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '졸본 터. 새벽 안개 속에 활을 멘 사내가 서 있다.' },
+      { who: 'jumong', text: '나는 주몽이다. 부여를 떠나 강을 가르고 나라를 세웠다.' },
+      { who: 'jumong', text: '네 깃발이 북쪽을 향한다면, 내 화살이 앞장을 서지.' },
+    ],
+    reward: () => { addHero('jumong'); return '주몽이 합류했습니다.'; },
+  },
+  ev_jumong_bow: {
+    scoutBy: 'jumong',
+    after: 'ev_jumong',
+    need: () => {
+      if (!G.roster.includes('jumong')) return '강가만 고요하다.';
+      if (G.phase !== 0) return '주몽이 말한다. "아침 물결이 밝을 때 다시 오라."';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '아침 졸본. 물가 바위에 신궁 한 자루가 기대어 있다.' },
+      { who: 'jumong', text: '이 활로 주천을 갈랐다. 다시 손에 오니 건국의 길이 열린다.' },
+    ],
+    reward: () => { giveItem('u_jumong'); return '「주몽의 신궁」을 얻었습니다. 주몽에게 장착하면 「건국의 활시위」가 열립니다.'; },
+  },
+  ev_ondal: {
+    need: () => {
+      if (ownedCities().length < 2) return '능선에 말발굽 소리만 울린다. (아군 도시 2곳 이상)';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '아차산. 투박한 갑옷의 기마병이 깃발을 바라본다.' },
+      { who: 'ondal', text: '사람들이 나를 바보 온달이라 불렀다. 평강이 나를 가르쳤다.' },
+      { who: 'ondal', text: '말이 닿는 곳까지, 내가 길을 열겠다.' },
+    ],
+    reward: () => { addHero('ondal'); return '온달이 합류했습니다.'; },
+  },
+  ev_ondal_spear: {
+    scoutBy: 'ondal',
+    after: 'ev_ondal',
+    need: () => {
+      if (!G.roster.includes('ondal')) return '능선은 바람만 분다.';
+      if (G.phase === NIGHT) return '온달이 말한다. "밤은 말에게 독하다. 낮에 다시 오라."';
+      return null;
+    },
+    lines: [
+      { who: 'narr', text: '아차산 기슭. 평강이 손질했다는 기창이 꽂혀 있다.' },
+      { who: 'ondal', text: '이 창을 들면 평강의 깃발이 다시 선다.' },
+    ],
+    reward: () => { giveItem('u_ondal'); return '「온달의 기창」을 얻었습니다. 온달에게 장착하면 「평강의 깃발」이 열립니다.'; },
   },
   ev_gwang: {
     need: () => {

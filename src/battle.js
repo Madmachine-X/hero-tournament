@@ -659,7 +659,7 @@ const Battle = (() => {
   function enemyTemper(u) {
     const src = (u.leader && u.leader.alive) ? u.leader : u;
     const id = src.hid;
-    if (['gaesomun', 'gyeonhwon', 'gyebaek', 'gwanggaeto', 'gildong', 'cheok'].includes(id)) return 'rush';
+    if (['gaesomun', 'gyeonhwon', 'gyebaek', 'gwanggaeto', 'gildong', 'cheok', 'ondal', 'eulji'].includes(id)) return 'rush';
     if (['yusin', 'sunsin'].includes(id)) return 'form';
     if (['eulji', 'sejong', 'heojun', 'gamchan'].includes(id)) return 'hold';
     const fac = src.faction || (B.cfg.enemy && B.cfg.enemy.faction);
@@ -1299,6 +1299,7 @@ const Battle = (() => {
       ring(u.x, u.y, 8, 50, 0.35, u.color, 3);
       return true;
     },
+    madol(u) { return SK.gaema(u); },
 
     musa(u) {
       const dir = u.team === 0 ? 1 : -1;
@@ -1339,6 +1340,16 @@ const Battle = (() => {
       });
       return true;
     },
+    jucheon(u) {
+      const t = nearestFoe(u, 520);
+      if (!t) return false;
+      const tx = t.x, ty = t.y;
+      arcArrow(u.x, u.y - 10, (u.x + tx) / 2, Math.min(u.y, ty) - 80, tx, ty, 0, 0.28, u.color, () => {
+        hit(u, t, u.sp * 1.55, { knock: 40, kx: tx, ky: ty });
+        spark(tx, ty, '#9ff0d0', 6);
+      });
+      return true;
+    },
 
     nakseong(u) {
       const fs = foes(u).filter((o) => o.kind !== 'summon');
@@ -1372,6 +1383,8 @@ const Battle = (() => {
       });
       return true;
     },
+    goguryeo(u) { return SK.nakseong(u); },
+    pyeonggang(u) { return SK.musa(u); },
 
     geomgi(u) {
       const t = nearestFoe(u, 440);

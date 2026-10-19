@@ -12,9 +12,9 @@ const Art = (() => {
   const SKILL_FX = {
     honbul: 'orbs', ghostfire: 'orbs', orat: 'rope', jeokpae: 'seal',
     cheongcheon: 'wave', salsu: 'wave', tide: 'wave',
-    hakik: 'arrows', hwasal: 'arrows', geobuk: 'turtle',
+    hakik: 'arrows', hwasal: 'arrows', jucheon: 'arrows', goguryeo: 'arrows', geobuk: 'turtle',
     hunmin: 'hangul', banpo: 'hangul',
-    gaema: 'cavalry', musa: 'cavalry',
+    gaema: 'cavalry', musa: 'cavalry', madol: 'cavalry', pyeonggang: 'cavalry',
     nakseong: 'meteor', geomgi: 'slash', samhan: 'slash', chukji: 'slash',
     odo: 'swords', bigeom: 'swords',
     maengho: 'tiger', baekho: 'tiger',
