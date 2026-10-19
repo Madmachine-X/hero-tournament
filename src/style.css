@@ -125,7 +125,6 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 [data-scene="wait"] .story-bg { background: #0c0c0e; }
 [data-scene="mirror"] .story-bg { background: radial-gradient(circle at 50% 40%, rgba(185,166,232,0.2), rgba(20,18,30,0.8) 40%, #07070a 70%); }
 [data-scene="seoul"] .story-bg { background: radial-gradient(ellipse at 50% 60%, rgba(150,140,120,0.14), transparent 60%), linear-gradient(180deg, #121212, #0a0a0b); }
-[data-scene="karaoke"] .story-bg { background: #07080a; }
 
 /* ---------- 전략 지도 ---------- */
 #scr-map { display: grid; grid-template-rows: auto 1fr; background: var(--ink); }

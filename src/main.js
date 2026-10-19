@@ -31,12 +31,11 @@ const STORY_ART = {
   wait: 'img/opening/wait.jpg',
   mirror: 'img/opening/mirror.jpg',
   seoul: 'img/opening/seoul.jpg',
-  karaoke: 'img/opening/karaoke.jpg',
 };
 function setScene(name) {
   const s = $('#scr-story');
   s.dataset.scene = name;
-  $('#story-mark').textContent = { river: '黃泉', hall: '十王廳', wait: '待合', mirror: '業鏡臺', seoul: '漢陽', karaoke: '歌房' }[name] || '';
+  $('#story-mark').textContent = { river: '黃泉', hall: '十王廳', wait: '待合', mirror: '業鏡臺', seoul: '漢陽' }[name] || '';
   const img = $('#story-art');
   if (!img) return;
   const src = STORY_ART[name];
@@ -1150,10 +1149,7 @@ function startNew() {
         setScene('mirror');
         Dialog.play(SCRIPT.p3b, () => {
           setScene('seoul');
-          Dialog.play(SCRIPT.p4, () => {
-            setScene('karaoke');
-            Dialog.play(SCRIPT.p4b, tutorialBattle);
-          });
+          Dialog.play(SCRIPT.p4, tutorialBattle);
         });
       }));
     });
@@ -1162,7 +1158,7 @@ function startNew() {
 
 function tutorialBattle() {
   startBattle({
-    title: '거울 세계 · 노래방', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', forms: { hero: heroFormOf('hero'), gangrim: heroFormOf('gangrim') }, party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
+    title: '거울 세계 · 서울', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', forms: { hero: heroFormOf('hero'), gangrim: heroFormOf('gangrim') }, party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
     enemy: { heroes: [{ generic: true, name: '무명 십부장', level: 2, faction: 'ghost', skill: 'ghostfire' }], soldiers: 14, level: 1, faction: 'ghost' },
     onEnd: (res) => {
       applyBattle(res, ['hero', 'gangrim'], false);

@@ -134,7 +134,6 @@ kbd { font-family: var(--f-body); font-size: 0.8em; padding: 1px 6px; border: 1p
 [data-scene="wait"] .story-bg { background: #0c0c0e; }
 [data-scene="mirror"] .story-bg { background: radial-gradient(circle at 50% 40%, rgba(185,166,232,0.2), rgba(20,18,30,0.8) 40%, #07070a 70%); }
 [data-scene="seoul"] .story-bg { background: radial-gradient(ellipse at 50% 60%, rgba(150,140,120,0.14), transparent 60%), linear-gradient(180deg, #121212, #0a0a0b); }
-[data-scene="karaoke"] .story-bg { background: #07080a; }
 
 /* ---------- 전략 지도 ---------- */
 #scr-map { display: grid; grid-template-rows: auto 1fr; background: var(--ink); }
@@ -1820,13 +1819,9 @@ const SCRIPT = {
     { who: 'gangrim', text: '…공주님 부탁이면야. 귀찮게 됐군.' },
   ],
   p4: [
-    { who: 'narr', text: '거울 세계 · 서울. 하늘이 갈라지고, 둘은 한강 위로 떨어진다.' },
-    { who: 'gangrim', text: '온다. 무명혼이다. 이름 잃은 것들은 살아 있는 척하는 걸 미워하지.' },
-    { who: 'gangrim', text: '네가 앞장서라. 나는 등 뒤를 맡지.' },
-  ],
-  p4b: [
-    { who: 'narr', text: '착지한 곳은 간판이 꺼진 노래방이다. 마이크가 창처럼 서 있고, 반주기가 혼을 삼킨다.' },
-    { who: 'gangrim', text: '탬버린이다. 방패 대신 들어. 후렴이 나오기 전에 친다.' },
+    { who: 'narr', text: '거울 세계 · 서울. 하늘이 갈라지고, 둘은 한강 위 잿빛 거리로 떨어진다.' },
+    { who: 'gangrim', text: '착지했다. …저쪽이다. 무명혼이다.' },
+    { who: 'gangrim', text: '이름 잃은 것들은 살아 있는 척하는 걸 미워하지. 네가 앞장서라. 나는 등 뒤를 맡지.' },
   ],
   eulji: [
     { who: 'narr', text: '싸움이 끝나자, 무너진 산성 위에서 느린 박수 소리가 들린다.' },
@@ -4892,12 +4887,11 @@ const STORY_ART = {
   wait: 'img/opening/wait.jpg',
   mirror: 'img/opening/mirror.jpg',
   seoul: 'img/opening/seoul.jpg',
-  karaoke: 'img/opening/karaoke.jpg',
 };
 function setScene(name) {
   const s = $('#scr-story');
   s.dataset.scene = name;
-  $('#story-mark').textContent = { river: '黃泉', hall: '十王廳', wait: '待合', mirror: '業鏡臺', seoul: '漢陽', karaoke: '歌房' }[name] || '';
+  $('#story-mark').textContent = { river: '黃泉', hall: '十王廳', wait: '待合', mirror: '業鏡臺', seoul: '漢陽' }[name] || '';
   const img = $('#story-art');
   if (!img) return;
   const src = STORY_ART[name];
@@ -6011,10 +6005,7 @@ function startNew() {
         setScene('mirror');
         Dialog.play(SCRIPT.p3b, () => {
           setScene('seoul');
-          Dialog.play(SCRIPT.p4, () => {
-            setScene('karaoke');
-            Dialog.play(SCRIPT.p4b, tutorialBattle);
-          });
+          Dialog.play(SCRIPT.p4, tutorialBattle);
         });
       }));
     });
@@ -6023,7 +6014,7 @@ function startNew() {
 
 function tutorialBattle() {
   startBattle({
-    title: '거울 세계 · 노래방', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', forms: { hero: heroFormOf('hero'), gangrim: heroFormOf('gangrim') }, party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
+    title: '거울 세계 · 서울', theme: 'ruin', type: 'tutorial', tutorial: true, formation: 'eorin', forms: { hero: heroFormOf('hero'), gangrim: heroFormOf('gangrim') }, party: ['hero', 'gangrim'], playerSoldiers: 40, playerTrain: 45,
     enemy: { heroes: [{ generic: true, name: '무명 십부장', level: 2, faction: 'ghost', skill: 'ghostfire' }], soldiers: 14, level: 1, faction: 'ghost' },
     onEnd: (res) => {
       applyBattle(res, ['hero', 'gangrim'], false);
