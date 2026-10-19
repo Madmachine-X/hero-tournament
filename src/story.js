@@ -162,7 +162,7 @@ const SCRIPT = {
   ],
   p3b: [
     { who: 'bari', text: '한국. 좋아. 그 땅의 영웅들이 너를 기다릴 거야.' },
-    { who: 'bari', text: '강림, 이 아이를 지켜 줘.' },
+    { who: 'bari', text: '차사, 이 아이를 지켜 줘.' },
     { who: 'gangrim', text: '…공주님 부탁이면야. 귀찮게 됐군.' },
   ],
   p4: [
@@ -194,7 +194,7 @@ const SCRIPT = {
     { who: 'nameless', text: '우리는… 이름이… 있었다…' },
     { who: 'hero', text: '…' },
     { who: 'gangrim', text: '신경 쓰지 마라. 저것들은 원래 그렇게 중얼거린다.' },
-    { who: 'narr', text: '망령이 지키던 자리에서 백년 산삼을 얻었다. 강림이 경포 호수 쪽을 오래 바라본다.' },
+    { who: 'narr', text: '망령이 지키던 자리에서 백년 산삼을 얻었다. 저승차사가 경포 호수 쪽을 오래 바라본다.' },
   ],
   tongyeong: [
     { who: 'narr', text: '통영 앞바다의 망령 수군이 가라앉는다. 안개 너머로 배 한 척이 다가온다.' },
@@ -269,7 +269,7 @@ const EVENTS = {
       { who: 'gangrim', text: '…이건 내 거다. 염라께서 처음 내게 내리신 적패지.' },
       { who: 'gangrim', text: '이름을 적으면 그 혼을 데려간다. 조심해서 쓰지.' },
     ],
-    reward: () => { giveItem('u_gangrim'); return '「강림의 적패지」를 얻었습니다. 강림도령에게 장착하세요.'; },
+    reward: () => { giveItem('u_gangrim'); return '「적패지」를 얻었습니다. 저승차사에게 장착하세요.'; },
   },
   ev_gyebaek: {
     need: () => G.roster.includes('yusin') ? null : '"나는 신라의 장수를 기다린다." 계백이 등을 돌린다.',

@@ -790,9 +790,9 @@ const HEROES = {
   hero:       { name: '무명', title: '이름 없는 혼', glyph: '魂', color: '#7fd3e6', era: '저승',
                 stats: { str: 13, lea: 12, int: 13, agi: 14, vit: 14 }, job: 'sword', unit: 'melee', skill: 'honbul', hidden: null, weapon: null,
                 bio: '저승 명부에 이름이 없는 혼. 바리공주가 명부 틈에 자리를 만들어 대회에 세웠다.' },
-  gangrim:    { name: '강림도령', title: '저승차사', glyph: '冥', color: '#c4bba8', era: '저승 설화',
+  gangrim:    { name: '저승차사', title: '염라의 사자', glyph: '冥', color: '#c4bba8', era: '저승 설화',
                 stats: { str: 15, lea: 10, int: 13, agi: 16, vit: 13 }, job: 'sage', unit: 'melee', skill: 'orat', hidden: 'jeokpae', weapon: 'u_gangrim',
-                bio: '염라대왕의 명으로 산 자를 데려가는 저승차사. 투덜대지만 한번 맡은 일은 끝까지 한다.' },
+                bio: '염라대왕의 명으로 산 자를 데려가는 차사. 투덜대지만 한번 맡은 일은 끝까지 한다.' },
   eulji:      { name: '을지문덕', title: '살수의 장군', glyph: '乙', color: '#5aa7d6', era: '고구려',
                 stats: { str: 16, lea: 19, int: 18, agi: 12, vit: 15 }, job: 'spear', unit: 'melee', skill: 'cheongcheon', hidden: 'salsu', weapon: 'u_eulji',
                 bio: '고구려의 장군. 수나라 대군을 깊이 끌어들여 지치게 한 뒤 살수에서 무너뜨렸다.' },
@@ -895,7 +895,7 @@ const JOBS = {
 
   /* —— 3차: 고유 최종 —— */
   honju: { name: '명부맹주', tier: 2, unique: true, hero: 'hero', needLv: 8, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'], atk: 1.12 },
-  jeokcha: { name: '저승차사', tier: 2, unique: true, hero: 'gangrim', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'talisman', 'dagger'], atk: 1.12 },
+  jeokcha: { name: '적패차사', tier: 2, unique: true, hero: 'gangrim', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'talisman', 'dagger'], atk: 1.12 },
   salsuji: { name: '살수지장', tier: 2, unique: true, hero: 'eulji', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['spear', 'glaive', 'fan'], atk: 1.12 },
   sudo: { name: '삼도통제사', tier: 2, unique: true, hero: 'sunsin', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['bow', 'sword'], atk: 1.12, def: 1.08 },
   seongun: { name: '성군', tier: 2, unique: true, hero: 'sejong', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['brush', 'fan'], atk: 1.08 },
@@ -1038,7 +1038,7 @@ const ITEMS = {
                 desc: '활빈당 두령의 단도. 손잡이에 부적이 감겨 있다.' },
   u_cheok:    { name: '철령의 환도', slot: 'weapon', wtype: 'sword', hands: 1, atk: 26, agi: 6, owner: 'cheok', unique: true,
                 desc: '철령 벼랑을 오를 때 찼던 칼. 날이 얇고 빠르다.' },
-  u_gangrim:  { name: '강림의 적패지', slot: 'weapon', wtype: 'talisman', hands: 1, int: 12, atk: 8, owner: 'gangrim', unique: true,
+  u_gangrim:  { name: '적패지', slot: 'weapon', wtype: 'talisman', hands: 1, int: 12, atk: 8, owner: 'gangrim', unique: true,
                 desc: '염라대왕이 내린 붉은 패. 이름을 적으면 그 혼을 데려간다.' },
   u_jumong:   { name: '주몽의 신궁', slot: 'weapon', wtype: 'bow', hands: 2, atk: 26, agi: 6, owner: 'jumong', unique: true,
                 desc: '주천을 가르고 졸본으로 향하던 그 활.' },
@@ -2050,7 +2050,7 @@ const SCRIPT = {
   ],
   p3b: [
     { who: 'bari', text: '한국. 좋아. 그 땅의 영웅들이 너를 기다릴 거야.' },
-    { who: 'bari', text: '강림, 이 아이를 지켜 줘.' },
+    { who: 'bari', text: '차사, 이 아이를 지켜 줘.' },
     { who: 'gangrim', text: '…공주님 부탁이면야. 귀찮게 됐군.' },
   ],
   p4: [
@@ -2082,7 +2082,7 @@ const SCRIPT = {
     { who: 'nameless', text: '우리는… 이름이… 있었다…' },
     { who: 'hero', text: '…' },
     { who: 'gangrim', text: '신경 쓰지 마라. 저것들은 원래 그렇게 중얼거린다.' },
-    { who: 'narr', text: '망령이 지키던 자리에서 백년 산삼을 얻었다. 강림이 경포 호수 쪽을 오래 바라본다.' },
+    { who: 'narr', text: '망령이 지키던 자리에서 백년 산삼을 얻었다. 저승차사가 경포 호수 쪽을 오래 바라본다.' },
   ],
   tongyeong: [
     { who: 'narr', text: '통영 앞바다의 망령 수군이 가라앉는다. 안개 너머로 배 한 척이 다가온다.' },
@@ -2157,7 +2157,7 @@ const EVENTS = {
       { who: 'gangrim', text: '…이건 내 거다. 염라께서 처음 내게 내리신 적패지.' },
       { who: 'gangrim', text: '이름을 적으면 그 혼을 데려간다. 조심해서 쓰지.' },
     ],
-    reward: () => { giveItem('u_gangrim'); return '「강림의 적패지」를 얻었습니다. 강림도령에게 장착하세요.'; },
+    reward: () => { giveItem('u_gangrim'); return '「적패지」를 얻었습니다. 저승차사에게 장착하세요.'; },
   },
   ev_gyebaek: {
     need: () => G.roster.includes('yusin') ? null : '"나는 신라의 장수를 기다린다." 계백이 등을 돌린다.',
