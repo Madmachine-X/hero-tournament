@@ -832,31 +832,58 @@ const HEROES = {
 };
 const HERO_ORDER = ['hero','gangrim','eulji','sunsin','sejong','gwanggaeto','gamchan','yusin','gaesomun','gyeonhwon','heojun','gyebaek','gildong','cheok'];
 
-/* 병과: 기본 → 공유 특수 → 고유 특수(레벨+고유 무기). 무기는 직업 wtypes만 찬다. */
+/* 병과: 1차(기본) 공유 → 2차부터 영웅별 고유 → 3차 고유(Lv8+고유무기). 장수용 공유 2차는 shared. */
 const JOBS = {
-  sword: { name: '검병', tier: 0, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'], next: ['geomsa', 'chasa', 'geomseong'] },
-  bow: { name: '활병', tier: 0, unit: 'archer', wtypes: ['bow'], next: ['gungsa', 'sugun'] },
-  spear: { name: '창병', tier: 0, unit: 'melee', wtypes: ['spear', 'glaive'], next: ['changjang'] },
-  horse: { name: '기마병', tier: 0, unit: 'cavalry', wtypes: ['spear', 'sword', 'glaive'], next: ['gimajang'] },
-  sage: { name: '책사', tier: 0, unit: 'archer', wtypes: ['fan', 'brush', 'talisman'], next: ['gunsa', 'uiwon'] },
-  geomsa: { name: '검사', tier: 1, needLv: 5, shared: true, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'],
-            heroes: ['hero', 'yusin', 'gaesomun', 'gyebaek', 'gildong'], next: ['honju', 'hwarang', 'daemak', 'gyeoljang', 'hwalbin'], atk: 1.08 },
-  geomseong: { name: '검성', tier: 1, needLv: 5, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'],
-               heroes: ['cheok'], next: ['swordmaster'], atk: 1.12, spd: 1.06 },
-  chasa: { name: '차사', tier: 1, needLv: 5, unit: 'melee', wtypes: ['sword', 'dagger', 'talisman'],
-           heroes: ['gangrim'], next: ['jeokcha'], atk: 1.06 },
-  gungsa: { name: '궁사', tier: 1, needLv: 5, shared: true, unit: 'archer', wtypes: ['bow'],
-            heroes: ['gamchan', 'sunsin'], next: ['nakjang', 'sudo'], atk: 1.08 },
-  sugun: { name: '수군', tier: 1, needLv: 5, unit: 'archer', wtypes: ['bow', 'sword'],
-           heroes: ['sunsin'], next: ['sudo'], atk: 1.06, def: 1.06 },
-  changjang: { name: '창장', tier: 1, needLv: 5, shared: true, unit: 'melee', wtypes: ['spear', 'glaive'],
-               heroes: ['gyeonhwon'], next: ['baekho'], atk: 1.1 },
-  gimajang: { name: '기마장', tier: 1, needLv: 5, shared: true, unit: 'cavalry', wtypes: ['spear', 'sword', 'glaive'],
-              heroes: ['gwanggaeto'], next: ['taewang'], atk: 1.08, spd: 1.08 },
-  gunsa: { name: '군사', tier: 1, needLv: 5, shared: true, unit: 'archer', wtypes: ['fan', 'brush', 'talisman'],
-           heroes: ['eulji', 'sejong'], next: ['salsuji', 'seongun'], atk: 1.05 },
-  uiwon: { name: '의원', tier: 1, needLv: 5, shared: true, unit: 'melee', wtypes: ['dagger', 'talisman', 'brush'],
-           heroes: ['heojun'], next: ['sinui'] },
+  /* —— 1차: 공유 기본 —— */
+  sword: { name: '검병', tier: 0, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'],
+           next: ['hongeom', 'chasa', 'hwarangdo', 'odosa', 'gyeolgeom', 'uiryeok', 'geomseong', 'geomsa'] },
+  bow: { name: '활병', tier: 0, unit: 'archer', wtypes: ['bow'],
+         next: ['sugunjang', 'gwijugung', 'gungsa'] },
+  spear: { name: '창병', tier: 0, unit: 'melee', wtypes: ['spear', 'glaive'],
+           next: ['maenghojang', 'changjang'] },
+  horse: { name: '기마병', tier: 0, unit: 'cavalry', wtypes: ['spear', 'sword', 'glaive'],
+           next: ['gaemajang', 'gimajang'] },
+  sage: { name: '책사', tier: 0, unit: 'archer', wtypes: ['fan', 'brush', 'talisman'],
+          next: ['salsuryak', 'munchi', 'uiwon', 'gunsa'] },
+
+  /* —— 2차: 영웅 고유 —— */
+  hongeom: { name: '혼검사', tier: 1, needLv: 5, unique: true, hero: 'hero', unit: 'melee',
+             wtypes: ['sword', 'dagger', 'shield'], next: ['honju'], atk: 1.08 },
+  chasa: { name: '차사', tier: 1, needLv: 5, unique: true, hero: 'gangrim', unit: 'melee',
+           wtypes: ['sword', 'dagger', 'talisman'], next: ['jeokcha'], atk: 1.06 },
+  hwarangdo: { name: '화랑', tier: 1, needLv: 5, unique: true, hero: 'yusin', unit: 'melee',
+               wtypes: ['sword', 'dagger', 'shield'], next: ['hwarang'], atk: 1.1 },
+  odosa: { name: '오도사', tier: 1, needLv: 5, unique: true, hero: 'gaesomun', unit: 'melee',
+           wtypes: ['sword', 'dagger', 'shield'], next: ['daemak'], atk: 1.1 },
+  gyeolgeom: { name: '결사검', tier: 1, needLv: 5, unique: true, hero: 'gyebaek', unit: 'melee',
+               wtypes: ['sword', 'dagger', 'shield'], next: ['gyeoljang'], atk: 1.08, def: 1.06 },
+  uiryeok: { name: '활빈객', tier: 1, needLv: 5, unique: true, hero: 'gildong', unit: 'melee',
+             wtypes: ['sword', 'dagger', 'shield'], next: ['hwalbin'], atk: 1.06, spd: 1.08 },
+  geomseong: { name: '검성', tier: 1, needLv: 5, unique: true, hero: 'cheok', unit: 'melee',
+               wtypes: ['sword', 'dagger', 'shield'], next: ['swordmaster'], atk: 1.12, spd: 1.06 },
+  sugunjang: { name: '수군장', tier: 1, needLv: 5, unique: true, hero: 'sunsin', unit: 'archer',
+               wtypes: ['bow', 'sword'], next: ['sudo'], atk: 1.06, def: 1.06 },
+  gwijugung: { name: '귀주궁', tier: 1, needLv: 5, unique: true, hero: 'gamchan', unit: 'archer',
+               wtypes: ['bow'], next: ['nakjang'], atk: 1.1 },
+  maenghojang: { name: '맹호장', tier: 1, needLv: 5, unique: true, hero: 'gyeonhwon', unit: 'melee',
+                 wtypes: ['spear', 'glaive'], next: ['baekho'], atk: 1.1 },
+  gaemajang: { name: '개마장', tier: 1, needLv: 5, unique: true, hero: 'gwanggaeto', unit: 'cavalry',
+               wtypes: ['spear', 'sword', 'glaive'], next: ['taewang'], atk: 1.08, spd: 1.08 },
+  salsuryak: { name: '살수지략', tier: 1, needLv: 5, unique: true, hero: 'eulji', unit: 'archer',
+               wtypes: ['fan', 'brush', 'talisman'], next: ['salsuji'], atk: 1.06 },
+  munchi: { name: '문치', tier: 1, needLv: 5, unique: true, hero: 'sejong', unit: 'archer',
+            wtypes: ['fan', 'brush', 'talisman'], next: ['seongun'], atk: 1.05 },
+  uiwon: { name: '의원', tier: 1, needLv: 5, unique: true, hero: 'heojun', unit: 'melee',
+           wtypes: ['dagger', 'talisman', 'brush'], next: ['sinui'] },
+
+  /* —— 장수 공용 2차 (이름 있는 영웅은 쓰지 않음) —— */
+  geomsa: { name: '검사', tier: 1, needLv: 5, shared: true, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'], next: [], atk: 1.08 },
+  gungsa: { name: '궁사', tier: 1, needLv: 5, shared: true, unit: 'archer', wtypes: ['bow'], next: [], atk: 1.08 },
+  changjang: { name: '창장', tier: 1, needLv: 5, shared: true, unit: 'melee', wtypes: ['spear', 'glaive'], next: [], atk: 1.1 },
+  gimajang: { name: '기마장', tier: 1, needLv: 5, shared: true, unit: 'cavalry', wtypes: ['spear', 'sword', 'glaive'], next: [], atk: 1.08, spd: 1.08 },
+  gunsa: { name: '군사', tier: 1, needLv: 5, shared: true, unit: 'archer', wtypes: ['fan', 'brush', 'talisman'], next: [], atk: 1.05 },
+
+  /* —— 3차: 고유 최종 —— */
   honju: { name: '명부맹주', tier: 2, unique: true, hero: 'hero', needLv: 8, unit: 'melee', wtypes: ['sword', 'dagger', 'shield'], atk: 1.12 },
   jeokcha: { name: '저승차사', tier: 2, unique: true, hero: 'gangrim', needLv: 8, needWeapon: true, unit: 'melee', wtypes: ['sword', 'talisman', 'dagger'], atk: 1.12 },
   salsuji: { name: '살수지장', tier: 2, unique: true, hero: 'eulji', needLv: 8, needWeapon: true, unit: 'archer', wtypes: ['fan', 'brush'], atk: 1.1 },
@@ -1366,12 +1393,31 @@ function nextJobHints(hid) {
     return { id: jid, name: n.name, unique: !!n.unique, shared: !!n.shared, ready: availablePromos(hid).includes(jid), need: jobNeedHint(hid, jid) };
   });
 }
+/* 옛 공유 2차 → 영웅별 고유 2차 */
+const JOB_MIGRATE = {
+  hero: { geomsa: 'hongeom' },
+  gangrim: { geomsa: 'chasa' },
+  yusin: { geomsa: 'hwarangdo' },
+  gaesomun: { geomsa: 'odosa' },
+  gyebaek: { geomsa: 'gyeolgeom' },
+  gildong: { geomsa: 'uiryeok' },
+  cheok: { geomsa: 'geomseong' },
+  sunsin: { gungsa: 'sugunjang', sugun: 'sugunjang' },
+  gamchan: { gungsa: 'gwijugung' },
+  gyeonhwon: { changjang: 'maenghojang' },
+  gwanggaeto: { gimajang: 'gaemajang' },
+  eulji: { gunsa: 'salsuryak' },
+  sejong: { gunsa: 'munchi' },
+  heojun: {},
+};
 function ensureJobs() {
   if (!G || !G.heroes) return;
   G.roster.forEach((id) => {
     const h = G.heroes[id];
     if (!h) return;
     if (!JOBS[h.job]) h.job = (HEROES[id] && HEROES[id].job) || 'sword';
+    const map = JOB_MIGRATE[id];
+    if (map && map[h.job]) h.job = map[h.job];
     stripMisfitWeapons(id);
   });
 }
@@ -5469,7 +5515,7 @@ function jobBlock(id) {
   const job = heroJob(id);
   const hints = nextJobHints(id);
   const chips = hints.map((j) => `<button class="job-chip ${j.ready ? 'ready' : ''} ${j.unique ? 'uniq' : ''}" data-job="${j.id}" ${j.ready ? '' : 'disabled'}>${esc(j.name)}${j.need ? ` · ${esc(j.need)}` : j.ready ? ' · 승급' : ''}</button>`).join('');
-  return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '기본 병과' : job.unique ? '고유 특수 직업' : job.shared ? '공유 특수 직업' : '특수 직업'} · ${jobWepText(jobIdOf(id))}</span></p>
+  return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '1차 · 공유 병과' : job.tier === 1 ? (job.shared ? '2차 · 장수 공용' : '2차 · 고유') : '3차 · 고유 최종'} · ${jobWepText(jobIdOf(id))}</span></p>
     <p class="job-now">${esc(job.name)}</p>
     ${chips ? `<div class="job-next">${chips}</div>` : job.tier >= 2 ? '<p class="muted small">더 올릴 직업이 없습니다.</p>' : ''}`;
 }
@@ -6299,7 +6345,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>영웅은 병과에 맞는 무기만 찹니다. 검병·활병·창병·기마병·책사에서 시작해, 레벨 5에 특수 직업, 레벨 8과 고유 무기로 고유 직업으로 승급합니다. 세종·광개토대왕처럼 한 사람뿐인 직업도 있습니다.</li>
+      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차부터는 영웅마다 고유 직업이 됩니다. 레벨 8과 고유 무기로 3차 최종 직업에 오릅니다. 예: 척준경 검병→검성→소드마스터.</li>
       <li>인재 탐색은 장수가 늘수록 발견 확률이 떨어집니다. 적 세력도 낮에 인재를 찾습니다.</li>
       <li>숨겨진 장소는 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,

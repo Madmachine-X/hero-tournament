@@ -413,7 +413,7 @@ function jobBlock(id) {
   const job = heroJob(id);
   const hints = nextJobHints(id);
   const chips = hints.map((j) => `<button class="job-chip ${j.ready ? 'ready' : ''} ${j.unique ? 'uniq' : ''}" data-job="${j.id}" ${j.ready ? '' : 'disabled'}>${esc(j.name)}${j.need ? ` · ${esc(j.need)}` : j.ready ? ' · 승급' : ''}</button>`).join('');
-  return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '기본 병과' : job.unique ? '고유 특수 직업' : job.shared ? '공유 특수 직업' : '특수 직업'} · ${jobWepText(jobIdOf(id))}</span></p>
+  return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '1차 · 공유 병과' : job.tier === 1 ? (job.shared ? '2차 · 장수 공용' : '2차 · 고유') : '3차 · 고유 최종'} · ${jobWepText(jobIdOf(id))}</span></p>
     <p class="job-now">${esc(job.name)}</p>
     ${chips ? `<div class="job-next">${chips}</div>` : job.tier >= 2 ? '<p class="muted small">더 올릴 직업이 없습니다.</p>' : ''}`;
 }
@@ -1243,7 +1243,7 @@ function howTo() {
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다.</li>
       <li>장수 이동은 이웃 도시 1턴, 길을 두 번 건너면 2턴처럼 거리만큼 시간대를 씁니다. 도착하기 전에는 어느 도시에서도 행동하지 않습니다.</li>
       <li>도시 인재 정원: 서울·평양 15, 경주 13, 전주 11, 통영·함흥·제주 9, 강릉 7. 넘치면 다른 도시로 보내거나 해고(민심 하락)하거나 등용을 취소해야 합니다.</li>
-      <li>영웅은 병과에 맞는 무기만 찹니다. 검병·활병·창병·기마병·책사에서 시작해, 레벨 5에 특수 직업, 레벨 8과 고유 무기로 고유 직업으로 승급합니다. 세종·광개토대왕처럼 한 사람뿐인 직업도 있습니다.</li>
+      <li>영웅은 병과에 맞는 무기만 찹니다. 1차(검병·활병·창병·기마병·책사)는 공유하고, 레벨 5 2차부터는 영웅마다 고유 직업이 됩니다. 레벨 8과 고유 무기로 3차 최종 직업에 오릅니다. 예: 척준경 검병→검성→소드마스터.</li>
       <li>인재 탐색은 장수가 늘수록 발견 확률이 떨어집니다. 적 세력도 낮에 인재를 찾습니다.</li>
       <li>숨겨진 장소는 소문 탐색으로만 들을 수 있습니다. 고유 무기의 소문은 그 장군이 직접 소문 탐색을 해야 이벤트가 열립니다. 들은 뒤에는 시간대, 동료 영웅, 귀중품 같은 조건이 맞아야 열립니다.</li></ul>
     </div><div class="actions"><button class="btn primary" data-close>닫기</button></div>`,

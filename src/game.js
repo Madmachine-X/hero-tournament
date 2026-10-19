@@ -282,12 +282,31 @@ function nextJobHints(hid) {
     return { id: jid, name: n.name, unique: !!n.unique, shared: !!n.shared, ready: availablePromos(hid).includes(jid), need: jobNeedHint(hid, jid) };
   });
 }
+/* 옛 공유 2차 → 영웅별 고유 2차 */
+const JOB_MIGRATE = {
+  hero: { geomsa: 'hongeom' },
+  gangrim: { geomsa: 'chasa' },
+  yusin: { geomsa: 'hwarangdo' },
+  gaesomun: { geomsa: 'odosa' },
+  gyebaek: { geomsa: 'gyeolgeom' },
+  gildong: { geomsa: 'uiryeok' },
+  cheok: { geomsa: 'geomseong' },
+  sunsin: { gungsa: 'sugunjang', sugun: 'sugunjang' },
+  gamchan: { gungsa: 'gwijugung' },
+  gyeonhwon: { changjang: 'maenghojang' },
+  gwanggaeto: { gimajang: 'gaemajang' },
+  eulji: { gunsa: 'salsuryak' },
+  sejong: { gunsa: 'munchi' },
+  heojun: {},
+};
 function ensureJobs() {
   if (!G || !G.heroes) return;
   G.roster.forEach((id) => {
     const h = G.heroes[id];
     if (!h) return;
     if (!JOBS[h.job]) h.job = (HEROES[id] && HEROES[id].job) || 'sword';
+    const map = JOB_MIGRATE[id];
+    if (map && map[h.job]) h.job = map[h.job];
     stripMisfitWeapons(id);
   });
 }
