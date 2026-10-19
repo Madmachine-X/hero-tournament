@@ -65,39 +65,63 @@ const MapView = (() => {
     const b = document.createElement('canvas');
     b.width = LW; b.height = LH;
     const c = b.getContext('2d');
-    const sea = c.createLinearGradient(0, 0, LW, LH);
-    sea.addColorStop(0, '#0b1418'); sea.addColorStop(1, '#070c10');
+    /* 지옥 바다: 검붉은 심연 + 멍울진 파도 */
+    const sea = c.createRadialGradient(LW * 0.45, LH * 0.4, 40, LW * 0.5, LH * 0.55, LH * 0.85);
+    sea.addColorStop(0, '#1a0806'); sea.addColorStop(0.45, '#0c0508'); sea.addColorStop(1, '#050204');
     c.fillStyle = sea; c.fillRect(0, 0, LW, LH);
-    c.strokeStyle = 'rgba(120,170,190,0.07)'; c.lineWidth = 1;
-    for (let y = 10; y < LH; y += 14) {
+    c.strokeStyle = 'rgba(140,40,28,0.11)'; c.lineWidth = 1.2;
+    for (let y = 8; y < LH; y += 11) {
       c.beginPath();
-      for (let x = 0; x <= LW; x += 10) { const yy = y + Math.sin(x * 0.05 + y) * 2; if (x) c.lineTo(x, yy); else c.moveTo(x, yy); }
+      for (let x = 0; x <= LW; x += 8) {
+        const yy = y + Math.sin(x * 0.07 + y * 0.04) * 3 + Math.sin(x * 0.02) * 1.5;
+        if (x) c.lineTo(x, yy); else c.moveTo(x, yy);
+      }
       c.stroke();
     }
-    // 육지
-    c.save();
-    landPath(c);
-    c.fillStyle = '#26221b'; c.fill();
-    c.clip();
-    for (let i = 0; i < 160; i++) {
-      const x = Math.random() * LW, y = Math.random() * LH, r = 8 + Math.random() * 50;
+    for (let i = 0; i < 28; i++) {
+      const x = Math.random() * LW, y = Math.random() * LH, r = 20 + Math.random() * 70;
       const g = c.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, Math.random() < 0.5 ? 'rgba(0,0,0,0.18)' : 'rgba(120,105,80,0.08)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      g.addColorStop(0, 'rgba(90,18,12,0.22)'); g.addColorStop(1, 'rgba(0,0,0,0)');
       c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
     }
-    // 산줄기 (백두대간 언저리)
+    // 육지 — 탄 흙·재
+    c.save();
+    landPath(c);
+    c.fillStyle = '#1c1210'; c.fill();
+    c.clip();
+    for (let i = 0; i < 200; i++) {
+      const x = Math.random() * LW, y = Math.random() * LH, r = 6 + Math.random() * 55;
+      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      const hot = Math.random() < 0.35;
+      g.addColorStop(0, hot ? 'rgba(160,40,18,0.16)' : 'rgba(0,0,0,0.28)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    }
+    // 금 간 균열 (지옥 흉터)
+    c.strokeStyle = 'rgba(180,50,28,0.18)'; c.lineWidth = 1.4;
+    for (let i = 0; i < 14; i++) {
+      const x0 = 40 + Math.random() * (LW - 80), y0 = 40 + Math.random() * (LH - 80);
+      c.beginPath(); c.moveTo(x0, y0);
+      let x = x0, y = y0;
+      for (let k = 0; k < 5; k++) {
+        x += (Math.random() - 0.5) * 70; y += 18 + Math.random() * 40;
+        c.lineTo(x, y);
+      }
+      c.stroke();
+    }
+    // 산줄기 — 잿빛 봉우리
     const ridge = [[128.2,41.2],[127.6,40.4],[127.3,39.6],[127.9,38.9],[128.4,38.2],[128.7,37.6],[128.9,37.0],[128.6,36.4],[128.0,35.9],[127.7,35.4]];
-    c.fillStyle = 'rgba(170,155,120,0.28)';
+    c.fillStyle = 'rgba(120,55,40,0.4)';
     c.font = '13px "Noto Serif KR", serif';
     c.textAlign = 'center'; c.textBaseline = 'middle';
     ridge.forEach(([lo, la], i) => { const p = proj(lo, la); c.fillText('山', p.x + (i % 2 ? 6 : -6), p.y); });
     c.restore();
-    c.strokeStyle = 'rgba(215,200,165,0.55)'; c.lineWidth = 1.6;
+    c.strokeStyle = 'rgba(190,70,45,0.55)'; c.lineWidth = 1.8;
     landPath(c); c.stroke();
-    c.strokeStyle = 'rgba(215,200,165,0.12)'; c.lineWidth = 6;
+    c.strokeStyle = 'rgba(120,30,20,0.2)'; c.lineWidth = 7;
     landPath(c); c.stroke();
-    // 격자 (업경대 눈금)
-    c.strokeStyle = 'rgba(217,171,74,0.06)'; c.lineWidth = 1;
+    // 격자 — 업경대 핏빛 눈금
+    c.strokeStyle = 'rgba(200,60,40,0.07)'; c.lineWidth = 1;
     for (let lon = 125; lon <= 130; lon++) { const a = proj(lon, 43), b2 = proj(lon, 33); c.beginPath(); c.moveTo(a.x, 0); c.lineTo(b2.x, LH); c.stroke(); }
     for (let lat = 34; lat <= 42; lat++) { const a = proj(124, lat); c.beginPath(); c.moveTo(0, a.y); c.lineTo(LW, a.y); c.stroke(); }
     return b;
@@ -112,15 +136,15 @@ const MapView = (() => {
   function redrawRegions(override) {
     const c = region.getContext('2d');
     c.clearRect(0, 0, LW, LH);
-    c.globalAlpha = 0.34;
+    c.globalAlpha = 0.28;
     for (let i = 0; i < cellCity.length; i++) {
       const v = cellCity[i];
       if (v < 0) continue;
       c.fillStyle = ownerColor(v, override);
       c.fillRect((i % GW) * CELL, Math.floor(i / GW) * CELL, CELL, CELL);
     }
-    c.globalAlpha = 0.5;
-    c.fillStyle = '#0b0a08';
+    c.globalAlpha = 0.55;
+    c.fillStyle = '#1a0806';
     for (let i = 0; i < border.length; i++) if (border[i] && (i % 2 === 0)) c.fillRect((i % GW) * CELL + 1, Math.floor(i / GW) * CELL + 1, 2, 2);
     c.globalAlpha = 1;
   }
@@ -167,7 +191,7 @@ const MapView = (() => {
     const t = (ts - t0) / 1000;
     const c = ctx;
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
-    c.fillStyle = '#070c10'; c.fillRect(0, 0, cw, ch);
+    c.fillStyle = '#080304'; c.fillRect(0, 0, cw, ch);
     c.setTransform(DPR * scale, 0, 0, DPR * scale, DPR * offX, DPR * offY);
     c.drawImage(base, 0, 0);
     c.drawImage(region, 0, 0);
@@ -185,15 +209,32 @@ const MapView = (() => {
       c.beginPath(); c.arc(anim.p.x, anim.p.y, rr, 0, Math.PI * 2); c.stroke();
       if (k >= 1) { anim = null; redrawRegions(); }
     }
-    // 길
-    c.setLineDash([3, 5]); c.lineWidth = 1.2;
+    // 혼맥 길 — 이글거리는 핏줄
     for (const [a, b] of ROADS) {
       const pa = proj(CITIES[a].lon, CITIES[a].lat), pb = proj(CITIES[b].lon, CITIES[b].lat);
       const live = sel && sel.type === 'city' && (sel.id === a || sel.id === b);
-      c.strokeStyle = live ? 'rgba(232,192,80,0.75)' : 'rgba(220,205,170,0.22)';
+      const pulse = 0.55 + 0.35 * Math.sin(t * 2.2 + pa.x * 0.02);
+      c.setLineDash([]);
+      c.strokeStyle = live ? `rgba(255,140,60,${0.35 * pulse})` : `rgba(160,40,28,${0.18 * pulse})`;
+      c.lineWidth = live ? 5 : 3.5;
+      c.beginPath(); c.moveTo(pa.x, pa.y); c.lineTo(pb.x, pb.y); c.stroke();
+      c.setLineDash([4, 6]); c.lineDashOffset = -t * 18;
+      c.strokeStyle = live ? 'rgba(255,200,90,0.9)' : 'rgba(220,90,50,0.45)';
+      c.lineWidth = live ? 1.8 : 1.25;
       c.beginPath(); c.moveTo(pa.x, pa.y); c.lineTo(pb.x, pb.y); c.stroke();
     }
     c.setLineDash([]);
+    // 떠도는 재·불씨
+    c.save();
+    for (let i = 0; i < 36; i++) {
+      const x = (i * 73.1 + t * (8 + (i % 5))) % LW;
+      const y = (i * 41.7 + Math.sin(t * 0.7 + i) * 12) % LH;
+      const ember = i % 3 === 0;
+      c.globalAlpha = ember ? 0.35 + 0.25 * Math.sin(t * 3 + i) : 0.12;
+      c.fillStyle = ember ? '#ff6a2a' : '#6a5248';
+      c.fillRect(x, y, ember ? 2 : 1.5, ember ? 2 : 1.5);
+    }
+    c.restore();
     // 숨겨진 장소
     if (G) for (const id of G.places) {
       const pl = PLACES[id], p = proj(pl.lon, pl.lat);
@@ -236,19 +277,27 @@ const MapView = (() => {
       c.textAlign = id === 'pyongyang' || id === 'jeonju' ? 'right' : 'left';
       c.strokeText(ci.name, lx, p.y); c.fillStyle = '#efe6d0'; c.fillText(ci.name, lx, p.y);
     }
-    // 시간대
+    // 시간대 — 지옥의 하늘
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
     const ph = G ? G.phase : 1;
-    const tint = ['rgba(0,0,0,0)', 'rgba(200,110,40,0.09)', 'rgba(6,12,40,0.36)'][ph] || 'rgba(0,0,0,0)';
+    const tint = ['rgba(90,20,10,0.12)', 'rgba(160,50,20,0.16)', 'rgba(40,8,18,0.42)'][ph] || 'rgba(40,8,12,0.2)';
     c.fillStyle = tint; c.fillRect(0, 0, cw, ch);
     if (ph === NIGHT) {
-      c.fillStyle = 'rgba(230,230,255,0.6)';
-      for (let i = 0; i < 40; i++) { const x = (i * 97.3) % cw, y = (i * 53.7) % (ch * 0.4); c.globalAlpha = 0.3 + 0.3 * Math.sin(t * 2 + i); c.fillRect(x, y, 1.5, 1.5); }
+      c.fillStyle = 'rgba(255,120,70,0.55)';
+      for (let i = 0; i < 28; i++) {
+        const x = (i * 97.3) % cw, y = (i * 53.7) % (ch * 0.55);
+        c.globalAlpha = 0.2 + 0.35 * Math.sin(t * 2 + i);
+        c.fillRect(x, y, 1.5, 1.5);
+      }
       c.globalAlpha = 1;
     }
-    const vg = c.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.3, cw / 2, ch / 2, Math.max(cw, ch) * 0.75);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+    const vg = c.createRadialGradient(cw / 2, ch * 0.55, Math.min(cw, ch) * 0.18, cw / 2, ch / 2, Math.max(cw, ch) * 0.78);
+    vg.addColorStop(0, 'rgba(80,10,6,0.05)'); vg.addColorStop(0.55, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.72)');
     c.fillStyle = vg; c.fillRect(0, 0, cw, ch);
+    /* 하단 용암 기운 */
+    const lava = c.createLinearGradient(0, ch * 0.72, 0, ch);
+    lava.addColorStop(0, 'rgba(0,0,0,0)'); lava.addColorStop(1, 'rgba(90,18,8,0.35)');
+    c.fillStyle = lava; c.fillRect(0, 0, cw, ch);
   }
 
   function hexA2(hex, a) {

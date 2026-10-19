@@ -274,10 +274,11 @@ const CITIES = {
                bossGeneric: '탐라 수귀', bossSkill: 'tide', captains: ['탐라 망령'], theme: 'coast',
                shop: ['w_bisu','r_honbul','b_bujeok'] },
 };
+/* 함흥·강릉은 평양만 통한다 (서울·경주·서로 직접 연결 없음) */
 const ROADS = [
-  ['seoul','pyongyang'], ['seoul','gangneung'], ['seoul','jeonju'], ['pyongyang','gangneung'],
-  ['gangneung','gyeongju'], ['jeonju','gyeongju'], ['jeonju','tongyeong'], ['gyeongju','tongyeong'],
-  ['hamheung','pyongyang'], ['hamheung','gangneung'], ['jeju','tongyeong'],
+  ['seoul','pyongyang'], ['seoul','jeonju'], ['pyongyang','gangneung'], ['pyongyang','hamheung'],
+  ['jeonju','gyeongju'], ['jeonju','tongyeong'], ['gyeongju','tongyeong'],
+  ['jeju','tongyeong'],
 ];
 
 /* 숨겨진 장소. region 도시를 차지해야 탐색할 수 있다. */
