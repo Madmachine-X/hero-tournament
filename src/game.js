@@ -362,28 +362,39 @@ function statsFrom(id, level, equip, tired) {
   const w1 = ITEMS[equip.w1];
   const items = [w1, ITEMS[equip.w2], ITEMS[equip.armor], ...(equip.acc || []).map((a) => ITEMS[a])];
   const b = sumBonus(items);
-  const pen = tired ? 0.8 : 1;
-  const str = Math.round(base.str * pen), agi = Math.round((base.agi + b.agi) * pen), int = Math.round((base.int + b.int) * pen), vit = Math.round(base.vit * pen), lea = Math.round(base.lea * pen);
   const ranged = !!(w1 && w1.wtype === 'bow');
   const style = styleOf(equip);
-  let atk = 6 + str * 1.3 + b.atk;
-  let def = vit * 0.8 + b.def;
-  let atkCd = Math.max(0.45, 1.15 - agi * 0.012);
-  if (style === '쌍무기') atkCd *= 0.78;
-  if (style === '양손무기') atk *= 1.1;
-  if (style === '검방') def *= 1.15;
-  if (ranged) atk *= 0.85;
-  atk *= job.atk || 1;
-  def *= job.def || 1;
-  const maxHp = Math.round(160 + vit * 13 + level * 15 + b.hp);
-  const sp = Math.round(10 + int * 2);
-  let spd = Math.round(78 + agi * 1.6);
-  spd = Math.round(spd * (job.spd || 1));
+  const pack = (pen) => {
+    const str = Math.round(base.str * pen), agi = Math.round((base.agi + b.agi) * pen), int = Math.round((base.int + b.int) * pen), vit = Math.round(base.vit * pen), lea = Math.round(base.lea * pen);
+    let atk = 6 + str * 1.3 + b.atk;
+    let def = vit * 0.8 + b.def;
+    let atkCd = Math.max(0.45, 1.15 - agi * 0.012);
+    if (style === '쌍무기') atkCd *= 0.78;
+    if (style === '양손무기') atk *= 1.1;
+    if (style === '검방') def *= 1.15;
+    if (ranged) atk *= 0.85;
+    atk *= job.atk || 1;
+    def *= job.def || 1;
+    const maxHp = Math.round(160 + vit * 13 + level * 15 + b.hp);
+    const sp = Math.round(10 + int * 2);
+    let spd = Math.round(78 + agi * 1.6);
+    spd = Math.round(spd * (job.spd || 1));
+    const squad = 3 + Math.floor(lea / 4);
+    return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, squad };
+  };
+  const full = pack(1);
+  const cur = tired ? pack(0.8) : full;
   const range = ranged ? 150 : w1 && (w1.wtype === 'spear' || w1.wtype === 'glaive') ? 30 : 20;
   const cdr = Math.min(40, b.cdr);
-  const squad = 3 + Math.floor(lea / 4);
   const hiddenOn = !!(d.weapon && (equip.w1 === d.weapon || equip.w2 === d.weapon));
-  return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, range, ranged, cdr, squad, style, hiddenOn, tired: !!tired, job: job.name, jobId: jobIdOf(id), unit: job.unit };
+  const drop = {};
+  ['str', 'lea', 'int', 'agi', 'vit', 'atk', 'def', 'maxHp', 'sp', 'spd', 'squad'].forEach((k) => {
+    drop[k] = full[k] - cur[k];
+  });
+  return {
+    ...cur, range, ranged, cdr, style, hiddenOn, tired: !!tired, pen: tired ? 0.8 : 1,
+    full, drop, job: job.name, jobId: jobIdOf(id), unit: job.unit,
+  };
 }
 function computeStats(id) { const h = G.heroes[id]; return statsFrom(id, h.level, h.equip, isWeary(id)); }
 

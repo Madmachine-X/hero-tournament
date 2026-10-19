@@ -246,12 +246,21 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .hd-head > div { flex: 1; min-width: 0; }
 .hd-head .h-display { font-size: 1.7rem; }
 .hd-head p { margin: 0; }
+.stats-note { margin: 0 0 8px; font-size: 0.82rem; color: #e0812f; }
+.stats-note .muted { color: var(--dim); }
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .stats div { background: var(--ink-2); border: 1px solid var(--line); border-radius: 3px; padding: 8px 6px 7px; text-align: center; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stats div.cut { border-color: #8a4a22; background: linear-gradient(180deg, #1c1210, var(--ink-2)); }
 .stats span { font-size: 0.72rem; color: var(--dim); }
 .stats b { font-family: var(--f-display); font-weight: 400; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.stats b.down, .kv .down { color: #f0a060; }
+.stats .stat-drop, .kv .stat-drop { font-style: normal; font-size: 0.72rem; color: #e07040; font-variant-numeric: tabular-nums; line-height: 1; }
+.stats .stat-full, .kv .stat-full { font-size: 0.62rem; color: var(--dim); line-height: 1.1; }
 .stats .stat-bar { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: #000; position: relative; overflow: hidden; }
+.stats .stat-bar::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--f, var(--v, 40%)); background: rgba(224,128,60,0.35); }
 .stats .stat-bar::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--v, 40%); background: linear-gradient(90deg, color-mix(in srgb, var(--c, var(--gold)) 70%, #fff), var(--c, var(--gold))); }
+.stats.weary .stat-bar::after { background: linear-gradient(90deg, #c06030, #e0812f); }
+.kv.weary dd { font-variant-numeric: tabular-nums; }
 .skill { border: 1px solid var(--line); background: var(--paper); border-radius: 3px; padding: 10px 12px; margin-bottom: 8px; }
 .skill b { font-family: var(--f-display); font-weight: 400; font-size: 1.05rem; }
 .skill p { margin: 4px 0 0; font-size: 0.88rem; color: var(--ash); }
@@ -1549,28 +1558,39 @@ function statsFrom(id, level, equip, tired) {
   const w1 = ITEMS[equip.w1];
   const items = [w1, ITEMS[equip.w2], ITEMS[equip.armor], ...(equip.acc || []).map((a) => ITEMS[a])];
   const b = sumBonus(items);
-  const pen = tired ? 0.8 : 1;
-  const str = Math.round(base.str * pen), agi = Math.round((base.agi + b.agi) * pen), int = Math.round((base.int + b.int) * pen), vit = Math.round(base.vit * pen), lea = Math.round(base.lea * pen);
   const ranged = !!(w1 && w1.wtype === 'bow');
   const style = styleOf(equip);
-  let atk = 6 + str * 1.3 + b.atk;
-  let def = vit * 0.8 + b.def;
-  let atkCd = Math.max(0.45, 1.15 - agi * 0.012);
-  if (style === '쌍무기') atkCd *= 0.78;
-  if (style === '양손무기') atk *= 1.1;
-  if (style === '검방') def *= 1.15;
-  if (ranged) atk *= 0.85;
-  atk *= job.atk || 1;
-  def *= job.def || 1;
-  const maxHp = Math.round(160 + vit * 13 + level * 15 + b.hp);
-  const sp = Math.round(10 + int * 2);
-  let spd = Math.round(78 + agi * 1.6);
-  spd = Math.round(spd * (job.spd || 1));
+  const pack = (pen) => {
+    const str = Math.round(base.str * pen), agi = Math.round((base.agi + b.agi) * pen), int = Math.round((base.int + b.int) * pen), vit = Math.round(base.vit * pen), lea = Math.round(base.lea * pen);
+    let atk = 6 + str * 1.3 + b.atk;
+    let def = vit * 0.8 + b.def;
+    let atkCd = Math.max(0.45, 1.15 - agi * 0.012);
+    if (style === '쌍무기') atkCd *= 0.78;
+    if (style === '양손무기') atk *= 1.1;
+    if (style === '검방') def *= 1.15;
+    if (ranged) atk *= 0.85;
+    atk *= job.atk || 1;
+    def *= job.def || 1;
+    const maxHp = Math.round(160 + vit * 13 + level * 15 + b.hp);
+    const sp = Math.round(10 + int * 2);
+    let spd = Math.round(78 + agi * 1.6);
+    spd = Math.round(spd * (job.spd || 1));
+    const squad = 3 + Math.floor(lea / 4);
+    return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, squad };
+  };
+  const full = pack(1);
+  const cur = tired ? pack(0.8) : full;
   const range = ranged ? 150 : w1 && (w1.wtype === 'spear' || w1.wtype === 'glaive') ? 30 : 20;
   const cdr = Math.min(40, b.cdr);
-  const squad = 3 + Math.floor(lea / 4);
   const hiddenOn = !!(d.weapon && (equip.w1 === d.weapon || equip.w2 === d.weapon));
-  return { str, lea, int, agi, vit, atk: Math.round(atk), def: Math.round(def), atkCd, maxHp, sp, spd, range, ranged, cdr, squad, style, hiddenOn, tired: !!tired, job: job.name, jobId: jobIdOf(id), unit: job.unit };
+  const drop = {};
+  ['str', 'lea', 'int', 'agi', 'vit', 'atk', 'def', 'maxHp', 'sp', 'spd', 'squad'].forEach((k) => {
+    drop[k] = full[k] - cur[k];
+  });
+  return {
+    ...cur, range, ranged, cdr, style, hiddenOn, tired: !!tired, pen: tired ? 0.8 : 1,
+    full, drop, job: job.name, jobId: jobIdOf(id), unit: job.unit,
+  };
 }
 function computeStats(id) { const h = G.heroes[id]; return statsFrom(id, h.level, h.equip, isWeary(id)); }
 
@@ -5414,14 +5434,25 @@ function gradeChip(id) {
   const g = heroGrade(id);
   return `<span class="grade-chip grade-${g.id}" title="${esc(g.name)}"><b>${esc(g.name)}</b><i>${heroGradeStars(g.stars)}</i></span>`;
 }
+function statPair(s, key) {
+  const v = s[key], full = s.full[key], lost = s.drop[key];
+  if (!(lost > 0)) return `${v}`;
+  return `<b class="down" title="정상 ${full}">${v}</b> <em class="stat-drop" title="정상 ${full} · −${lost}">−${lost}</em> <span class="stat-full">(${full})</span>`;
+}
 function statsBlock(id) {
   const s = computeStats(id);
-  const rows = [
-    ['무력', s.str], ['통솔', s.lea], ['지력', s.int], ['민첩', s.agi], ['체력', s.vit],
-  ];
-  return `<div class="stats">${rows.map(([lab, v]) => {
+  const keys = [['무력', 'str'], ['통솔', 'lea'], ['지력', 'int'], ['민첩', 'agi'], ['체력', 'vit']];
+  const note = s.tired
+    ? `<p class="stats-note weary">지침 · 능력치 −20% <span class="muted">숫자 옆 −값은 정상 대비 감소</span></p>`
+    : '';
+  return `${note}<div class="stats ${s.tired ? 'weary' : ''}">${keys.map(([lab, k]) => {
+    const v = s[k], full = s.full[k], lost = s.drop[k];
     const pct = Math.round(clamp((v / 28) * 100, 6, 100));
-    return `<div><span>${lab}</span><b>${v}</b><i class="stat-bar" style="--v:${pct}%"></i></div>`;
+    const fullPct = Math.round(clamp((full / 28) * 100, 6, 100));
+    const val = lost > 0
+      ? `<b class="down" title="정상 ${full}">${v}</b><em class="stat-drop" title="정상 ${full}">−${lost}</em><span class="stat-full">정상 ${full}</span>`
+      : `<b>${v}</b>`;
+    return `<div class="${lost > 0 ? 'cut' : ''}"><span>${lab}</span>${val}<i class="stat-bar" style="--v:${pct}%;--f:${fullPct}%"></i></div>`;
   }).join('')}</div>`;
 }
 function itemLine(it) {
@@ -5824,12 +5855,12 @@ function heroDetail(id) {
     ${jobBlock(id)}
     <p class="label">능력치</p>
     ${statsBlock(id)}
-    <dl class="kv small">
-      <div><dt>공격 / 방어</dt><dd>${s.atk} / ${s.def}</dd></div>
-      <div><dt>최대 체력</dt><dd>${s.maxHp}</dd></div>
-      <div><dt>기술력</dt><dd>${s.sp}</dd></div>
+    <dl class="kv small ${s.tired ? 'weary' : ''}">
+      <div><dt>공격 / 방어</dt><dd>${statPair(s, 'atk')} / ${statPair(s, 'def')}</dd></div>
+      <div><dt>최대 체력</dt><dd>${statPair(s, 'maxHp')}</dd></div>
+      <div><dt>기술력</dt><dd>${statPair(s, 'sp')}</dd></div>
       <div><dt>전투 방식</dt><dd>${s.style}${s.ranged ? ' (원거리)' : ''}</dd></div>
-      <div><dt>부대 정원</dt><dd>${s.squad}명</dd></div>
+      <div><dt>부대 정원</dt><dd>${statPair(s, 'squad')}명</dd></div>
     </dl>
     <p class="label">기술</p>
     <div class="skill"><b>${esc(sk.name)}</b><span class="tag">${skTag}</span><p>${esc(sk.desc)}</p></div>

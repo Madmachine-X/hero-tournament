@@ -74,14 +74,25 @@ function gradeChip(id) {
   const g = heroGrade(id);
   return `<span class="grade-chip grade-${g.id}" title="${esc(g.name)}"><b>${esc(g.name)}</b><i>${heroGradeStars(g.stars)}</i></span>`;
 }
+function statPair(s, key) {
+  const v = s[key], full = s.full[key], lost = s.drop[key];
+  if (!(lost > 0)) return `${v}`;
+  return `<b class="down" title="정상 ${full}">${v}</b> <em class="stat-drop" title="정상 ${full} · −${lost}">−${lost}</em> <span class="stat-full">(${full})</span>`;
+}
 function statsBlock(id) {
   const s = computeStats(id);
-  const rows = [
-    ['무력', s.str], ['통솔', s.lea], ['지력', s.int], ['민첩', s.agi], ['체력', s.vit],
-  ];
-  return `<div class="stats">${rows.map(([lab, v]) => {
+  const keys = [['무력', 'str'], ['통솔', 'lea'], ['지력', 'int'], ['민첩', 'agi'], ['체력', 'vit']];
+  const note = s.tired
+    ? `<p class="stats-note weary">지침 · 능력치 −20% <span class="muted">숫자 옆 −값은 정상 대비 감소</span></p>`
+    : '';
+  return `${note}<div class="stats ${s.tired ? 'weary' : ''}">${keys.map(([lab, k]) => {
+    const v = s[k], full = s.full[k], lost = s.drop[k];
     const pct = Math.round(clamp((v / 28) * 100, 6, 100));
-    return `<div><span>${lab}</span><b>${v}</b><i class="stat-bar" style="--v:${pct}%"></i></div>`;
+    const fullPct = Math.round(clamp((full / 28) * 100, 6, 100));
+    const val = lost > 0
+      ? `<b class="down" title="정상 ${full}">${v}</b><em class="stat-drop" title="정상 ${full}">−${lost}</em><span class="stat-full">정상 ${full}</span>`
+      : `<b>${v}</b>`;
+    return `<div class="${lost > 0 ? 'cut' : ''}"><span>${lab}</span>${val}<i class="stat-bar" style="--v:${pct}%;--f:${fullPct}%"></i></div>`;
   }).join('')}</div>`;
 }
 function itemLine(it) {
@@ -484,12 +495,12 @@ function heroDetail(id) {
     ${jobBlock(id)}
     <p class="label">능력치</p>
     ${statsBlock(id)}
-    <dl class="kv small">
-      <div><dt>공격 / 방어</dt><dd>${s.atk} / ${s.def}</dd></div>
-      <div><dt>최대 체력</dt><dd>${s.maxHp}</dd></div>
-      <div><dt>기술력</dt><dd>${s.sp}</dd></div>
+    <dl class="kv small ${s.tired ? 'weary' : ''}">
+      <div><dt>공격 / 방어</dt><dd>${statPair(s, 'atk')} / ${statPair(s, 'def')}</dd></div>
+      <div><dt>최대 체력</dt><dd>${statPair(s, 'maxHp')}</dd></div>
+      <div><dt>기술력</dt><dd>${statPair(s, 'sp')}</dd></div>
       <div><dt>전투 방식</dt><dd>${s.style}${s.ranged ? ' (원거리)' : ''}</dd></div>
-      <div><dt>부대 정원</dt><dd>${s.squad}명</dd></div>
+      <div><dt>부대 정원</dt><dd>${statPair(s, 'squad')}명</dd></div>
     </dl>
     <p class="label">기술</p>
     <div class="skill"><b>${esc(sk.name)}</b><span class="tag">${skTag}</span><p>${esc(sk.desc)}</p></div>

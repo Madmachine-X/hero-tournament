@@ -237,12 +237,21 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .hd-head > div { flex: 1; min-width: 0; }
 .hd-head .h-display { font-size: 1.7rem; }
 .hd-head p { margin: 0; }
+.stats-note { margin: 0 0 8px; font-size: 0.82rem; color: #e0812f; }
+.stats-note .muted { color: var(--dim); }
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .stats div { background: var(--ink-2); border: 1px solid var(--line); border-radius: 3px; padding: 8px 6px 7px; text-align: center; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stats div.cut { border-color: #8a4a22; background: linear-gradient(180deg, #1c1210, var(--ink-2)); }
 .stats span { font-size: 0.72rem; color: var(--dim); }
 .stats b { font-family: var(--f-display); font-weight: 400; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.stats b.down, .kv .down { color: #f0a060; }
+.stats .stat-drop, .kv .stat-drop { font-style: normal; font-size: 0.72rem; color: #e07040; font-variant-numeric: tabular-nums; line-height: 1; }
+.stats .stat-full, .kv .stat-full { font-size: 0.62rem; color: var(--dim); line-height: 1.1; }
 .stats .stat-bar { display: block; height: 4px; margin-top: 4px; border-radius: 2px; background: #000; position: relative; overflow: hidden; }
+.stats .stat-bar::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--f, var(--v, 40%)); background: rgba(224,128,60,0.35); }
 .stats .stat-bar::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--v, 40%); background: linear-gradient(90deg, color-mix(in srgb, var(--c, var(--gold)) 70%, #fff), var(--c, var(--gold))); }
+.stats.weary .stat-bar::after { background: linear-gradient(90deg, #c06030, #e0812f); }
+.kv.weary dd { font-variant-numeric: tabular-nums; }
 .skill { border: 1px solid var(--line); background: var(--paper); border-radius: 3px; padding: 10px 12px; margin-bottom: 8px; }
 .skill b { font-family: var(--f-display); font-weight: 400; font-size: 1.05rem; }
 .skill p { margin: 4px 0 0; font-size: 0.88rem; color: var(--ash); }
