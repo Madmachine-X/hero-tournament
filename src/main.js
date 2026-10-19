@@ -26,6 +26,8 @@ function showScreen(id) {
   if (id === 'scr-battle') requestAnimationFrame(() => Battle.resize());
 }
 const STORY_ART = {
+  river: 'img/opening/river.jpg',
+  hall: 'img/opening/hall.jpg',
   wait: 'img/opening/wait.jpg',
   mirror: 'img/opening/mirror.jpg',
   seoul: 'img/opening/seoul.jpg',
