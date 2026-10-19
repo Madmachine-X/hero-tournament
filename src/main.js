@@ -226,7 +226,7 @@ function cityCard(id) {
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${cityPop(id)} / ${cityCap(id)}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}${cityPop(id) > cityCap(id) ? ' · 정원 초과' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${isWeary(h) ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${isWeary(h) ? ' · 지침' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${isWeary(h) ? ' · 지침' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
-      <p class="hint">내정·장터·위임은 아래 명령에서 고릅니다. 농업·상업 현황을 보며 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
+      <p class="hint">내정·장터·위임은 위쪽 명령에서 고릅니다. 농업·상업 현황을 보며 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);

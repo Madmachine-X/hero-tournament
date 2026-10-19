@@ -502,7 +502,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 @media (max-width: 860px) {
   #scr-map { display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .topbar { flex: none; }
-  #cmdrail { position: sticky; bottom: 0; top: auto; z-index: 3; max-height: none; flex: none; }
+  #cmdrail { position: sticky; top: 0; bottom: auto; z-index: 3; max-height: none; flex: none; }
   .mapbody { display: flex; flex-direction: column; flex: 1 0 auto; min-height: 0; }
   #mapwrap { height: min(48dvh, 420px); min-height: 220px; flex: none; }
   #panel { border-left: 0; border-top: 1px solid var(--line); min-height: 0; }
@@ -597,25 +597,25 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 #scr-map[data-phase="noon"] .phase-orb { background: radial-gradient(circle at 35% 30%, #ffe7c2, #e0812f 50%, #5a2a12 80%); }
 #scr-map[data-phase="night"] .phase-orb { background: radial-gradient(circle at 32% 28%, #e8eeff, #7a89c8 46%, #1a2248 78%); box-shadow: 0 0 12px rgba(159,182,255,0.4); }
 #cmdrail { position: relative; overflow: hidden; flex: none; max-height: 46%; overflow-y: auto;
-  border-top: 1px solid var(--line); border-bottom: 0; background: linear-gradient(180deg, #16140f, #100f0c); }
+  border-top: 0; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #16140f, #100f0c); }
 .cmdrail-wash { position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(90deg, color-mix(in srgb, var(--phase, #d9ab4a) 16%, transparent), transparent 42%, color-mix(in srgb, var(--phase, #d9ab4a) 10%, transparent)); }
 #cmdrail[data-phase="night"] { background: linear-gradient(180deg, #12182a, #0c1020); }
-.cmdrail-inner { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+.cmdrail-inner { position: relative; display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; justify-content: flex-end; gap: 8px 12px;
   padding: 10px 12px 8px; }
-.cmdrail-meta { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cmdrail-meta { display: flex; align-items: center; gap: 10px; min-width: 0; margin-right: auto; text-align: left; }
 .cmdrail-seal { --c: var(--gold); display: inline-grid; place-items: center; width: 38px; height: 38px;
   border: 2px solid var(--c); color: var(--c); font-family: var(--f-glyph); font-weight: 900; font-size: 1.15rem;
   border-radius: 5px; transform: rotate(-6deg); background: color-mix(in srgb, var(--c) 12%, #0d0c0b); flex: none; }
 .cmdrail-meta b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 1.05rem; }
 .cmdrail-meta span { display: block; color: var(--dim); font-size: 0.78rem; }
-#cmdrail-btns.cmds { flex: none; min-width: 0; width: 100%; margin-left: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#cmdrail-btns.cmds { flex: 0 1 auto; min-width: 0; width: min(100%, 320px); margin-left: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #cmdrail .cmd { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; padding: 6px 4px; }
 #cmdrail .cmd .cmd-glyph { font-family: var(--f-glyph); font-weight: 900; font-size: 1.05rem; line-height: 1; color: var(--gold); opacity: 0.9; }
 #cmdrail .cmd.on .cmd-glyph { color: #fff4d6; }
-#cmdrail-picker { position: relative; padding: 0 12px 10px; display: block; }
+#cmdrail-picker { position: relative; padding: 0 12px 10px; display: flex; flex-direction: column; align-items: flex-end; }
 #cmdrail-picker:empty { display: none; }
-#cmdrail-picker .picker { margin: 0 0 0 auto; background: rgba(18,17,14,0.92); width: 100%; max-width: 100%; height: auto; }
+#cmdrail-picker .picker { margin: 0 0 0 auto; background: rgba(18,17,14,0.92); width: min(100%, 360px); max-width: 100%; height: auto; }
 #cmdrail-picker .pick-hero { width: auto; align-self: stretch; }
 #mapwrap .map-fx { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
 #mapwrap canvas { position: relative; z-index: 0; }
@@ -700,7 +700,6 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
         <nav id="tabs" class="tabs">
           <button data-tab="info" class="on">지도</button><button data-tab="heroes">영웅</button><button data-tab="items">소지품</button><button data-tab="rumor">탐색</button>
         </nav>
-        <div id="panel-body"></div>
         <div id="cmdrail" hidden>
           <div class="cmdrail-wash" aria-hidden="true"></div>
           <div class="cmdrail-inner">
@@ -715,6 +714,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
           </div>
           <div id="cmdrail-picker"></div>
         </div>
+        <div id="panel-body"></div>
       </aside>
     </div>
   </section>
@@ -5231,7 +5231,7 @@ function cityCard(id) {
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${cityPop(id)} / ${cityCap(id)}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}${cityPop(id) > cityCap(id) ? ' · 정원 초과' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${isWeary(h) ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${isWeary(h) ? ' · 지침' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${isWeary(h) ? ' · 지침' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
-      <p class="hint">내정·장터·위임은 아래 명령에서 고릅니다. 농업·상업 현황을 보며 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
+      <p class="hint">내정·장터·위임은 위쪽 명령에서 고릅니다. 농업·상업 현황을 보며 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);
