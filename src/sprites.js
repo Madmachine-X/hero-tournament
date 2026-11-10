@@ -57,9 +57,15 @@ const Art = (() => {
     for (let p = 0; p < d.length; p += 4) {
       if (isMagenta(d[p], d[p + 1], d[p + 2])) d[p + 3] = 0;
     }
+    /* 테두리가 대부분 마젠타면 마젠타 배경 시트 — 어두운 옷(저승사자 흑의 등)을 배경으로 오인해 지우지 않는다 */
+    let magEdge = 0, edgeN = 0;
+    const tally = (xx, yy) => { edgeN++; if (d[(yy * w + xx) * 4 + 3] === 0) magEdge++; };
+    for (let xx = 0; xx < w; xx += 4) { tally(xx, 0); tally(xx, h - 1); }
+    for (let yy = 0; yy < h; yy += 4) { tally(0, yy); tally(w - 1, yy); }
+    const magentaSheet = magEdge > edgeN * 0.6;
     const isBg = (p) => {
       if (d[p + 3] === 0) return true;
-      return isDarkBg(d[p], d[p + 1], d[p + 2]);
+      return !magentaSheet && isDarkBg(d[p], d[p + 1], d[p + 2]);
     };
     const seen = new Uint8Array(w * h);
     const stack = [];
@@ -85,7 +91,7 @@ const Art = (() => {
       if (alpha[n] === 0) continue;
       if (!alpha[n - 1] || !alpha[n + 1] || !alpha[n - w] || !alpha[n + w]) {
         const p = n * 4;
-        if (isMagenta(d[p], d[p + 1], d[p + 2]) || isDarkBg(d[p], d[p + 1], d[p + 2])) d[p + 3] = 0;
+        if (isMagenta(d[p], d[p + 1], d[p + 2]) || (!magentaSheet && isDarkBg(d[p], d[p + 1], d[p + 2]))) d[p + 3] = 0;
         else if (d[p] > 160 && d[p + 2] > 140 && d[p + 1] < 170) d[p + 3] = 0;
       }
     }
