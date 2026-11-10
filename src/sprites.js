@@ -161,9 +161,17 @@ const Art = (() => {
     const sw = u.swing > 0 ? Math.sin((1 - Math.min(1, u.swing / 0.22)) * Math.PI) * 6 : 0;
     const lean = moving ? Math.min(0.12, spd / 900) * dir : 0;
     const stun = u.stun > 0 ? t * 22 : 0;
+    /* 말랑한 움직임: 걸을 때 눌렸다 늘어나고, 휘두를 때 앞으로 늘어나며, 맞으면 납작해진다 */
+    let sy = 1;
+    if (moving) sy = 1 + Math.sin(t * 18 + (u.bob || 0)) * 0.055;
+    else sy = 1 + Math.sin(t * 2.8 + (u.bob || 0)) * 0.018;
+    if (u.swing > 0) { const k = 1 - Math.min(1, u.swing / 0.22); sy *= k < 0.3 ? 0.9 : 1 + Math.sin((k - 0.3) / 0.7 * Math.PI) * 0.07; }
+    if (u.flash > 0) sy *= 1 - Math.min(0.12, u.flash * 0.7);
+    const sx = 1 / Math.sqrt(sy);
     c.save();
     c.translate(u.x, u.y + 10);
     c.rotate(lean);
+    c.scale(sx, sy);
     c.translate(-u.x, -(u.y + 10));
     c.translate(dir * sw, -bob);
     /* 어두운 시트도 전장에서 보이게: 은은한 실루엣 → 본체 (키잉 실패 시 보라 번짐 약화) */

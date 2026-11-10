@@ -140,6 +140,8 @@ const Battle = (() => {
     $('#b-sound').addEventListener('click', () => { Sfx.toggle(); Sfx.play('ui'); syncButtons(); });
     $('#b-skip').addEventListener('click', skipBattle);
     $('#b-retreat').addEventListener('click', () => { if (B && !B.over) finish(false, true); });
+    const pb = $('#b-potion');
+    if (pb) pb.addEventListener('click', () => { if (B) drinkPotion(B.ctrl); });
     const ob = $('#b-orders');
     ob.innerHTML = ORDERS.map((o) => `<button class="ord" data-ord="${o.id}"><kbd>${o.key}</kbd>${o.name}</button>`).join('');
     ob.addEventListener('click', (e) => { const b = e.target.closest('[data-ord]'); if (b) setOrder(b.dataset.ord); });
@@ -219,6 +221,7 @@ const Battle = (() => {
       cfg, t: 0, units: [], proj: [], fx: [], parts: [], texts: [], timers: [], over: false,
       order: 'form', ctrl: null, cam: { x: 560, y: H / 2 }, shake: 0, slowT: 0, moveTo: null, attackTarget: null,
       ground: makeGround(cfg.theme || 'field', cfg.seed || 1), mist: [], lost: 0, kills: 0, exp: {}, captured: [],
+      potions: cfg.potions != null ? cfg.potions : 3, spring: null, field: false, springT: 0,
       holdPos: {}, checkT: 0.5, paused: false, autoCtrl: prefs.auto, speed: prefs.speed, routing: false, flash: 0, darken: 0, phase: G.phase,
     };
     for (let i = 0; i < 9; i++) B.mist.push({ x: rand(0, W), y: rand(0, H), r: rand(160, 320), vx: rand(6, 18) });
@@ -295,6 +298,19 @@ const Battle = (() => {
       so.formOx = off.x; so.formOy = off.y;
       B.units.push(so);
     }
+    /* 넓은 전장: 공략전에서 적 장수가 둘 이상이면 부대마다 따로 진을 치고, 가까이 가야 덤벼든다 */
+    if (cfg.type === 'attack' && eHeroes.length >= 2 && !E.surprised && cfg.field !== false) {
+      B.field = true;
+      const spots = fieldSpots(eHeroes.length, cfg.seed || 1);
+      const byRank = eHeroes.slice().sort((a, b) => (a.boss ? 1 : 0) - (b.boss ? 1 : 0));
+      byRank.forEach((h, i) => {
+        const sp = spots[i], dx = sp.x - h.x, dy = sp.y - h.y;
+        B.units.forEach((u) => { if (u === h || (u.leader === h)) { u.x += dx; u.y += dy; } });
+        h.home = { x: h.x, y: h.y };
+      });
+    }
+    /* 혼천(魂泉): 아군 진영 뒤의 회복 샘 */
+    if (cfg.type !== 'duel') B.spring = { x: Math.max(110, px - 210), y: H / 2, r: 62 };
     // 성벽: 지키는 쪽 방어력
     if (cfg.wall && cfg.wall.value) {
       const k = 1 + cfg.wall.value / 200;
@@ -355,6 +371,22 @@ const Battle = (() => {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(loop);
     syncButtons();
+  }
+
+  /* 흩어진 적 진영 위치: 마지막(보스/대장)은 맨 안쪽, 나머지는 위아래로 엇갈려 앞쪽에 */
+  function fieldSpots(n, seed) {
+    let s = seed * 7919 + 13;
+    const R = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    const out = [];
+    const front = n - 1;
+    for (let i = 0; i < front; i++) {
+      const k = front > 1 ? i / (front - 1) : 0.5;
+      const x = 900 + k * 560 + (R() - 0.5) * 80;
+      const y = (i % 2 ? H * 0.72 : H * 0.28) + (R() - 0.5) * 120;
+      out.push({ x, y });
+    }
+    out.push({ x: 1720, y: H / 2 + (R() - 0.5) * 120 });
+    return out;
   }
 
   /* 영웅은 세로로 나란히, 혼불이 진형을 만든다. side 1 = 왼쪽(아군), -1 = 오른쪽(적) */
@@ -435,7 +467,8 @@ const Battle = (() => {
       if (f.t >= f.dur) B.fx.splice(i, 1);
     }
     updParts(dt);
-    if (!B.over) { B.checkT -= dt; if (B.checkT <= 0) { B.checkT = 0.25; checkEnd(); } }
+    if (!B.over) { B.checkT -= dt; if (B.checkT <= 0) { B.checkT = 0.25; checkEnd(); if (B.field) fieldAlert(); } }
+    if (B.spring) springTick(dt);
     if (B.t % 2 < dt) B.units = B.units.filter((u) => u.alive || u.kind === 'hero');
     camera(dt);
     B.shake = Math.max(0, B.shake - dt * 20);
@@ -556,19 +589,109 @@ const Battle = (() => {
     Sfx.play('impact');
   }
 
+  /* 진을 친 적 부대: 아군이 다가오면 깨어나고, 가까운 이웃 진영도 함께 깨운다 */
+  function sqAnchor(q) {
+    if (q.leader && q.leader.alive) return q.leader;
+    return B.units.find((u) => u.sq === q && u.alive) || null;
+  }
+  function alertSquad(q, quiet) {
+    if (!q || q.alert || q.team !== 1) return;
+    q.alert = true;
+    const a = sqAnchor(q);
+    if (a && !quiet) floatText(a.x, a.y - 40, '발각!', '#ff9a8a', 22, true);
+  }
+  function fieldAlert() {
+    const pl = B.units.filter((u) => u.team === 0 && u.alive);
+    /* 싸우는 적 부대가 하나도 없이 8초가 지나면 가장 가까운 진영이 먼저 움직인다 (교착 방지) */
+    const fighting = B.squads.some((q) => q.team === 1 && q.alert && B.units.some((u) => u.sq === q && u.alive && !u.rout));
+    B.calmT = fighting ? 0 : (B.calmT || 0) + 0.25;
+    if (B.calmT >= 8 && pl.length) {
+      B.calmT = 0;
+      const cx = pl.reduce((a, u) => a + u.x, 0) / pl.length, cy = pl.reduce((a, u) => a + u.y, 0) / pl.length;
+      let best = null, bd = 1e12;
+      for (const q of B.squads) {
+        const a = q.team === 1 && !q.alert ? sqAnchor(q) : null;
+        if (a && !a.rout) { const d = (a.x - cx) ** 2 + (a.y - cy) ** 2; if (d < bd) { bd = d; best = q; } }
+      }
+      if (best) alertSquad(best);
+    }
+    for (const q of B.squads) {
+      if (q.team !== 1 || q.alert) continue;
+      const a = sqAnchor(q);
+      if (!a) continue;
+      if (pl.some((u) => (u.x - a.x) ** 2 + (u.y - a.y) ** 2 < 360 * 360)) {
+        alertSquad(q);
+        for (const o of B.squads) {
+          const b = o.team === 1 && !o.alert ? sqAnchor(o) : null;
+          if (b && (b.x - a.x) ** 2 + (b.y - a.y) ** 2 < 260 * 260) alertSquad(o, true);
+        }
+      }
+    }
+  }
+  function campIdle(u) {
+    return B.field && u.team === 1 && u.sq && !u.sq.alert;
+  }
+
+  /* 혼천: 샘 안의 아군은 체력이 차오르고, 아군 영웅이 2초 머물면 쓰러진 동료 하나가 일어난다 (영웅마다 한 번) */
+  function springTick(dt) {
+    const sp = B.spring;
+    for (const u of B.units) {
+      if (!u.alive || u.team !== 0 || u.hp >= u.maxHp) continue;
+      if ((u.x - sp.x) ** 2 + (u.y - sp.y) ** 2 > (sp.r + u.r) ** 2) continue;
+      u.hp = Math.min(u.maxHp, u.hp + u.maxHp * (u.kind === 'hero' ? 0.05 : 0.03) * dt);
+      if (Math.random() < dt * 6) B.parts.push({ x: u.x + rand(-6, 6), y: u.y, vx: 0, vy: -40, life: 0.6, max: 0.6, size: 2.2, color: '#9ff0e6', glow: true });
+    }
+    const inSpring = B.units.some((c) => c.alive && c.team === 0 && c.kind === 'hero' && (c.x - sp.x) ** 2 + (c.y - sp.y) ** 2 < sp.r * sp.r);
+    B.springT = inSpring ? B.springT + dt : 0;
+    if (B.springT >= 2) {
+      B.springT = 0;
+      const d = B.units.find((u) => u.team === 0 && u.kind === 'hero' && !u.alive && u.down && !u.revived);
+      if (d) reviveHero(d, sp);
+    }
+  }
+  function reviveHero(u, sp) {
+    u.alive = true; u.down = false; u.revived = true;
+    u.hp = u.maxHp * 0.35; u.x = sp.x + rand(-20, 20); u.y = sp.y + rand(-20, 20); u.vx = u.vy = 0; u.invuln = 1.5;
+    if (u.sq) u.sq.leader = u.sq.leader && u.sq.leader.alive ? u.sq.leader : u;
+    ring(u.x, u.y, 6, 90, 0.7, '#9ff0e6', 4);
+    floatText(u.x, u.y - 40, `${u.name} 귀환!`, '#9ff0e6', 26, true);
+    Sfx.play('skill', false);
+  }
+
+  /* 회복약: 조종 중인 영웅의 체력을 35% 채운다 (전투마다 3개) */
+  function drinkPotion(u) {
+    if (!B || B.over || !u || !u.alive || u.kind !== 'hero') return false;
+    if (B.potions <= 0 || u.hp >= u.maxHp * 0.98) return false;
+    B.potions--;
+    const amt = Math.round(u.maxHp * 0.35);
+    u.hp = Math.min(u.maxHp, u.hp + amt);
+    ring(u.x, u.y, 4, 46, 0.45, '#8ee6a0', 3);
+    floatText(u.x, u.y - u.r - 14, '+' + amt, '#8ee6a0', 18);
+    for (let i = 0; i < 10; i++) B.parts.push({ x: u.x + rand(-10, 10), y: u.y + rand(-4, 8), vx: rand(-10, 10), vy: rand(-70, -30), life: 0.7, max: 0.7, size: 2.4, color: '#b6f5c2', glow: true });
+    Sfx.play('ui');
+    syncButtons();
+    return true;
+  }
+
   function think(u, dt) {
     if (u.dash) { dashStep(u, dt); return; }
     if (u.stun > 0) { stopU(u); return; }
     if (u.fear > 0) { setVel(u, u.x - u.fearX, u.y - u.fearY, 0.85); return; }
     if (u.rout) {
       setVel(u, u.team === 1 ? 1 : -1, rand(-0.3, 0.3), 1.15);
-      if (u.x > W - 6 || u.x < 6) { u.alive = false; u.fled = true; }
+      if (u.x > W - 18 || u.x < 18) { u.alive = false; u.fled = true; }
       return;
     }
     if (u === B.ctrl && !B.autoCtrl) {
       if (keyVec() || B.attackTarget || (B.moveTo && B.order !== 'form')) { ctrlThink(u); return; }
       if (B.order !== 'form') { ctrlThink(u); return; }
     }
+    if ((u.kind === 'hero' || u.captain) && campIdle(u)) {
+      const hm = u.home || (u.home = { x: u.x, y: u.y });
+      moveTo(u, hm.x, hm.y, 0.5);
+      return;
+    }
+    if (u === B.ctrl && B.autoCtrl && u.kind === 'hero' && u.hp < u.maxHp * 0.3 && B.potions > 0 && !B.ffwd) drinkPotion(u);
     if (u.kind === 'hero' || u.captain) {
       if (u.team === 0) allyThink(u); else enemyThink(u);
       u.aiT = (u.aiT || 0) - dt;
@@ -590,7 +713,23 @@ const Battle = (() => {
 
   function ctrlThink(u) {
     const kv = keyVec();
-    if (kv) { B.moveTo = null; B.attackTarget = null; setVel(u, kv.x, kv.y); u.face = Math.atan2(kv.y, kv.x); return; }
+    if (kv) {
+      B.moveTo = null; B.attackTarget = null; setVel(u, kv.x, kv.y); u.face = Math.atan2(kv.y, kv.x);
+      /* 부딪혀 공격: 가는 방향 바로 앞의 적은 걸어 들어가기만 해도 벤다 */
+      const reach = u.ranged ? 26 : u.range + 6;
+      const kl = Math.hypot(kv.x, kv.y);
+      let best = null, bd = 1e9;
+      for (const o of foesNear(u, u.x, u.y, u.r + reach)) {
+        const dx = o.x - u.x, dy = o.y - u.y, d = Math.hypot(dx, dy) || 1;
+        if ((dx * kv.x + dy * kv.y) / (d * kl) < 0.2) continue;
+        if (d < bd) { bd = d; best = o; }
+      }
+      if (best) {
+        u.vx *= 0.25; u.vy *= 0.25;
+        if (u.atkT <= 0) { u.face = Math.atan2(best.y - u.y, best.x - u.x); attack(u, best); u.atkT = u.atkCd * (0.9 + Math.random() * 0.2); }
+      }
+      return;
+    }
     if (B.attackTarget && B.attackTarget.alive) { engage(u, B.attackTarget); return; }
     B.attackTarget = null;
     if (B.moveTo) { if (moveTo(u, B.moveTo.x, B.moveTo.y)) B.moveTo = null; return; }
@@ -613,7 +752,7 @@ const Battle = (() => {
     if (B.moveTo) return { x: B.moveTo.x, y: B.moveTo.y };
     const lead = c || B.units.find((u) => u.team === 0 && (u.kind === 'hero' || u.captain) && u.alive);
     const t = lead ? nearestFoe(lead, 99999) : null;
-    if (t) return { x: t.x - 200, y: B.formCy != null ? B.formCy : H / 2 };
+    if (t) return { x: t.x - 200, y: B.field ? t.y : B.formCy != null ? B.formCy : H / 2 };
     return { x: B.formCx != null ? B.formCx : 380, y: B.formCy != null ? B.formCy : H / 2 };
   }
   function allyThink(u) {
@@ -676,7 +815,8 @@ const Battle = (() => {
     const home = u.home || (u.home = { x: u.x, y: u.y });
     if (B.cfg.enemy.surprised && B.t < (B.cfg.enemy.surpriseT || 5)) { const n = nearestFoe(u, 100); if (n) engage(u, n); else stopU(u); return; }
     const temper = enemyTemper(u);
-    if (attackerSide || temper === 'rush') {
+    /* 넓은 전장에서 깨어난 부대는 퍼스트퀸처럼 곧장 달려든다 */
+    if (attackerSide || temper === 'rush' || (B.field && u.sq && u.sq.alert)) {
       const t = nearestFoe(u, 99999);
       if (t) { if (dist(u, t) > 200) marchTo(u, t.x, t.y); else engage(u, t); } else stopU(u);
       return;
@@ -715,7 +855,7 @@ const Battle = (() => {
     let t = nearestFoe(u, u.ranged ? u.range + 20 : 85);
     // 지휘관 곁을 크게 벗어나지 않는다 (궁수는 사거리 안에서)
     if (!t && lok) t = nearestFoe(u, ord === 'hold' ? 120 : u.ranged ? u.range + 40 : 170, L);
-    if (!t && !lok) t = nearestFoe(u, 99999);
+    if (!t && !lok && !campIdle(u)) t = nearestFoe(u, 99999);
     if (t) { u.tgt = t; engage(u, t); return; }
     if (lok) {
       const ox = u.formOx, oy = u.formOy;
@@ -799,6 +939,7 @@ const Battle = (() => {
   /* ---------- 피해 ---------- */
   function hit(src, t, amt, o = {}) {
     if (!t || !t.alive || t.invuln > 0) return 0;
+    if (B.field && t.team === 1 && t.sq && !t.sq.alert) alertSquad(t.sq);
     let d = o.pure ? amt : (amt * 40) / (40 + t.def * (1 + t.buffDef));
     d *= (0.9 + Math.random() * 0.2) * DMG_SCALE;
     let crit = false;
@@ -1799,6 +1940,27 @@ const Battle = (() => {
     if (wt === 'brush') { c.fillStyle = '#111'; c.beginPath(); c.arc(ex, ey, 2.6, 0, Math.PI * 2); c.fill(); }
   }
 
+  function drawSpring(c, sp, t) {
+    c.save();
+    const g = c.createRadialGradient(sp.x, sp.y, 4, sp.x, sp.y, sp.r * 1.25);
+    g.addColorStop(0, 'rgba(160,240,230,0.55)'); g.addColorStop(0.55, 'rgba(70,170,180,0.28)'); g.addColorStop(1, 'rgba(40,120,140,0)');
+    c.fillStyle = g; c.beginPath(); c.ellipse(sp.x, sp.y, sp.r * 1.25, sp.r * 0.8, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = `rgba(160,240,230,${0.35 + Math.sin(t * 2.4) * 0.15})`; c.lineWidth = 2;
+    c.beginPath(); c.ellipse(sp.x, sp.y, sp.r, sp.r * 0.62, 0, 0, Math.PI * 2); c.stroke();
+    for (let i = 0; i < 4; i++) {
+      const k = ((t * 0.6 + i / 4) % 1);
+      c.globalAlpha = (1 - k) * 0.6; c.fillStyle = '#c8fff6';
+      c.beginPath(); c.arc(sp.x + Math.sin(i * 2.1 + t) * sp.r * 0.5, sp.y - k * 40, 2.4, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 0.75; c.font = `700 14px ${FONT_GLYPH}`; c.fillStyle = '#c8fff6'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('혼천 魂泉', sp.x, sp.y + sp.r * 0.62 + 14);
+    if (B.springT > 0 && B.units.some((u) => u.team === 0 && u.kind === 'hero' && !u.alive && u.down && !u.revived)) {
+      c.globalAlpha = 0.9; c.strokeStyle = '#9ff0e6'; c.lineWidth = 3;
+      c.beginPath(); c.arc(sp.x, sp.y - sp.r * 0.9, 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, B.springT / 2)); c.stroke();
+    }
+    c.restore();
+  }
+
   function drawUnit(c, u) {
     const t = B.t;
     if (!u.alive) {
@@ -1917,9 +2079,10 @@ const Battle = (() => {
     g.width = W; g.height = H;
     const c = g.getContext('2d');
     const pal = {
-      field: ['#1e2219', '#13150f'], mist: ['#1a2023', '#101416'], north: ['#20242a', '#121519'],
-      coast: ['#1f2119', '#131510'], ruin: ['#211f1b', '#141311'],
-    }[theme] || ['#1e2219', '#13150f'];
+      /* 검은 옷 장수(저승사자 등)가 묻히지 않게 바닥은 흙빛 중간 밝기로 */
+      field: ['#8c8664', '#6c6a4e'], mist: ['#7e8a85', '#5f6b67'], north: ['#9ba1a7', '#7b828a'],
+      coast: ['#90876a', '#706a52'], ruin: ['#8b806b', '#6b6251'],
+    }[theme] || ['#8c8664', '#6c6a4e'];
     const lg = c.createLinearGradient(0, 0, W, H);
     lg.addColorStop(0, pal[0]); lg.addColorStop(1, pal[1]);
     c.fillStyle = lg; c.fillRect(0, 0, W, H);
@@ -1927,12 +2090,12 @@ const Battle = (() => {
       const x = R() * W, y = R() * H, r = 30 + R() * 150;
       const rg = c.createRadialGradient(x, y, 0, x, y, r);
       const light = R() < 0.35;
-      rg.addColorStop(0, light ? 'rgba(120,110,90,0.07)' : 'rgba(0,0,0,0.16)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+      rg.addColorStop(0, light ? 'rgba(235,225,195,0.10)' : 'rgba(40,34,24,0.10)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
       c.fillStyle = rg; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
     }
-    for (let i = 0; i < 3500; i++) { c.fillStyle = `rgba(${R() < 0.5 ? '200,190,160' : '0,0,0'},${0.04 + R() * 0.06})`; c.fillRect(R() * W, R() * H, 1.4, 1.4); }
+    for (let i = 0; i < 3500; i++) { c.fillStyle = `rgba(${R() < 0.5 ? '235,228,205' : '50,42,30'},${0.05 + R() * 0.07})`; c.fillRect(R() * W, R() * H, 1.4, 1.4); }
     // 길
-    c.strokeStyle = 'rgba(130,112,84,0.08)'; c.lineCap = 'round';
+    c.strokeStyle = 'rgba(190,170,130,0.16)'; c.lineCap = 'round';
     for (let k = 0; k < 4; k++) {
       c.lineWidth = 90 - k * 18;
       c.beginPath(); c.moveTo(-20, H * 0.52);
@@ -1940,7 +2103,7 @@ const Battle = (() => {
       c.stroke();
     }
     // 풀
-    c.strokeStyle = 'rgba(110,120,80,0.22)'; c.lineWidth = 1;
+    c.strokeStyle = 'rgba(70,82,44,0.35)'; c.lineWidth = 1;
     for (let i = 0; i < 900; i++) { const x = R() * W, y = R() * H; c.beginPath(); c.moveTo(x, y); c.lineTo(x + R() * 4 - 2, y - 3 - R() * 4); c.stroke(); }
     if (theme === 'coast') {
       const wg = c.createLinearGradient(0, 0, 0, 170);
@@ -1958,7 +2121,7 @@ const Battle = (() => {
       drawDeco(c, deco[Math.floor(R() * deco.length)], x, y, 0.8 + R() * 0.6, R);
     }
     const vg = c.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.28)');
     c.fillStyle = vg; c.fillRect(0, 0, W, H);
     return g;
   }
@@ -2013,6 +2176,7 @@ const Battle = (() => {
     const ox = vw / 2 - B.cam.x * Z + shx, oy = vh / 2 - B.cam.y * Z + shy;
     c.setTransform(DPR * Z, 0, 0, DPR * Z, DPR * ox, DPR * oy);
     c.drawImage(B.ground, 0, 0);
+    if (B.spring) drawSpring(c, B.spring, B.t);
     if (B.moveTo && B.ctrl) {
       c.strokeStyle = 'rgba(232,192,80,0.6)'; c.lineWidth = 1.5;
       c.beginPath(); c.arc(B.moveTo.x, B.moveTo.y, 8 + Math.sin(B.t * 8) * 2, 0, Math.PI * 2); c.stroke();
@@ -2095,7 +2259,7 @@ const Battle = (() => {
     }
     // 화면 효과
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
-    const tint = ['rgba(0,0,0,0)', 'rgba(190,100,40,0.12)', 'rgba(8,16,48,0.42)'][B.phase] || 'rgba(0,0,0,0)';
+    const tint = ['rgba(0,0,0,0)', 'rgba(190,100,40,0.10)', 'rgba(8,16,48,0.30)'][B.phase] || 'rgba(0,0,0,0)';
     c.fillStyle = tint; c.fillRect(0, 0, vw, vh);
     if (B.darken > 0) { c.fillStyle = `rgba(4,6,14,${B.darken * 0.45})`; c.fillRect(0, 0, vw, vh); }
     const vg = c.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.35, vw / 2, vh / 2, Math.max(vw, vh) * 0.75);
@@ -2144,6 +2308,7 @@ const Battle = (() => {
     if (code === 'KeyQ') manualCast(B.ctrl, 0);
     else if (code === 'KeyE') manualCast(B.ctrl, 1);
     else if (code === 'Tab') cycleCtrl();
+    else if (code === 'KeyH') drinkPotion(B.ctrl);
     else if (code === 'Space') togglePause();
     else if (code === 'KeyF') { B.speed = B.speed >= 3 ? 1 : B.speed + 1; prefs.speed = B.speed; syncButtons(); }
     else if (code === 'KeyM') { Sfx.toggle(); syncButtons(); }
@@ -2235,6 +2400,8 @@ const Battle = (() => {
   function syncButtons() {
     if (!B) return;
     $('#b-pause').textContent = B.paused ? '계속' : '일시정지';
+    const pb = $('#b-potion');
+    if (pb) { pb.textContent = `회복약 ${B.potions} (H)`; pb.disabled = B.potions <= 0 || !!B.over; }
     $('#b-auto').classList.toggle('on', B.autoCtrl);
     $('#b-sound').textContent = Sfx.on ? '소리 켜짐' : '소리 꺼짐';
     $('#b-sound').classList.toggle('on', Sfx.on);
@@ -2414,5 +2581,5 @@ const Battle = (() => {
     manualCast(u, k);
     return true;
   }
-  return { init, start, stop, resize, fastForward, state, setOrder, debugCast };
+  return { init, start, stop, resize, fastForward, state, setOrder, debugCast, drinkPotion: () => drinkPotion(B && B.ctrl) };
 })();
