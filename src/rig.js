@@ -23,28 +23,22 @@ const Rig = (() => {
       },
     },
   };
-  /* 갑옷: 몸과 따로 그린 겉옷 조각. 장착한 갑옷 아이템에 따라 덧입힌다 (없으면 기본 저고리) */
+  /* 갑옷: 몸과 따로 그린 조각. 몸통은 갑옷 입은 몸통으로 통째로 바꾸고, 팔에는 팔찌를 덧입힌다 (없으면 기본 저고리) */
   const ARMOR = {
     chalgap: {
       src: 'img/rig/armor_chalgap.png',
       parts: {
-        vest: { r: [0, 0, 107, 207], pv: [50.2, 152.1] },
-        skirt: { r: [109, 0, 109, 164], pv: [59.8, 7.9] },
-        pauF: { r: [220, 0, 61, 63], pv: [28.8, 16.1] },
-        pauB: { r: [283, 0, 61, 63], pv: [28.8, 16.1] },
-        brcF: { r: [346, 0, 30, 60], pv: [19, 2.4] },
-        brcB: { r: [378, 0, 30, 60], pv: [19, 2.4] },
+        torso: { r: [0, 0, 98, 232], pv: [53.9, 207.9] },
+        brcF: { r: [100, 0, 30, 60], pv: [19.0, 2.4] },
+        brcB: { r: [132, 0, 30, 60], pv: [19.0, 2.4] },
       },
     },
     dujeong: {
       src: 'img/rig/armor_dujeong.png',
       parts: {
-        vest: { r: [0, 0, 112, 236], pv: [50.5, 152.0] },
-        skirt: { r: [114, 0, 104, 159], pv: [46.2, 3.7] },
-        pauF: { r: [220, 0, 53, 64], pv: [27.5, 15] },
-        pauB: { r: [275, 0, 53, 64], pv: [27.5, 15] },
-        brcF: { r: [330, 0, 22, 59], pv: [11, 2.6] },
-        brcB: { r: [354, 0, 22, 59], pv: [11, 2.6] },
+        torso: { r: [0, 0, 110, 257], pv: [56.9, 207.9] },
+        brcF: { r: [112, 0, 22, 59], pv: [11.0, 2.6] },
+        brcB: { r: [136, 0, 22, 59], pv: [11.0, 2.6] },
       },
     },
   };
@@ -209,21 +203,16 @@ const Rig = (() => {
       part(c, im, fa);
       if (AR) { c.save(); at(c, fa, fa.cuff); part(c, AR.im, AR.P['brc' + side]); c.restore(); }
       c.restore();
-      /* 어깨받이는 팔을 따라 반쯤만 돈다 */
-      if (AR) { c.save(); c.rotate(-ang * 0.45); part(c, AR.im, AR.P['pau' + side]); c.restore(); }
       c.restore();
     };
-    const beltX = torso.belt[0] - torso.pv[0], beltY = torso.belt[1] - torso.pv[1];
-    /* 그리는 순서: 뒷팔(몸 뒤) → 다리 → 갑옷 치마 → 머리 → 몸통 → 갑옷 몸판 → 앞팔(칼) */
+    /* 그리는 순서: 뒷팔(몸 뒤) → 다리 → 머리 → 몸통(갑옷이면 갑옷 몸통) → 앞팔(칼) */
     c.save(); c.rotate(P.lean); drawArm('B', false); c.restore();
     drawLeg('B');
     drawLeg('F');
-    if (AR) { c.save(); c.rotate(P.lean); c.translate(beltX, beltY); c.rotate(-P.lean * 0.4 + P.skirt); part(c, AR.im, AR.P.skirt); c.restore(); }
     c.save();
     c.rotate(P.lean);
     c.save(); at(c, torso, torso.neck); c.rotate(P.head); part(c, im, Pp.head); c.restore();
-    part(c, im, torso);
-    if (AR) { c.save(); c.translate(beltX, beltY); part(c, AR.im, AR.P.vest); c.restore(); }
+    if (AR) part(c, AR.im, AR.P.torso); else part(c, im, torso);
     drawArm('F', true);
     c.restore();
     c.restore();
