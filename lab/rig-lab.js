@@ -145,8 +145,9 @@ const RigLab = (() => {
     if (M && sw > 0) {
       const n = M.guard.lean.length;
       /* 겨눔: 실제 동작을 앞뒤로 오가며 반복(숨 쉬듯 미세하게 흔들림) */
-      const ph = (t * 30) % (2 * n - 2), f = ph < n ? ph : 2 * n - 2 - ph;
-      const Q = sample(M.guard, f, false); Q.rx = 0;
+      /* 겨눔 = 베기 동작의 첫 장면 그대로(그래야 벨 때 튀지 않는다) + 숨 쉬는 정도의 미세한 흔들림 */
+      const Q = sample(M.strike, 0, false); Q.rx = 0;
+      Q.uF += br * 0.015; Q.sw += br * 0.02; Q.lean += br * 0.006;
       mix(P, Q, ease(sw));
     }
     const rest = Object.assign({}, P);
@@ -154,10 +155,10 @@ const RigLab = (() => {
       const S = M.strike, n = S.lean.length;
       let f = -1, coil = 0; P.sk = -1;
       const wu = sw > 0.5 && !(u.atkE >= 0) ? clamp01(1 - (u.atkT || 0) / PRE) : 0;
-      if (wu > 0) { f = 0; coil = smooth(wu); }
+      /* 준비 동작(칼을 한 번 더 젖히기)은 움찔거려 보여서 뺐다: 겨눈 자세에서 곧바로 내려벤다 */
       const e = u.atkE;
       if (e >= 0) {
-        if (e < T_SW) { const k = e / T_SW; f = IMP * k * k; coil = 1 - k; }         /* 점점 빨라지며 내려벤다 */
+        if (e < T_SW) { const k = e / T_SW; f = IMP * k * k; }         /* 점점 빨라지며 내려벤다 */
         else if (e < T_STOP) f = IMP;                                                 /* 히트스톱 */
         else if (e < T_FOL) { const k = (e - T_STOP) / (T_FOL - T_STOP); f = IMP + (BOT - IMP) * (1 - (1 - k) * (1 - k)); }
         else if (e < T_HOLD) f = BOT;                                                 /* 끝자세 버티기 */
@@ -167,10 +168,8 @@ const RigLab = (() => {
         const Q = sample(S, f, false); Q.rx -= S.rx[0];
         /* 준비: 칼을 조금 더 젖히고 몸을 뒤로 */
         Q.sw -= 0.25 * coil; Q.uF -= 0.12 * coil; Q.lean -= 0.08 * coil; Q.rx -= 0.5 * coil;
-        if (e >= T_HOLD && e < T_HOLD + 0.05) Q.lean += 0.02 * Math.sin(Math.PI * (e - T_HOLD) / 0.05); /* 살짝 더 나갔다 */
         let k = 1;
-        if (!(e >= 0)) k = clamp01(wu * 2.5);
-        else if (e > BACK - 0.12) k = clamp01((BACK - e) / 0.12);
+        if (e > BACK - 0.12) k = clamp01((BACK - e) / 0.12);
         mix(P, Q, smooth(k));
         P.sk = f <= BOT ? f / BOT : 1 - (f - BOT) / (n - 1 - BOT); /* 0 = 젖힘, 1 = 다 내려벰 */
       }
