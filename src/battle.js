@@ -533,6 +533,7 @@ const Battle = (() => {
     if (d > u.range) { moveTo(u, t.x, t.y); return; }
     stopU(u);
     u.face = Math.atan2(t.y - u.y, t.x - u.x);
+    u.reachT = B.t;
     if (u.atkT <= 0) { attack(u, t); u.atkT = u.atkCd * (0.9 + Math.random() * 0.2); }
   }
 
@@ -725,7 +726,7 @@ const Battle = (() => {
         if (d < bd) { bd = d; best = o; }
       }
       if (best) {
-        u.vx *= 0.25; u.vy *= 0.25;
+        u.vx *= 0.25; u.vy *= 0.25; u.reachT = B.t;
         if (u.atkT <= 0) { u.face = Math.atan2(best.y - u.y, best.x - u.x); attack(u, best); u.atkT = u.atkCd * (0.9 + Math.random() * 0.2); }
       }
       return;
