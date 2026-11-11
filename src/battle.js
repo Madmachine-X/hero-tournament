@@ -179,6 +179,8 @@ const Battle = (() => {
       cdr: s.cdr, squad: s.squad, style: s.style, hiddenOn: s.hiddenOn, lea: s.lea, level: level != null ? level : G.heroes[hid].level,
       w1: w1 ? w1.wtype : null, w2: w2 ? w2.wtype : null,
     });
+    /* 뼈대 그림용: 입은 갑옷·든 무기 아이템 */
+    u.armorId = eq.armor || null; u.w1Id = eq.w1 || null;
     const basic = (typeof heroBasicSkill === 'function' ? heroBasicSkill(hid) : null) || d.skill;
     const hidSk = (typeof heroHiddenSkill === 'function' ? heroHiddenSkill(hid) : null) || d.hidden;
     u.skills = [{ id: basic, t: 1.5 + Math.random() * 2, hidden: false }];

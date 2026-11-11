@@ -7,34 +7,76 @@ const Rig = (() => {
   const DEFS = {
     hero: {
       src: 'img/rig/hero.png',
-      height: 470, /* 서 있을 때 머리끝~발끝 (아틀라스 단위) */
+      height: 480, /* 서 있을 때 머리끝~발끝 (아틀라스 단위) */
+      leg: 191,    /* 엉덩이~발바닥 */
       parts: {
-        sword: { r: [0, 0, 40, 323], pv: [18, 250] },
-        skirt: { r: [42, 0, 162, 249], pv: [81, 6] },
-        torso: { r: [206, 0, 90, 183], pv: [64, 104], neck: [46, 10], shB: [16, 50], shF: [52, 46], hipB: [54, 128], hipF: [68, 128], belt: [64, 104] },
-        head: { r: [298, 0, 112, 177], pv: [52, 138] },
-        thighB: { r: [412, 0, 58, 134], pv: [29, 10], knee: [30, 122] },
-        thighF: { r: [472, 0, 57, 134], pv: [29, 10], knee: [30, 122] },
-        bootB: { r: [531, 0, 55, 115], pv: [21, 6] },
-        bootF: { r: [631, 0, 64, 114], pv: [19, 6] },
-        farmF: { r: [697, 0, 51, 105], pv: [18, 6], grip: [38, 92] },
-        farmB: { r: [750, 0, 53, 104], pv: [17, 6] },
-        uarmB: { r: [805, 0, 41, 84], pv: [20, 6], elbow: [22, 76] },
-        uarmF: { r: [848, 0, 38, 84], pv: [19, 6], elbow: [21, 76] },
-        flame: { r: [588, 0, 41, 115], pv: [20, 108] },
+        head: { r: [103, 0, 105, 117], pv: [51.1, 103.1] },
+        torso: { r: [0, 0, 101, 259], pv: [50.9, 208], neck: [49.5, 12.3], shF: [31.3, 54.8], shB: [22.9, 53.7], belt: [60.7, 153.5] },
+        uarmF: { r: [554, 0, 48, 96], pv: [27.1, 11.6], elbow: [24, 82.2] },
+        uarmB: { r: [604, 0, 48, 96], pv: [27.1, 11.6], elbow: [24, 82.2] },
+        farmF: { r: [654, 0, 43, 84], pv: [13.6, 4.7], grip: [31, 73.6], cuff: [18.6, 23.3] },
+        farmB: { r: [699, 0, 43, 84], pv: [13.6, 4.7], grip: [31, 73.6], cuff: [18.6, 23.3] },
+        thighF: { r: [382, 0, 85, 108], pv: [47, 5.5], knee: [35.6, 98] },
+        shinF: { r: [210, 0, 85, 110], pv: [35.6, 11.4] },
+        thighB: { r: [469, 0, 83, 108], pv: [46.1, 5.5], knee: [34.7, 98] },
+        shinB: { r: [297, 0, 83, 109], pv: [34.7, 11.4] },
       },
     },
   };
+  /* 갑옷: 몸과 따로 그린 겉옷 조각. 장착한 갑옷 아이템에 따라 덧입힌다 (없으면 기본 저고리) */
+  const ARMOR = {
+    chalgap: {
+      src: 'img/rig/armor_chalgap.png',
+      parts: {
+        vest: { r: [0, 0, 107, 207], pv: [50.2, 152.1] },
+        skirt: { r: [109, 0, 109, 164], pv: [59.8, 7.9] },
+        pauF: { r: [220, 0, 61, 63], pv: [28.8, 16.1] },
+        pauB: { r: [283, 0, 61, 63], pv: [28.8, 16.1] },
+        brcF: { r: [346, 0, 30, 60], pv: [19, 2.4] },
+        brcB: { r: [378, 0, 30, 60], pv: [19, 2.4] },
+      },
+    },
+    dujeong: {
+      src: 'img/rig/armor_dujeong.png',
+      parts: {
+        vest: { r: [0, 0, 112, 236], pv: [50.5, 152.0] },
+        skirt: { r: [114, 0, 104, 159], pv: [46.2, 3.7] },
+        pauF: { r: [220, 0, 53, 64], pv: [27.5, 15] },
+        pauB: { r: [275, 0, 53, 64], pv: [27.5, 15] },
+        brcF: { r: [330, 0, 22, 59], pv: [11, 2.6] },
+        brcB: { r: [354, 0, 22, 59], pv: [11, 2.6] },
+      },
+    },
+  };
+  const ARMOR_OF = { a_chalgap: 'chalgap', a_yongrin: 'chalgap', a_dujeong: 'dujeong' };
+  /* 무기: 손에 쥐는 별도 조각. 지금은 무명의 환도 하나 */
+  const WEAPONS = {
+    hwando: {
+      src: 'img/rig/wpn_hwando.png',
+      parts: {
+        blade: { r: [0, 0, 32, 254], pv: [11.1, 185.3], tip: [18.7, 0.9] },
+      },
+    },
+  };
+  const WEAPON_OF = { w_hwando: 'hwando' };
   const imgs = Object.create(null);
-
-  function has(id) {
-    const d = DEFS[id];
-    if (!d) return false;
-    if (!imgs[id]) { const im = new Image(); im.src = d.src; imgs[id] = im; }
-    const im = imgs[id];
-    return im.complete && im.naturalWidth > 0;
+  function img(src) {
+    let im = imgs[src];
+    if (!im) { im = new Image(); im.src = src; imgs[src] = im; }
+    return im.complete && im.naturalWidth > 0 ? im : null;
   }
-  function warm() { Object.keys(DEFS).forEach(has); }
+  function has(id) { const d = DEFS[id]; return !!(d && img(d.src)); }
+  function warm() {
+    Object.values(DEFS).forEach((d) => img(d.src));
+    Object.values(ARMOR).forEach((d) => img(d.src));
+    Object.values(WEAPONS).forEach((d) => img(d.src));
+  }
+  /* 입은 갑옷·든 무기 → 그림 세트 (그림이 아직 안 불렸으면 없이 그린다) */
+  function armorSet(u) { const a = ARMOR[ARMOR_OF[u.armorId]]; const im = a && img(a.src); return im ? { im, P: a.parts } : null; }
+  function weaponSet(u) {
+    const key = WEAPON_OF[u.w1Id] || ((!u.w1 || u.w1 === 'sword' || u.w1 === 'dagger') ? 'hwando' : 'hwando');
+    const w = WEAPONS[key]; const im = w && img(w.src); return im ? { im, P: w.parts } : null;
+  }
 
   const ease = (k) => k * k * (3 - 2 * k);
   const clamp01 = (k) => Math.max(0, Math.min(1, k));
@@ -68,7 +110,7 @@ const Rig = (() => {
     const swing = 0.42 * s * w;
     const P = {
       /* 다리를 벌린 만큼 엉덩이가 내려가야 발이 땅에 붙어 있다 */
-      bodyY: 224 * (1 - Math.cos(swing)) + br * 1.5 * (1 - w),
+      bodyY: (DEFS[u.hid].leg || 191) * (1 - Math.cos(swing)) + br * 1.5 * (1 - w),
       lean: 0.06 * w + br * 0.012,
       head: -0.03 * w + Math.sin(t * 2.1 + 0.6 + (u.bob || 0)) * 0.03,
       thighF: -swing, thighB: swing,
@@ -107,14 +149,15 @@ const Rig = (() => {
 
   function draw(c, u, t, gy, dir, hPx, dtHint) {
     const d = DEFS[u.hid];
-    const im = imgs[u.hid];
+    const im = img(d.src);
     const Pp = d.parts;
+    const AR = armorSet(u), WP = weaponSet(u);
     const spd = Math.hypot(u.vx || 0, u.vy || 0);
     const moving = spd > 12 && (u.stun || 0) <= 0;
     /* 걸음 위상은 실제 이동 거리로 진행: 미끄러지지 않게 */
     const dt = Math.min(0.05, Math.max(0, t - (u.rigT != null ? u.rigT : t)));
     u.rigT = t;
-    u.walkPh = (u.walkPh || 0) + spd * dt * 0.085;
+    u.walkPh = (u.walkPh || 0) + spd * dt * 0.1;
     u.walkW = (u.walkW || 0) + ((moving ? 1 : 0) - (u.walkW || 0)) * Math.min(1, dt * 8);
     /* 전투 쪽에서 공격이 새로 시작되면(swing 값이 다시 올라가면) 내려베기를 처음부터 재생 */
     if ((u.swing || 0) > (u.lastSwing || 0) + 0.01) { u.atkE = 0; u.trail = []; }
@@ -124,61 +167,63 @@ const Rig = (() => {
     u.stanceW = clamp01((u.stanceW || 0) + (near ? 1 : -1) * dt * 5);
     const P = pose(u, t);
     const k = hPx / d.height;
+    const torso = Pp.torso;
     c.save();
     c.translate(u.x, gy);
     c.scale(dir * k * P.sx, k * P.sy);
-    /* 엉덩이 위치: 다리 길이만큼 위 */
-    c.translate(0, -232 + P.bodyY);
-    const torso = Pp.torso;
+    /* 원점 = 엉덩이 (다리 길이만큼 위) */
+    c.translate(0, -d.leg + P.bodyY);
     const drawLeg = (side) => {
-      const th = Pp['thigh' + side], bt = Pp['boot' + side];
+      const th = Pp['thigh' + side], sh = Pp['shin' + side];
       c.save();
       c.rotate(P.lean * 0.3);
-      c.translate((side === 'F' ? 6 : -6), 0);
+      c.translate(side === 'F' ? 4 : -4, 0);
       c.rotate(P['thigh' + side]);
       part(c, im, th);
       at(c, th, th.knee);
       c.rotate(P['knee' + side]);
-      part(c, im, bt);
+      part(c, im, sh);
       c.restore();
     };
+    /* 팔: 몸통 기준 어깨에서 시작. 갑옷이 있으면 어깨받이·팔찌를 같은 뼈에 덧입힌다 */
     const drawArm = (side, withSword) => {
       const ua = Pp['uarm' + side], fa = Pp['farm' + side];
+      const ang = -P.lean + P['uarm' + side];
       c.save();
       at(c, torso, torso['sh' + side]);
       if (withSword && c.getTransform) u.shW = c.getTransform().transformPoint({ x: 0, y: 0 });
-      c.rotate(-P.lean + P['uarm' + side]);
+      c.rotate(ang);
       part(c, im, ua);
+      c.save();
       at(c, ua, ua.elbow);
       c.rotate(P['farm' + side]);
-      if (withSword) {
-        c.save(); at(c, fa, fa.grip); c.rotate(P.sword); c.scale(0.68, 0.68); part(c, im, Pp.sword);
+      if (withSword && WP) {
+        const bl = WP.P.blade;
+        c.save(); at(c, fa, fa.grip); c.rotate(P.sword); part(c, WP.im, bl);
         if (u.atkE >= 0 && u.atkE < OVER + 0.04 && c.getTransform) {
-          const m = c.getTransform();
-          const tip = m.transformPoint({ x: 0, y: -250 });
+          const tip = c.getTransform().transformPoint({ x: bl.tip[0] - bl.pv[0], y: bl.tip[1] - bl.pv[1] });
           (u.trail || (u.trail = [])).push({ tip, sh: u.shW, t });
         }
         c.restore();
       }
       part(c, im, fa);
+      if (AR) { c.save(); at(c, fa, fa.cuff); part(c, AR.im, AR.P['brc' + side]); c.restore(); }
+      c.restore();
+      /* 어깨받이는 팔을 따라 반쯤만 돈다 */
+      if (AR) { c.save(); c.rotate(-ang * 0.45); part(c, AR.im, AR.P['pau' + side]); c.restore(); }
       c.restore();
     };
-    /* 다리 → 치마 → 몸통·머리 → 팔(소매 구멍을 덮도록 몸통 위) → 칼 든 팔 */
+    const beltX = torso.belt[0] - torso.pv[0], beltY = torso.belt[1] - torso.pv[1];
+    /* 그리는 순서: 뒷팔(몸 뒤) → 다리 → 갑옷 치마 → 머리 → 몸통 → 갑옷 몸판 → 앞팔(칼) */
+    c.save(); c.rotate(P.lean); drawArm('B', false); c.restore();
     drawLeg('B');
     drawLeg('F');
-    c.save(); c.rotate(P.lean * 0.6 + P.skirt); part(c, im, Pp.skirt); c.restore();
+    if (AR) { c.save(); c.rotate(P.lean); c.translate(beltX, beltY); c.rotate(-P.lean * 0.4 + P.skirt); part(c, AR.im, AR.P.skirt); c.restore(); }
     c.save();
     c.rotate(P.lean);
+    c.save(); at(c, torso, torso.neck); c.rotate(P.head); part(c, im, Pp.head); c.restore();
     part(c, im, torso);
-    c.save(); at(c, torso, torso.neck); c.rotate(P.head); part(c, im, Pp.head);
-    /* 두건 위 혼불이 일렁인다 */
-    c.globalCompositeOperation = 'lighter';
-    const fl = Pp.flame;
-    c.globalAlpha *= 0.55 + Math.sin(t * 7 + (u.bob || 0)) * 0.15;
-    c.translate(-2, -112); c.rotate(Math.sin(t * 5) * 0.12); c.scale(0.45, 0.42 + Math.sin(t * 9) * 0.05);
-    part(c, im, fl);
-    c.restore();
-    drawArm('B', false);
+    if (AR) { c.save(); c.translate(beltX, beltY); part(c, AR.im, AR.P.vest); c.restore(); }
     drawArm('F', true);
     c.restore();
     c.restore();
