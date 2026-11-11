@@ -30,8 +30,8 @@ const H=300, GY=470, WALK=318*(H/477)/1.15; /* 한 주기 1.15초 */
 const us=[
  {label:'서 있기', x:120, mode:'idle'},
  {label:'걷기', x:390, mode:'walk'},
- {label:'한 손 베기', x:700, mode:'atk', cd:1.7, grip:'one'},
- {label:'양손 베기', x:1060, mode:'atk', cd:1.7, grip:'two', atkT:0.9},
+ {label:'한 손 베기', gl:'환도 베기', x:700, mode:'atk', cd:1.7, grip:'one', gw:'w_hwando'},
+ {label:'양손 베기', gl:'학우선 부채질', x:1060, mode:'atk', cd:1.7, grip:'two', atkT:0.9},
 ].map(o=>Object.assign({hid:'hero',y:GY,r:12,vx:0,vy:0,bob:Math.random()*6,swing:0,lastSwing:0,w1Id:'w_hwando'},{atkT:1.2},o));
 let scroll=0;
 function frame(now){
@@ -46,12 +46,12 @@ function render(dt){
   c.strokeStyle='rgba(0,0,0,.18)'; c.lineWidth=2;
   for(let x=260-scroll;x<540;x+=60){c.beginPath();c.moveTo(x,GY+4);c.lineTo(x-14,GY+40);c.stroke();}
   for(const u of us){
-    u.armorId=hid==='hero'?armor:null; u.hid=hid;
+    u.armorId=hid==='hero'?armor:null; u.hid=hid; u.w1Id=hid==='gangrim'?(u.gw||'w_hakuseon'):'w_hwando';
     if(u.mode==='walk'){u.vx=WALK;}
     if(u.mode==='atk'){u.reachT=t; u.atkT-=dt; if(u.atkT<=0){u.atkT=u.cd; u.swing=(u.swing||0)+1;}}
     c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(u.x,GY,46,10,0,0,7); c.fill();
     if(RigLab.has(hid)) RigLab.draw(c,u,t,GY,1,H);
-    c.fillStyle='#222'; c.font='18px sans-serif'; c.textAlign='center'; c.fillText(u.label,u.x,GY+60);
+    c.fillStyle='#222'; c.font='18px sans-serif'; c.textAlign='center'; c.fillText(hid==='gangrim'&&u.gl?u.gl:u.label,u.x,GY+60);
   }
 }
 /* 시험용: ?manual 이면 자동 재생 대신 window.step(초) 로 한 장씩 */

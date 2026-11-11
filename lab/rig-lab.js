@@ -33,7 +33,7 @@ const RigLab = (() => {
     gangrim: {
       src: 'lab/gangrim-lab.png',
       height: 477, leg: 222,
-      scale: { head: 0.63, torso: 0.9, leg: [1.0, 1.2], arm: [1.0, 1.15] },
+      scale: { head: 0.47, torso: 0.9, leg: [1.0, 1.2], arm: [1.0, 1.15] },
       sole: [-16, 43, 27], /* 발목 기준 뒤꿈치 x, 발끝 x, 발바닥 y */
       parts: {
         head: { r: [122, 0, 237, 271], pv: [113.9, 189.4] },
@@ -80,7 +80,13 @@ const RigLab = (() => {
       },
     },
   };
-  const WEAPON_OF = { w_hwando: 'hwando' };
+  /* 학우선: 칼처럼 베지 않고 부채질로 바람을 날린다 (style: 'fan' → 다른 동작) */
+  WEAPONS.hakuseon = {
+    src: 'lab/wpn_hakuseon.png', style: 'fan',
+    parts: { blade: { r: [0, 0, 83, 162], pv: [41.6, 114.8], tip: [41.6, 0.6] } },
+  };
+  const WEAPON_OF = { w_hwando: 'hwando', w_hakuseon: 'hakuseon' };
+  const isFan = (u) => { const w = WEAPONS[WEAPON_OF[u.w1Id]]; return !!(w && w.style === 'fan'); };
   const imgs = Object.create(null);
   function img(src) {
     let im = imgs[src];
@@ -157,6 +163,16 @@ const RigLab = (() => {
     sink: bladeTo({ lean: 0.56, head: -0.25, tF: -1.1, kF: 1.15, fF: -0.05, tB: 0.78, kB: 0.02, fB: -0.4, uF: -0.5, aF: -0.08, uB: 0.7, aB: -0.3, rx: 2.5 }, -0.6),
   };
 
+  /* 부채질(학우선): 꼿꼿이 서서 부채를 머리 위로 들었다가 앞으로 크게 쓸어내려 바람을 날린다 */
+  const T_SWF = 0.1;
+  const KF = {
+    ready: bladeTo({ lean: 0.04, head: 0, tF: -0.2, kF: 0.25, fF: -0.05, tB: 0.2, kB: 0.15, fB: -0.35, uF: -0.3, aF: -1.65, uB: 0.3, aB: -0.6, rx: 0 }, -2.85),
+    wind: bladeTo({ lean: -0.04, head: 0.04, tF: -0.15, kF: 0.2, fF: -0.05, tB: 0.2, kB: 0.25, fB: -0.45, uF: 0.25, aF: -2.2, uB: 0.1, aB: -0.5, rx: -0.5 }, -3.3),
+    raise: bladeTo({ lean: -0.12, head: 0.08, tF: -0.12, kF: 0.12, fF: 0, tB: 0.18, kB: 0.2, fB: -0.38, uF: -2.1, aF: -1.0, uB: -0.2, aB: -0.5, rx: -0.6 }, -4.0),
+    hit: bladeTo({ lean: 0.2, head: -0.1, tF: -0.6, kF: 0.55, fF: 0.05, tB: 0.45, kB: 0.05, fB: -0.4, uF: -1.3, aF: -0.2, uB: 0.6, aB: -0.4, rx: 1.2 }, -1.25),
+    sink: bladeTo({ lean: 0.24, head: -0.12, tF: -0.65, kF: 0.62, fF: 0.03, tB: 0.47, kB: 0.05, fB: -0.38, uF: -1.0, aF: -0.2, uB: 0.7, aB: -0.4, rx: 1.35 }, -0.75),
+  };
+
   /* 걷기 한 주기(8칸): 0 = 이 다리가 앞에서 뒤꿈치로 딛는 순간, 0.5 = 뒤에서 발끝으로 밀어내는 순간 */
   const WK = {
     thigh: [-0.42, -0.32, -0.03, 0.2, 0.35, 0.25, -0.25, -0.55],
@@ -176,6 +192,9 @@ const RigLab = (() => {
     const P = Object.assign({}, IDLE);
     P.lean += br * 0.012; P.head += Math.sin(t * 2.1 + 0.6 + (u.bob || 0)) * 0.025; P.uF += br * 0.02;
     P.hipX = 0;
+    const fan = isFan(u);
+    /* 부채는 가슴 앞에 세워 든다 */
+    if (fan) { P.uF = -0.25 + br * 0.02; P.aF = -1.7; bladeTo(P, -2.9 + br * 0.04); P.uB = 0.25; P.aB = -0.55; }
     const w = u.walkW || 0;
     if (w > 0) {
       /* 걷기: 애니메이션 교본의 네 자세(딛기 → 눌림 → 엇갈림 → 밀기)를 한 다리씩 반 박자 어긋나게 돌린다 */
@@ -190,6 +209,7 @@ const RigLab = (() => {
       /* 팔은 같은 쪽 다리와 반대로. 칼 든 팔은 조금만 흔든다 */
       Q.uF = 0.08 + 0.2 * c1; Q.aF = -0.4 - 0.1 * (0.5 - 0.5 * c1); Q.sw = 1.5;
       Q.uB = 0.05 - 0.4 * c1; Q.aB = -0.18 - 0.3 * (0.5 + 0.5 * c1);
+      if (fan) { Q.uF = -0.25 + 0.06 * c1; Q.aF = -1.7; bladeTo(Q, -2.9 + 0.08 * c2); }
       mix(P, Q, w);
     }
     const sw = u.stanceW || 0;
@@ -197,26 +217,27 @@ const RigLab = (() => {
        낮게 웅크린 겨눔 → 칼을 뒤로 당겨 모음 → 머리 위로 들어 잠깐 멈춤 → 한순간에 내려벰 → 깊게 내디딘 자세로 버팀 */
     P.sk = -1;
     if (sw > 0) {
-      const G = Object.assign({}, KP.ready);
+      const K = fan ? KF : KP, tSw = fan ? T_SWF : T_SW;
+      const G = Object.assign({}, K.ready);
       G.uF += br * 0.02; G.sw += br * 0.02; G.lean += br * 0.008; G.kF += br * 0.02; G.kB += br * 0.02;
       let Q = G;
       const e = u.atkE, aT = u.atkT == null ? 9 : u.atkT;
       const tw = (A, B2, k) => { const o = {}; for (const key of CK) o[key] = lerp(A[key], B2[key], k); return o; };
       if (e >= 0) {
-        if (e < T_SW) { const k = e / T_SW; Q = tw(KP.raise, KP.hit, k * k); P.sk = k; }
-        else if (e < T_HOLD) { const k = clamp01((e - T_SW) / 0.08); Q = tw(KP.hit, KP.sink, 1 - (1 - k) * (1 - k)); P.sk = 1; }
-        else { const k = smooth((e - T_HOLD) / (BACK - T_HOLD)); Q = tw(KP.sink, G, k); P.sk = 1 - k; }
+        if (e < tSw) { const k = e / tSw; Q = tw(K.raise, K.hit, k * k); P.sk = k; }
+        else if (e < T_HOLD) { const k = clamp01((e - tSw) / 0.08); Q = tw(K.hit, K.sink, 1 - (1 - k) * (1 - k)); P.sk = 1; }
+        else { const k = smooth((e - T_HOLD) / (BACK - T_HOLD)); Q = tw(K.sink, G, k); P.sk = 1 - k; }
       } else if (sw > 0.5 && aT < PRE) {
         const k = 1 - aT / PRE; /* 0 → 1 */
-        if (k < 0.45) Q = tw(G, KP.wind, smooth(k / 0.45));
-        else if (k < 0.8) Q = tw(KP.wind, KP.raise, smooth((k - 0.45) / 0.35));
-        else Q = KP.raise; /* 들어 올린 채 잠깐 멈춤 */
+        if (k < 0.45) Q = tw(G, K.wind, smooth(k / 0.45));
+        else if (k < 0.8) Q = tw(K.wind, K.raise, smooth((k - 0.45) / 0.35));
+        else Q = K.raise; /* 들어 올린 채 잠깐 멈춤 */
         P.sk = 0;
       }
       mix(P, Q, ease(sw));
     }
     /* 한 손 베기: 반대쪽 팔은 칼을 쥐지 않는다. 겨눌 땐 가슴 앞에 두고, 벨 때는 뒤로 뻗어 균형을 잡는다 (방패를 들 팔) */
-    if (u.grip === 'one' && sw > 0) {
+    if (u.grip === 'one' && sw > 0 && !fan) {
       let uB = -0.3, aB = -1.0;
       if (P.sk >= 0) { const k = smooth(P.sk); uB = lerp(-0.75, 0.8, k); aB = lerp(-0.7, -0.3, k); }
       const k2 = ease(sw);
@@ -326,7 +347,8 @@ const RigLab = (() => {
       if (withSword && WP) {
         const bl = WP.P.blade;
         c.save(); at(c, fa, fa.grip, AS); c.rotate(P.sword); part(c, WP.im, bl);
-        if (u.atkE >= 0 && u.atkE < OVER + 0.04 && c.getTransform) {
+        if (u.atkE >= 0 && c.getTransform) u.tipW = c.getTransform().transformPoint({ x: bl.tip[0] - bl.pv[0], y: bl.tip[1] - bl.pv[1] });
+        if (!isFan(u) && u.atkE >= 0 && u.atkE < OVER + 0.04 && c.getTransform) {
           const tip = c.getTransform().transformPoint({ x: bl.tip[0] - bl.pv[0], y: bl.tip[1] - bl.pv[1] });
           (u.trail || (u.trail = [])).push({ tip, sh: u.shW, t });
         }
@@ -340,7 +362,7 @@ const RigLab = (() => {
       c.restore();
     };
     /* 양손 잡기: 겨눔·공격 중에는 뒷손이 칼자루(앞손 바로 아래)를 함께 쥔다 → 두 팔 IK */
-    const two = u.grip === 'one' ? 0 : Math.max(u.stanceW || 0, u.atkE >= 0 ? 1 : 0);
+    const two = (u.grip === 'one' || isFan(u)) ? 0 : Math.max(u.stanceW || 0, u.atkE >= 0 ? 1 : 0);
     if (two > 0.01) {
       const rot = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
       const asx = AS.length ? AS[0] : AS, asy = AS.length ? AS[1] : AS;
@@ -373,8 +395,27 @@ const RigLab = (() => {
     drawArm('F', true);
     c.restore();
     c.restore();
-    drawTrail(c, u, t);
+    if (isFan(u)) drawGust(c, u, dir, k); else drawTrail(c, u, t);
     return true;
+  }
+
+  /* 부채 바람: 부채가 쓸고 지나간 자리에서 초승달 모양 바람결 셋이 앞으로 날아가며 흩어진다 */
+  function drawGust(c, u, dir, k) {
+    const e = u.atkE;
+    if (!(e >= 0)) { u.gust = null; return; }
+    if (!u.gust && e >= T_SWF * 0.6 && u.tipW && u.shW) u.gust = { x: (u.tipW.x + u.shW.x) / 2, y: u.shW.y + 20 * k };
+    const g = u.gust; if (!g) return;
+    const q = clamp01((e - T_SWF * 0.6) / 0.42);
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const qi = clamp01(q * 1.25 - i * 0.12); if (qi <= 0 || qi >= 1) continue;
+      const x = g.x + dir * (40 + 330 * (1 - (1 - qi) * (1 - qi))) * k, r = (95 + 70 * qi + i * 16) * k, a = (1 - qi) * (0.85 - i * 0.2);
+      c.strokeStyle = `rgba(235,245,255,${a})`; c.lineWidth = (13 - i * 3) * k * (1 - qi * 0.6);
+      c.beginPath();
+      if (dir > 0) c.arc(x - r, g.y + (i - 1) * 10 * k, r, -0.85, 0.85); else c.arc(x + r, g.y + (i - 1) * 10 * k, r, Math.PI - 0.85, Math.PI + 0.85);
+      c.stroke();
+    }
+    c.restore();
   }
 
   /* 칼 궤적: 어깨를 중심으로 칼끝이 지나간 각도만큼 초승달 모양 잔상을 남긴다 */
