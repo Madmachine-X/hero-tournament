@@ -117,16 +117,24 @@ const RigLab = (() => {
   /* 공격 시간(초): 젖힌 칼이 맞는 순간(impact)까지, 맞은 뒤 칼이 바닥까지, 다시 겨눔으로 */
   /* 베기 시간표(초) — 액션 게임 공식: 준비는 짧게 모았다가, 휘두르기는 몇 프레임 만에 번개처럼,
      맞는 순간 아주 잠깐 멈추고(히트스톱), 끝자세에서 잠깐 버텼다가 돌아온다 */
-  const PRE = 0.18;               /* 준비(칼을 더 젖히며 체중을 뒤로) */
-  const T_SW = 0.06, T_STOP = 0.1, T_FOL = 0.14, T_HOLD = 0.26, BACK = 0.52;
-  const OVER = T_FOL;             /* 칼 궤적은 휘두르는 동안만 */
-  /* 동작 자료에서 칼이 정면 수평(맞는 순간)·가장 아래(끝)인 장면 번호 */
-  let IMP = 13, BOT = 20;
-  if (M) {
-    const S = M.strike, bl = S.uF.map((v, i) => v + S.aF[i] + S.sw[i] - Math.PI);
-    IMP = bl.findIndex((v) => v >= -Math.PI / 2); if (IMP < 1) IMP = 13;
-    BOT = IMP; for (let i = IMP; i < bl.length; i++) { if (bl[i] >= bl[BOT]) BOT = i; else break; }
-  }
+  /* 베기 시간표(초) */
+  const PRE = 0.42;                       /* 모으기 + 들어 올리기 + 멈춤 */
+  const T_SW = 0.05, T_HOLD = 0.34, BACK = 0.62; /* 내려베기 0.05초 → 0.34초까지 버팀 → 0.62초에 겨눔으로 */
+  const OVER = 0.09;                      /* 칼 궤적은 휘두르는 동안과 직후만 */
+  /* 칼 각도: sw = (칼이 향하는 방향) + π − uF − aF. 방향: 0 = 아래, −π/2 = 앞, ±π = 위, +π/2(= −3π/2) = 뒤 */
+  const bladeTo = (o, dir) => { o.sw = dir + Math.PI - o.uF - o.aF; return o; };
+  const KP = {
+    /* 낮게 웅크려 칼끝을 앞·아래로 */
+    ready: bladeTo({ lean: 0.2, head: -0.08, tF: -0.5, kF: 0.7, fF: -0.2, tB: 0.42, kB: 0.4, fB: -0.6, uF: -0.2, aF: -0.55, uB: -0.2, aB: -0.6, rx: 0 }, -0.95),
+    /* 칼을 허리 뒤로 당겨 모은다 */
+    wind: bladeTo({ lean: 0.1, head: -0.02, tF: -0.42, kF: 0.75, fF: -0.33, tB: 0.36, kB: 0.6, fB: -0.7, uF: 0.55, aF: -1.55, uB: 0.3, aB: -1.2, rx: -0.9 }, -1.65),
+    /* 머리 위로 높이 들어 칼끝이 뒤를 향한다 (몸을 쭉 편다) */
+    raise: bladeTo({ lean: -0.1, head: 0.06, tF: -0.3, kF: 0.3, fF: 0, tB: 0.28, kB: 0.2, fB: -0.3, uF: -2.75, aF: -0.45, uB: -2.5, aB: -0.5, rx: -0.5 }, -4.35),
+    /* 앞다리를 깊게 내디디며 내려벤 순간 */
+    hit: bladeTo({ lean: 0.48, head: -0.22, tF: -1.0, kF: 1.0, fF: 0, tB: 0.75, kB: 0.02, fB: -0.45, uF: -0.75, aF: -0.1, uB: 0.6, aB: -0.3, rx: 2.2 }, -1.0),
+    /* 칼이 더 내려가며 무게가 실린다 */
+    sink: bladeTo({ lean: 0.56, head: -0.25, tF: -1.1, kF: 1.15, fF: -0.05, tB: 0.78, kB: 0.02, fB: -0.4, uF: -0.5, aF: -0.08, uB: 0.7, aB: -0.3, rx: 2.5 }, -0.6),
+  };
 
   function pose(u, t) {
     const br = Math.sin(t * 2.1 + (u.bob || 0));
@@ -142,37 +150,27 @@ const RigLab = (() => {
       mix(P, Q, w);
     }
     const sw = u.stanceW || 0;
-    if (M && sw > 0) {
-      const n = M.guard.lean.length;
-      /* 겨눔: 실제 동작을 앞뒤로 오가며 반복(숨 쉬듯 미세하게 흔들림) */
-      /* 겨눔 = 베기 동작의 첫 장면 그대로(그래야 벨 때 튀지 않는다) + 숨 쉬는 정도의 미세한 흔들림 */
-      const Q = sample(M.strike, 0, false); Q.rx = 0;
-      Q.uF += br * 0.015; Q.sw += br * 0.02; Q.lean += br * 0.006;
-      mix(P, Q, ease(sw));
-    }
-    const rest = Object.assign({}, P);
-    if (M) {
-      const S = M.strike, n = S.lean.length;
-      let f = -1, coil = 0; P.sk = -1;
-      const wu = sw > 0.5 && !(u.atkE >= 0) ? clamp01(1 - (u.atkT || 0) / PRE) : 0;
-      /* 준비 동작(칼을 한 번 더 젖히기)은 움찔거려 보여서 뺐다: 겨눈 자세에서 곧바로 내려벤다 */
-      const e = u.atkE;
+    /* ===== 겨눔·베기: 손으로 설계한 열쇠 자세 (액션 게임식) =====
+       낮게 웅크린 겨눔 → 칼을 뒤로 당겨 모음 → 머리 위로 들어 잠깐 멈춤 → 한순간에 내려벰 → 깊게 내디딘 자세로 버팀 */
+    P.sk = -1;
+    if (sw > 0) {
+      const G = Object.assign({}, KP.ready);
+      G.uF += br * 0.02; G.sw += br * 0.02; G.lean += br * 0.008; G.kF += br * 0.02; G.kB += br * 0.02;
+      let Q = G;
+      const e = u.atkE, aT = u.atkT == null ? 9 : u.atkT;
+      const tw = (A, B2, k) => { const o = {}; for (const key of CK) o[key] = lerp(A[key], B2[key], k); return o; };
       if (e >= 0) {
-        if (e < T_SW) { const k = e / T_SW; f = IMP * k * k; }         /* 점점 빨라지며 내려벤다 */
-        else if (e < T_STOP) f = IMP;                                                 /* 히트스톱 */
-        else if (e < T_FOL) { const k = (e - T_STOP) / (T_FOL - T_STOP); f = IMP + (BOT - IMP) * (1 - (1 - k) * (1 - k)); }
-        else if (e < T_HOLD) f = BOT;                                                 /* 끝자세 버티기 */
-        else f = BOT + (n - 1 - BOT) * smooth((e - T_HOLD) / (BACK - T_HOLD));
+        if (e < T_SW) { const k = e / T_SW; Q = tw(KP.raise, KP.hit, k * k); P.sk = k; }
+        else if (e < T_HOLD) { const k = clamp01((e - T_SW) / 0.08); Q = tw(KP.hit, KP.sink, 1 - (1 - k) * (1 - k)); P.sk = 1; }
+        else { const k = smooth((e - T_HOLD) / (BACK - T_HOLD)); Q = tw(KP.sink, G, k); P.sk = 1 - k; }
+      } else if (sw > 0.5 && aT < PRE) {
+        const k = 1 - aT / PRE; /* 0 → 1 */
+        if (k < 0.45) Q = tw(G, KP.wind, smooth(k / 0.45));
+        else if (k < 0.8) Q = tw(KP.wind, KP.raise, smooth((k - 0.45) / 0.35));
+        else Q = KP.raise; /* 들어 올린 채 잠깐 멈춤 */
+        P.sk = 0;
       }
-      if (f >= 0) {
-        const Q = sample(S, f, false); Q.rx -= S.rx[0];
-        /* 준비: 칼을 조금 더 젖히고 몸을 뒤로 */
-        Q.sw -= 0.25 * coil; Q.uF -= 0.12 * coil; Q.lean -= 0.08 * coil; Q.rx -= 0.5 * coil;
-        let k = 1;
-        if (e > BACK - 0.12) k = clamp01((BACK - e) / 0.12);
-        mix(P, Q, smooth(k));
-        P.sk = f <= BOT ? f / BOT : 1 - (f - BOT) / (n - 1 - BOT); /* 0 = 젖힘, 1 = 다 내려벰 */
-      }
+      mix(P, Q, ease(sw));
     }
     /* 한 손 베기: 반대쪽 팔은 칼을 쥐지 않는다. 겨눌 땐 가슴 앞에 두고, 벨 때는 뒤로 뻗어 균형을 잡는다 (방패를 들 팔) */
     if (u.grip === 'one' && sw > 0) {
@@ -352,19 +350,20 @@ const RigLab = (() => {
     while (cw && da < 0) da += Math.PI * 2;
     while (!cw && da > 0) da -= Math.PI * 2;
     if (Math.abs(da) > Math.PI * 1.6) return;
-    if (Math.abs(da) > 2.6) da = Math.sign(da) * 2.6; /* 꼬리는 칼끝 뒤쪽 일부만 */
+    if (Math.abs(da) > 1.9) da = Math.sign(da) * 1.9; /* 꼬리는 칼끝 뒤쪽 일부만 */
     if (Math.abs(da) < 0.2) return;
     a0 = a1 - da;
     const ccw = da < 0;
     c.save();
     c.setTransform(1, 0, 0, 1, 0, 0);
-    c.globalCompositeOperation = 'lighter';
     const g = c.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.05);
-    g.addColorStop(0, 'rgba(120,230,255,0)'); g.addColorStop(0.8, `rgba(150,235,255,${0.18 * life})`); g.addColorStop(1, `rgba(245,253,255,${0.85 * life})`);
+    g.addColorStop(0, 'rgba(120,230,255,0)'); g.addColorStop(0.55, `rgba(170,235,255,${0.25 * life})`); g.addColorStop(0.9, `rgba(255,255,255,${0.95 * life})`); g.addColorStop(1, `rgba(120,200,255,${0.9 * life})`);
     c.fillStyle = g;
+    /* 초승달: 칼끝 쪽이 두껍고 꼬리로 갈수록 가늘어진다 */
     c.beginPath();
-    c.arc(cx, cy, r * 1.04, a0, a1, ccw);
-    c.arc(cx, cy, r * 0.8, a1, a0, !ccw);
+    const N = 18;
+    for (let i = 0; i <= N; i++) { const a = a0 + da * i / N; c.lineTo(cx + Math.cos(a) * r * 1.05, cy + Math.sin(a) * r * 1.05); }
+    for (let i = N; i >= 0; i--) { const a = a0 + da * i / N, rr = r * (1.05 - 0.5 * Math.pow(i / N, 1.5)); c.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
     c.closePath(); c.fill();
     c.restore();
   }
