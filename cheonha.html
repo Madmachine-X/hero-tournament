@@ -2389,8 +2389,10 @@ const Rig = (() => {
   const DEFS = {
     hero: {
       src: 'img/rig/hero.png',
-      height: 480, /* 서 있을 때 머리끝~발끝 (아틀라스 단위) */
-      leg: 191,    /* 엉덩이~발바닥 */
+      height: 477, /* 서 있을 때 머리끝~발끝 (아틀라스 단위) */
+      leg: 229,    /* 엉덩이~발바닥 (다리 배율 반영) */
+      /* 조각별 배율: 머리는 줄이고 팔다리는 길게 늘려 7등신 정도로 */
+      scale: { head: 0.72, torso: 0.9, leg: [1.0, 1.2], arm: [1.0, 1.15] }, /* [가로, 세로] */
       parts: {
         head: { r: [103, 0, 105, 117], pv: [51.1, 103.1] },
         torso: { r: [0, 0, 101, 259], pv: [50.9, 208], neck: [49.5, 12.3], shF: [31.3, 54.8], shB: [22.9, 53.7], belt: [60.7, 153.5] },
@@ -2518,10 +2520,15 @@ const Rig = (() => {
     return P;
   }
 
-  function part(c, im, p) {
-    c.drawImage(im, p.r[0], p.r[1], p.r[2], p.r[3], -p.pv[0], -p.pv[1], p.r[2], p.r[3]);
+  /* s = 조각 크기 배율 (인체 비율 맞춤용, 관절 위치도 같이 늘어난다) */
+  function part(c, im, p, s = 1) {
+    const sx = s.length ? s[0] : s, sy = s.length ? s[1] : s;
+    c.drawImage(im, p.r[0], p.r[1], p.r[2], p.r[3], -p.pv[0] * sx, -p.pv[1] * sy, p.r[2] * sx, p.r[3] * sy);
   }
-  function at(c, from, pt) { c.translate(pt[0] - from.pv[0], pt[1] - from.pv[1]); }
+  function at(c, from, pt, s = 1) {
+    const sx = s.length ? s[0] : s, sy = s.length ? s[1] : s;
+    c.translate((pt[0] - from.pv[0]) * sx, (pt[1] - from.pv[1]) * sy);
+  }
 
   function draw(c, u, t, gy, dir, hPx, dtHint) {
     const d = DEFS[u.hid];
@@ -2544,6 +2551,7 @@ const Rig = (() => {
     const P = pose(u, t);
     const k = hPx / d.height;
     const torso = Pp.torso;
+    const S = d.scale || {}, HS = S.head || 1, TS = S.torso || 1, LS = S.leg || 1, AS = S.arm || 1;
     c.save();
     c.translate(u.x, gy);
     c.scale(dir * k * P.sx, k * P.sy);
@@ -2553,12 +2561,12 @@ const Rig = (() => {
       const th = Pp['thigh' + side], sh = Pp['shin' + side];
       c.save();
       c.rotate(P.lean * 0.3);
-      c.translate(side === 'F' ? 4 : -4, 0);
+      c.translate(side === 'F' ? 5 : -5, 0);
       c.rotate(P['thigh' + side]);
-      part(c, im, th);
-      at(c, th, th.knee);
+      part(c, im, th, LS);
+      at(c, th, th.knee, LS);
       c.rotate(P['knee' + side]);
-      part(c, im, sh);
+      part(c, im, sh, LS);
       c.restore();
     };
     /* 팔: 몸통 기준 어깨에서 시작. 갑옷이 있으면 어깨받이·팔찌를 같은 뼈에 덧입힌다 */
@@ -2566,24 +2574,24 @@ const Rig = (() => {
       const ua = Pp['uarm' + side], fa = Pp['farm' + side];
       const ang = -P.lean + P['uarm' + side];
       c.save();
-      at(c, torso, torso['sh' + side]);
+      at(c, torso, torso['sh' + side], TS);
       if (withSword && c.getTransform) u.shW = c.getTransform().transformPoint({ x: 0, y: 0 });
       c.rotate(ang);
-      part(c, im, ua);
+      part(c, im, ua, AS);
       c.save();
-      at(c, ua, ua.elbow);
+      at(c, ua, ua.elbow, AS);
       c.rotate(P['farm' + side]);
       if (withSword && WP) {
         const bl = WP.P.blade;
-        c.save(); at(c, fa, fa.grip); c.rotate(P.sword); part(c, WP.im, bl);
+        c.save(); at(c, fa, fa.grip, AS); c.rotate(P.sword); part(c, WP.im, bl);
         if (u.atkE >= 0 && u.atkE < OVER + 0.04 && c.getTransform) {
           const tip = c.getTransform().transformPoint({ x: bl.tip[0] - bl.pv[0], y: bl.tip[1] - bl.pv[1] });
           (u.trail || (u.trail = [])).push({ tip, sh: u.shW, t });
         }
         c.restore();
       }
-      part(c, im, fa);
-      if (AR) { c.save(); at(c, fa, fa.cuff); part(c, AR.im, AR.P['brc' + side]); c.restore(); }
+      part(c, im, fa, AS);
+      if (AR) { c.save(); at(c, fa, fa.cuff, AS); part(c, AR.im, AR.P['brc' + side], AS); c.restore(); }
       c.restore();
       c.restore();
     };
@@ -2593,8 +2601,8 @@ const Rig = (() => {
     drawLeg('F');
     c.save();
     c.rotate(P.lean);
-    c.save(); at(c, torso, torso.neck); c.rotate(P.head); part(c, im, Pp.head); c.restore();
-    if (AR) part(c, AR.im, AR.P.torso); else part(c, im, torso);
+    c.save(); at(c, torso, torso.neck, TS); c.rotate(P.head); part(c, im, Pp.head, HS); c.restore();
+    if (AR) part(c, AR.im, AR.P.torso, TS); else part(c, im, torso, TS);
     drawArm('F', true);
     c.restore();
     c.restore();
