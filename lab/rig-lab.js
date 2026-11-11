@@ -136,17 +136,39 @@ const RigLab = (() => {
     sink: bladeTo({ lean: 0.56, head: -0.25, tF: -1.1, kF: 1.15, fF: -0.05, tB: 0.78, kB: 0.02, fB: -0.4, uF: -0.5, aF: -0.08, uB: 0.7, aB: -0.3, rx: 2.5 }, -0.6),
   };
 
+  /* 걷기 한 주기(8칸): 0 = 이 다리가 앞에서 뒤꿈치로 딛는 순간, 0.5 = 뒤에서 발끝으로 밀어내는 순간 */
+  const WK = {
+    thigh: [-0.42, -0.32, -0.03, 0.2, 0.35, 0.25, -0.25, -0.55],
+    knee: [0.05, 0.3, 0.08, 0.05, 0.25, 0.75, 1.1, 0.55],
+    foot: [-0.25, 0, 0, 0.2, 0.5, 0.9, 0.6, -0.1], /* 발의 기울기(땅 기준): 음수 = 발끝 들림, 양수 = 뒤꿈치 들림 */
+  };
+  const WALK_LEN = 318; /* 한 주기에 나아가는 거리 (아틀라스 단위) */
+  /* 주기 곡선을 부드럽게 잇는다 (Catmull-Rom) */
+  function cyc(A, ph) {
+    const n = A.length, x = (((ph % 1) + 1) % 1) * n, i = Math.floor(x), k = x - i;
+    const p0 = A[(i + n - 1) % n], p1 = A[i % n], p2 = A[(i + 1) % n], p3 = A[(i + 2) % n];
+    return 0.5 * (2 * p1 + (p2 - p0) * k + (2 * p0 - 5 * p1 + 4 * p2 - p3) * k * k + (3 * p1 - p0 - 3 * p2 + p3) * k * k * k);
+  }
+
   function pose(u, t) {
     const br = Math.sin(t * 2.1 + (u.bob || 0));
     const P = Object.assign({}, IDLE);
     P.lean += br * 0.012; P.head += Math.sin(t * 2.1 + 0.6 + (u.bob || 0)) * 0.025; P.uF += br * 0.02;
     P.hipX = 0;
     const w = u.walkW || 0;
-    if (M && w > 0) {
-      const n = M.walk.lean.length, f = (u.walkPh || 0) * n;
-      const Q = sample(M.walk, f, true);
-      /* 걷는 동안 몸이 일정한 속도로 나아가는 부분은 빼고, 출렁임만 남긴다 */
-      Q.sw = 1.5; Q.uF = Q.uF * 0.7 + 0.05; Q.aF = Math.min(Q.aF, -0.35);
+    if (w > 0) {
+      /* 걷기: 애니메이션 교본의 네 자세(딛기 → 눌림 → 엇갈림 → 밀기)를 한 다리씩 반 박자 어긋나게 돌린다 */
+      const p = u.walkPh || 0, c1 = Math.cos(2 * Math.PI * p), c2 = Math.cos(4 * Math.PI * p);
+      const Q = Object.assign({}, IDLE);
+      const leg = (ph, tag) => {
+        const t = cyc(WK.thigh, ph), k = Math.max(0, cyc(WK.knee, ph)), fw = cyc(WK.foot, ph);
+        Q['t' + tag] = t; Q['k' + tag] = k; Q['f' + tag] = fw - (t + k);
+      };
+      leg(p, 'F'); leg(p + 0.5, 'B');
+      Q.lean = 0.07 + 0.015 * c2; Q.head = -0.04 - 0.01 * c2; Q.rx = 0;
+      /* 팔은 같은 쪽 다리와 반대로. 칼 든 팔은 조금만 흔든다 */
+      Q.uF = 0.08 + 0.2 * c1; Q.aF = -0.4 - 0.1 * (0.5 - 0.5 * c1); Q.sw = 1.5;
+      Q.uB = 0.05 - 0.4 * c1; Q.aB = -0.18 - 0.3 * (0.5 + 0.5 * c1);
       mix(P, Q, w);
     }
     const sw = u.stanceW || 0;
@@ -220,7 +242,7 @@ const RigLab = (() => {
     u.rigT = t;
     const k0 = hPx / d.height;
     /* 걸음 위상은 실제 이동 거리로 진행 → 디딘 발이 미끄러지지 않는다 */
-    u.walkPh = (u.walkPh || 0) + (M ? spd * dt / (M.walkSpeed * (M.walk.lean.length / 30) * M.unit * k0) : 0);
+    u.walkPh = (u.walkPh || 0) + spd * dt / (WALK_LEN * k0);
     u.walkW = (u.walkW || 0) + ((moving ? 1 : 0) - (u.walkW || 0)) * Math.min(1, dt * 8);
     /* 전투 쪽에서 공격이 새로 시작되면(swing 값이 다시 올라가면) 내려베기를 처음부터 재생 */
     if ((u.swing || 0) > (u.lastSwing || 0) + 0.01) { u.atkE = 0; u.trail = []; }
