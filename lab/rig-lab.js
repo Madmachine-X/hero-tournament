@@ -262,14 +262,15 @@ const RigLab = (() => {
       c.restore();
     };
     /* 팔: 몸통 기준 어깨에서 시작. 갑옷이 있으면 어깨받이·팔찌를 같은 뼈에 덧입힌다 */
-    const drawArm = (side, withSword) => {
+    /* mode: 'all' 팔 전체, 'upper' 윗팔만, 'fore' 아래팔·손만 */
+    const drawArm = (side, withSword, mode = 'all') => {
       const ua = Pp['uarm' + side], fa = Pp['farm' + side];
       const ang = -P.lean + P['uarm' + side];
       c.save();
       at(c, torso, torso['sh' + side], TS);
       if (withSword && c.getTransform) u.shW = c.getTransform().transformPoint({ x: 0, y: 0 });
       c.rotate(ang);
-      part(c, im, ua, AS);
+      if (mode !== 'fore') part(c, im, ua, AS);
       c.save();
       at(c, ua, ua.elbow, AS);
       c.rotate(P['farm' + side]);
@@ -282,8 +283,10 @@ const RigLab = (() => {
         }
         c.restore();
       }
-      part(c, im, fa, AS);
-      if (AR) { c.save(); at(c, fa, fa.cuff, AS); part(c, AR.im, AR.P['brc' + side], AS); c.restore(); }
+      if (mode !== 'upper') {
+        part(c, im, fa, AS);
+        if (AR) { c.save(); at(c, fa, fa.cuff, AS); part(c, AR.im, AR.P['brc' + side], AS); c.restore(); }
+      }
       c.restore();
       c.restore();
     };
@@ -297,7 +300,7 @@ const RigLab = (() => {
       const sF = [(torso.shF[0] - torso.pv[0]) * TS, (torso.shF[1] - torso.pv[1]) * TS];
       const e = rot((uaF.elbow[0] - uaF.pv[0]) * asx, (uaF.elbow[1] - uaF.pv[1]) * asy, a1);
       const g = rot((faF.grip[0] - faF.pv[0]) * asx, (faF.grip[1] - faF.pv[1]) * asy, a2);
-      const hd = rot(0, 26, a2 + P.sword); /* 칼자루 방향으로 조금 아래 */
+      const hd = rot(0, 46, a2 + P.sword); /* 칼자루를 따라 앞손에서 주먹 하나 반 아래 */
       const gx = sF[0] + e[0] + g[0] + hd[0], gy2 = sF[1] + e[1] + g[1] + hd[1];
       const sB = [(torso.shB[0] - torso.pv[0]) * TS, (torso.shB[1] - torso.pv[1]) * TS];
       const l1 = (uaB.elbow[1] - uaB.pv[1]) * asy, l2 = Math.hypot((faB.grip[0] - faB.pv[0]) * asx, (faB.grip[1] - faB.pv[1]) * asy);
@@ -310,7 +313,9 @@ const RigLab = (() => {
       P.uarmB = lerp(P.uarmB, aa + al + P.lean, two); P.farmB = lerp(P.farmB, -kn, two);
     }
     /* 그리는 순서: 뒷팔(몸 뒤) → 다리 → 머리 → 몸통(갑옷이면 갑옷 몸통) → 앞팔(칼) */
-    c.save(); c.rotate(P.lean); drawArm('B', false); c.restore();
+    /* 양손으로 쥘 때 반대쪽 팔: 윗팔은 몸 뒤, 아래팔과 손은 가슴 앞으로 나와 칼자루를 쥔다 */
+    const twoHand = two > 0.5;
+    c.save(); c.rotate(P.lean); drawArm('B', false, twoHand ? 'upper' : 'all'); c.restore();
     drawLeg('B');
     drawLeg('F');
     c.save();
@@ -318,6 +323,8 @@ const RigLab = (() => {
     c.save(); at(c, torso, torso.neck, TS); c.rotate(P.head); part(c, im, Pp.head, HS); c.restore();
     if (AR) part(c, AR.im, AR.P.torso, TS); else part(c, im, torso, TS);
     drawArm('F', true);
+    /* 반대쪽 손은 앞팔에 가려지지 않게 위에 그려 두 손이 모두 칼자루를 쥔 게 보이게 */
+    if (twoHand) drawArm('B', false, 'fore');
     c.restore();
     c.restore();
     drawTrail(c, u, t);
