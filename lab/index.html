@@ -26,10 +26,11 @@ document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{speed=+b.dataset
 RigLab.warm();
 const H=300, GY=470, WALK=MOCAP.walkSpeed*MOCAP.unit*(H/477);
 const us=[
- {label:'서 있기', x:230, mode:'idle'},
- {label:'걷기', x:700, mode:'walk'},
- {label:'베기', x:1130, mode:'atk', cd:1.2},
-].map(o=>Object.assign({hid:'hero',y:GY,r:12,vx:0,vy:0,bob:Math.random()*6,swing:0,lastSwing:0,w1Id:'w_hwando',atkT:1.2},o));
+ {label:'서 있기', x:170, mode:'idle'},
+ {label:'걷기', x:520, mode:'walk'},
+ {label:'한 손 베기', x:880, mode:'atk', cd:1.2, grip:'one'},
+ {label:'양손 베기', x:1210, mode:'atk', cd:1.2, grip:'two', atkT:0.6},
+].map(o=>Object.assign({hid:'hero',y:GY,r:12,vx:0,vy:0,bob:Math.random()*6,swing:0,lastSwing:0,w1Id:'w_hwando'},{atkT:1.2},o));
 let scroll=0;
 function frame(now){
   const dt=Math.min(0.05,(now-last)/1000)*speed; last=now; render(dt);
@@ -41,7 +42,7 @@ function render(dt){
   c.fillStyle='#7a7556'; c.fillRect(0,GY,cv.width,cv.height-GY);
   scroll=(scroll+WALK*dt)%60;
   c.strokeStyle='rgba(0,0,0,.18)'; c.lineWidth=2;
-  for(let x=470-scroll;x<930;x+=60){c.beginPath();c.moveTo(x,GY+4);c.lineTo(x-14,GY+40);c.stroke();}
+  for(let x=360-scroll;x<700;x+=60){c.beginPath();c.moveTo(x,GY+4);c.lineTo(x-14,GY+40);c.stroke();}
   for(const u of us){
     u.armorId=armor;
     if(u.mode==='walk'){u.vx=WALK;}

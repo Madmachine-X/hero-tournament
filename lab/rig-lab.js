@@ -152,7 +152,7 @@ const RigLab = (() => {
     const rest = Object.assign({}, P);
     if (M) {
       const S = M.strike, n = S.lean.length;
-      let f = -1, coil = 0;
+      let f = -1, coil = 0; P.sk = -1;
       const wu = sw > 0.5 && !(u.atkE >= 0) ? clamp01(1 - (u.atkT || 0) / PRE) : 0;
       if (wu > 0) { f = 0; coil = smooth(wu); }
       const e = u.atkE;
@@ -172,7 +172,15 @@ const RigLab = (() => {
         if (!(e >= 0)) k = clamp01(wu * 2.5);
         else if (e > BACK - 0.12) k = clamp01((BACK - e) / 0.12);
         mix(P, Q, smooth(k));
+        P.sk = f <= BOT ? f / BOT : 1 - (f - BOT) / (n - 1 - BOT); /* 0 = 젖힘, 1 = 다 내려벰 */
       }
+    }
+    /* 한 손 베기: 반대쪽 팔은 칼을 쥐지 않는다. 겨눌 땐 가슴 앞에 두고, 벨 때는 뒤로 뻗어 균형을 잡는다 (방패를 들 팔) */
+    if (u.grip === 'one' && sw > 0) {
+      let uB = -0.3, aB = -1.0;
+      if (P.sk >= 0) { const k = smooth(P.sk); uB = lerp(-0.75, 0.8, k); aB = lerp(-0.7, -0.3, k); }
+      const k2 = ease(sw);
+      P.uB = lerp(P.uB, uB, k2); P.aB = lerp(P.aB, aB, k2);
     }
     P.hipX = P.rx * (M ? M.unit : 15);
     if (u.flash > 0) { const h = Math.min(1, u.flash * 6); P.lean -= 0.16 * h; P.head -= 0.15 * h; P.hipX -= 8 * h; }
@@ -291,7 +299,7 @@ const RigLab = (() => {
       c.restore();
     };
     /* 양손 잡기: 겨눔·공격 중에는 뒷손이 칼자루(앞손 바로 아래)를 함께 쥔다 → 두 팔 IK */
-    const two = Math.max(u.stanceW || 0, u.atkE >= 0 ? 1 : 0);
+    const two = u.grip === 'one' ? 0 : Math.max(u.stanceW || 0, u.atkE >= 0 ? 1 : 0);
     if (two > 0.01) {
       const rot = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
       const asx = AS.length ? AS[0] : AS, asy = AS.length ? AS[1] : AS;
@@ -313,9 +321,8 @@ const RigLab = (() => {
       P.uarmB = lerp(P.uarmB, aa + al + P.lean, two); P.farmB = lerp(P.farmB, -kn, two);
     }
     /* 그리는 순서: 뒷팔(몸 뒤) → 다리 → 머리 → 몸통(갑옷이면 갑옷 몸통) → 앞팔(칼) */
-    /* 양손으로 쥘 때 반대쪽 팔: 윗팔은 몸 뒤, 아래팔과 손은 가슴 앞으로 나와 칼자루를 쥔다 */
-    const twoHand = two > 0.5;
-    c.save(); c.rotate(P.lean); drawArm('B', false, twoHand ? 'upper' : 'all'); c.restore();
+    /* 반대쪽 팔은 항상 몸통·앞팔보다 뒤에 있다. 몸 밖으로 나온 부분만 보인다 */
+    c.save(); c.rotate(P.lean); drawArm('B', false); c.restore();
     drawLeg('B');
     drawLeg('F');
     c.save();
@@ -323,8 +330,6 @@ const RigLab = (() => {
     c.save(); at(c, torso, torso.neck, TS); c.rotate(P.head); part(c, im, Pp.head, HS); c.restore();
     if (AR) part(c, AR.im, AR.P.torso, TS); else part(c, im, torso, TS);
     drawArm('F', true);
-    /* 반대쪽 손은 앞팔에 가려지지 않게 위에 그려 두 손이 모두 칼자루를 쥔 게 보이게 */
-    if (twoHand) drawArm('B', false, 'fore');
     c.restore();
     c.restore();
     drawTrail(c, u, t);
