@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>무명 동작 미리보기</title>
+<title>동작 미리보기</title>
 <style>
  body{margin:0;background:#1b1a17;color:#eee;font-family:system-ui,sans-serif}
  header{padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -10,8 +10,9 @@
  canvas{display:block;width:100%;max-width:1400px;margin:0 auto;background:#8c8664}
  p{padding:0 16px;color:#aaa;font-size:13px}
 </style></head><body>
-<header><h1>무명 동작 미리보기</h1>
- <span>갑옷</span><button data-a="" class="on">없음</button><button data-a="a_chalgap">찰갑</button><button data-a="a_dujeong">두정갑</button>
+<header><h1>동작 미리보기</h1>
+ <span>캐릭터</span><button data-h="hero" class="on">무명</button><button data-h="gangrim">저승차사</button>
+ <span style="margin-left:12px">갑옷</span><button data-a="" class="on">없음</button><button data-a="a_chalgap">찰갑</button><button data-a="a_dujeong">두정갑</button>
  <span style="margin-left:12px">속도</span><button data-s="1" class="on">1×</button><button data-s="0.5">½×</button><button data-s="0.2">느리게</button>
 </header>
 <canvas id="cv" width="1400" height="560"></canvas>
@@ -20,8 +21,9 @@
 <script src="rig-lab.js"></script>
 <script>
 const cv=document.getElementById('cv'), c=cv.getContext('2d');
-let armor=null, speed=1, t=0, last=performance.now();
+let armor=null, hid=/gangrim/.test(location.search)?'gangrim':'hero', speed=1, t=0, last=performance.now();
 document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{armor=b.dataset.a||null;document.querySelectorAll('[data-a]').forEach(x=>x.classList.toggle('on',x===b));});
+document.querySelectorAll('[data-h]').forEach(b=>{b.classList.toggle('on',b.dataset.h===hid);b.onclick=()=>{hid=b.dataset.h;document.querySelectorAll('[data-h]').forEach(x=>x.classList.toggle('on',x===b));};});
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('on',x===b));});
 RigLab.warm();
 const H=300, GY=470, WALK=318*(H/477)/1.15; /* 한 주기 1.15초 */
@@ -44,11 +46,11 @@ function render(dt){
   c.strokeStyle='rgba(0,0,0,.18)'; c.lineWidth=2;
   for(let x=260-scroll;x<540;x+=60){c.beginPath();c.moveTo(x,GY+4);c.lineTo(x-14,GY+40);c.stroke();}
   for(const u of us){
-    u.armorId=armor;
+    u.armorId=hid==='hero'?armor:null; u.hid=hid;
     if(u.mode==='walk'){u.vx=WALK;}
     if(u.mode==='atk'){u.reachT=t; u.atkT-=dt; if(u.atkT<=0){u.atkT=u.cd; u.swing=(u.swing||0)+1;}}
     c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(u.x,GY,46,10,0,0,7); c.fill();
-    if(RigLab.has('hero')) RigLab.draw(c,u,t,GY,1,H);
+    if(RigLab.has(hid)) RigLab.draw(c,u,t,GY,1,H);
     c.fillStyle='#222'; c.font='18px sans-serif'; c.textAlign='center'; c.fillText(u.label,u.x,GY+60);
   }
 }
