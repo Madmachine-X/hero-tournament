@@ -54,7 +54,7 @@ const Rig = (() => {
     hwando: {
       src: 'img/rig/wpn_hwando.png',
       parts: {
-        blade: { r: [0, 0, 32, 254], pv: [11.1, 185.3], tip: [18.7, 0.9] },
+        blade: { r: [0, 0, 32, 254], pv: [20.9, 185.3], tip: [13.3, 0.9] },
       },
     },
   };
@@ -117,7 +117,7 @@ const Rig = (() => {
       kneeF: Math.max(0, c2) * 0.7 * w, kneeB: Math.max(0, -c2) * 0.7 * w,
       uarmF: 0.12 + 0.3 * s * w + br * 0.03, uarmB: 0.05 - 0.3 * s * w - br * 0.03,
       farmF: -0.35 - 0.15 * w, farmB: -0.2 - 0.25 * w * (0.5 - 0.5 * s),
-      sword: 2.35, skirt: Math.sin(ph * 2) * 0.03 * w + br * 0.01,
+      sword: 1.55, skirt: Math.sin(ph * 2) * 0.03 * w + br * 0.01,
       sx: 1, sy: 1 + br * 0.008,
     };
     /* 발이 닿는 순간 살짝 눌렸다 펴진다 */

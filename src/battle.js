@@ -759,7 +759,9 @@ const Battle = (() => {
     return { x: B.formCx != null ? B.formCx : 380, y: B.formCy != null ? B.formCy : H / 2 };
   }
   function allyThink(u) {
-    const o = u === B.ctrl && B.order === 'follow' ? 'charge' : B.order;
+    let o = u === B.ctrl && B.order === 'follow' ? 'charge' : B.order;
+    /* 자동 전투: 진형 유지·따라와 명령이어도 알아서 가장 가까운 적에게 달려가 싸운다 (후퇴·대기는 그대로) */
+    if (B.autoCtrl && (o === 'form' || o === 'follow')) o = 'charge';
     if (o === 'retreat') {
       const t = nearestFoe(u, u.r + u.range + 4);
       if (t && Math.random() < 0.02) engage(u, t);
