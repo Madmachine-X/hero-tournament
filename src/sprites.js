@@ -31,7 +31,7 @@ const Art = (() => {
 
   function ok(im) { return !!(im && im.complete && im.naturalWidth); }
 
-  function knockBg(im) {
+  function knockBg(im, sheet) {
     const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
     const cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
@@ -46,13 +46,6 @@ const Art = (() => {
       if (r + b < g * 2.05 + 40) return false;
       return (r > g + 25 && b > g + 15) || (r > 200 && b > 180 && g < 140);
     };
-    const isDarkBg = (r, g, b) => {
-      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      const span = Math.max(r, g, b) - Math.min(r, g, b);
-      if (lum < 52 && span < 42) return true;
-      if (lum < 62 && span < 18) return true;
-      return false;
-    };
     /* 1) 마젠타 키는 전체에 적용 — 보라 사각 잔상 방지 */
     for (let p = 0; p < d.length; p += 4) {
       if (isMagenta(d[p], d[p + 1], d[p + 2])) d[p + 3] = 0;
@@ -63,6 +56,17 @@ const Art = (() => {
     for (let xx = 0; xx < w; xx += 4) { tally(xx, 0); tally(xx, h - 1); }
     for (let yy = 0; yy < h; yy += 4) { tally(0, yy); tally(w - 1, yy); }
     const magentaSheet = magEdge > edgeN * 0.6;
+    /* 검은 배경 시트: 테두리 배경색보다 조금만 밝은 픽셀까지만 배경으로 본다 (검은 옷이 지워지지 않게) */
+    const lums = [];
+    for (let xx = 0; xx < w; xx += 8) { for (const yy of [0, h - 1]) { const p = (yy * w + xx) * 4; lums.push(0.2126 * d[p] + 0.7152 * d[p + 1] + 0.0722 * d[p + 2]); } }
+    lums.sort((a, b) => a - b);
+    const bgLum = lums[Math.floor(lums.length / 2)] || 0;
+    const isDarkBg = (r, g, b) => {
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const span = Math.max(r, g, b) - Math.min(r, g, b);
+      if (sheet) return lum < bgLum + 9 && span < 16;
+      return (lum < 52 && span < 42) || (lum < 62 && span < 18);
+    };
     const isBg = (p) => {
       if (d[p + 3] === 0) return true;
       return !magentaSheet && isDarkBg(d[p], d[p + 1], d[p + 2]);
@@ -82,6 +86,47 @@ const Art = (() => {
       const xx = n % w, yy = (n / w) | 0;
       d[n * 4 + 3] = 0;
       push(xx - 1, yy); push(xx + 1, yy); push(xx, yy - 1); push(xx, yy + 1);
+    }
+    /* 1-b) 검은 배경 시트: 좁은 틈으로 스며든 배경 제거를 되돌린다 (갑옷 속 어두운 부분이 구멍 나지 않게).
+       배경 영역을 3px 깎은 뒤 테두리에서 닿는 곳만 진짜 배경으로 보고 다시 3px 넓힌다. */
+    if (sheet && !magentaSheet) {
+      const RAD = 3, N = w * h;
+      const box = (src, all) => {
+        const tmp = new Uint8Array(N), out = new Uint8Array(N);
+        for (let yy = 0; yy < h; yy++) {
+          let run = 0;
+          const row = yy * w;
+          const pre = new Int32Array(w + 1);
+          for (let xx = 0; xx < w; xx++) pre[xx + 1] = pre[xx] + src[row + xx];
+          for (let xx = 0; xx < w; xx++) {
+            const a = Math.max(0, xx - RAD), b = Math.min(w, xx + RAD + 1);
+            run = pre[b] - pre[a];
+            tmp[row + xx] = all ? (run === b - a ? 1 : 0) : (run > 0 ? 1 : 0);
+          }
+        }
+        const pre = new Int32Array(h + 1);
+        for (let xx = 0; xx < w; xx++) {
+          for (let yy = 0; yy < h; yy++) pre[yy + 1] = pre[yy] + tmp[yy * w + xx];
+          for (let yy = 0; yy < h; yy++) {
+            const a = Math.max(0, yy - RAD), b = Math.min(h, yy + RAD + 1);
+            const run = pre[b] - pre[a];
+            out[yy * w + xx] = all ? (run === b - a ? 1 : 0) : (run > 0 ? 1 : 0);
+          }
+        }
+        return out;
+      };
+      const er = box(seen, true);
+      const reach = new Uint8Array(N);
+      const st = [];
+      const pr = (xx, yy) => { const n = yy * w + xx; if (er[n] && !reach[n]) { reach[n] = 1; st.push(n); } };
+      for (let xx = 0; xx < w; xx++) { pr(xx, 0); pr(xx, h - 1); }
+      for (let yy = 0; yy < h; yy++) { pr(0, yy); pr(w - 1, yy); }
+      while (st.length) {
+        const n = st.pop(), xx = n % w, yy = (n / w) | 0;
+        if (xx > 0) pr(xx - 1, yy); if (xx < w - 1) pr(xx + 1, yy); if (yy > 0) pr(xx, yy - 1); if (yy < h - 1) pr(xx, yy + 1);
+      }
+      const bgF = box(reach, false);
+      for (let n = 0; n < N; n++) if (seen[n] && !bgF[n]) d[n * 4 + 3] = 255;
     }
     /* 2) 키잉 가장자리 1px 침식 — jpg 핑크 헤일로 제거 */
     const alpha = new Uint8Array(w * h);
@@ -104,8 +149,52 @@ const Art = (() => {
     if (keyed[key]) return keyed[key];
     const im = raw[id];
     if (!ok(im)) return null;
-    keyed[key] = knockBg(im);
-    return keyed[key];
+    let cv = knockBg(im, map === 'sheet');
+    if (map === 'sheet') cv = bakeSheet(cv);
+    keyed[key] = cv;
+    return cv;
+  }
+
+  /* 시트 준비(한 번만): 밝기 보정을 미리 구워 두고, 프레임마다 발 위치를 재 둔다.
+     매 프레임 canvas filter를 쓰면 전투가 크게 느려지고, 그림 아래 빈칸 때문에 캐릭터가 떠 보였다. */
+  function bakeSheet(src) {
+    /* 전장 크기에 맞게 미리 줄여 둔다: 큰 그림을 매번 크게 줄이면 지글거리고 느리다 */
+    let cur = src;
+    while (cur.height > 420) {
+      const half = document.createElement('canvas');
+      half.width = Math.round(cur.width / 2); half.height = Math.round(cur.height / 2);
+      const hx = half.getContext('2d');
+      hx.imageSmoothingQuality = 'high';
+      hx.drawImage(cur, 0, 0, half.width, half.height);
+      cur = half;
+    }
+    const w = cur.width, h = cur.height;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const x = cv.getContext('2d');
+    try { x.filter = 'contrast(1.12) brightness(1.18) saturate(1.08)'; } catch (e) {}
+    x.drawImage(cur, 0, 0);
+    x.filter = 'none';
+    const d = x.getImageData(0, 0, w, h).data;
+    const fw = Math.floor(w / FRAMES);
+    const meta = { top: [], bot: [], cx: [] };
+    for (let f = 0; f < FRAMES; f++) {
+      let top = -1, bot = -1;
+      for (let yy = 0; yy < h; yy++) {
+        let n = 0;
+        for (let xx = f * fw; xx < (f + 1) * fw; xx += 2) if (d[(yy * w + xx) * 4 + 3] > 80) n++;
+        if (n >= 2) { if (top < 0) top = yy; bot = yy; }
+      }
+      if (top < 0) { top = 0; bot = h - 1; }
+      /* 발 중심: 아래쪽 10% 줄의 불투명 픽셀 평균 x */
+      const y0 = Math.max(top, bot - Math.round((bot - top) * 0.1));
+      let sx = 0, n = 0;
+      for (let yy = y0; yy <= bot; yy++) for (let xx = f * fw; xx < (f + 1) * fw; xx++) if (d[(yy * w + xx) * 4 + 3] > 80) { sx += xx - f * fw; n++; }
+      meta.top.push(top); meta.bot.push(bot); meta.cx.push(n ? sx / n : fw / 2);
+    }
+    meta.fw = fw; meta.h0 = Math.max(20, meta.bot[0] - meta.top[0]);
+    cv.meta = meta;
+    return cv;
   }
 
   function sheetOf(id) {
@@ -123,80 +212,50 @@ const Art = (() => {
     FX_IDS.forEach((id) => loadImg(fx, id, `img/fx/${id}.jpg`));
   }
 
-  function frameOf(u, t) {
-    if (u.swing > 0) {
-      const k = 1 - Math.max(0, Math.min(1, u.swing / 0.22));
-      if (k < 0.28) return 1;
-      if (k < 0.72) return 2;
-      return 3;
-    }
-    const moving = Math.hypot(u.vx || 0, u.vy || 0) > 8 && (u.stun || 0) <= 0;
-    if (moving) return Math.floor(t * 14 + (u.bob || 0) * 3) % 2;
-    return Math.sin(t * 3.2 + (u.bob || 0)) > 0.62 ? 1 : 0;
+  /* 프레임: 0 대기, 1 걸음, 2 준비, 3 공격 */
+  function frameOf(u, t, moving) {
+    if (u.swing > 0) return 1 - Math.min(1, u.swing / 0.22) < 0.4 ? 2 : 3;
+    if (moving) return Math.floor(t * 6 + (u.bob || 0)) % 2;
+    return 0;
   }
 
-  function blitSheet(c, spr, frame, x, y, h, dir, stunT) {
-    const fw = spr.width / FRAMES, fh = spr.height;
-    const w = h * (fw / fh);
-    c.save();
-    c.translate(x, y);
-    c.scale(dir, 1);
-    if (stunT) c.rotate(Math.sin(stunT) * 0.05);
-    c.drawImage(spr, fw * frame, 0, fw, fh, -w / 2, -h, w, h);
-    c.restore();
-    return { w, h };
+  function blitFrame(c, spr, f, scale) {
+    const m = spr.meta, fh = spr.height;
+    c.drawImage(spr, m.fw * f, 0, m.fw, fh, -m.cx[f] * scale, -m.bot[f] * scale, m.fw * scale, fh * scale);
   }
 
   function drawActor(c, u, t) {
     const id = u.generic ? 'generic' : (u.hid || 'generic');
     const spr = sheetOf(id) || sheetOf('generic');
-    if (!spr) return false;
-    const dir = Math.cos(u.face || 0) >= 0 ? 1 : -1;
+    if (!spr || !spr.meta) return false;
+    /* 좌우 방향은 확실히 돌아섰을 때만 바꾼다 (앞뒤로 깜빡이지 않게) */
+    const cf = Math.cos(u.face || 0);
+    if (!u.dirS) u.dirS = cf >= 0 ? 1 : -1;
+    else if (cf > 0.3) u.dirS = 1;
+    else if (cf < -0.3) u.dirS = -1;
+    const dir = u.dirS;
     const spd = Math.hypot(u.vx || 0, u.vy || 0);
-    const moving = spd > 8 && (u.stun || 0) <= 0;
-    const bob = moving ? Math.abs(Math.sin(t * 18 + (u.bob || 0))) * 2.2 : Math.sin(t * 2.8 + (u.bob || 0)) * 0.65;
-    const sc = u.boss ? 1.18 : 1;
-    const hh = 92 * sc;
-    const fr = frameOf(u, t);
-    const sw = u.swing > 0 ? Math.sin((1 - Math.min(1, u.swing / 0.22)) * Math.PI) * 6 : 0;
-    const lean = moving ? Math.min(0.12, spd / 900) * dir : 0;
-    const stun = u.stun > 0 ? t * 22 : 0;
-    /* 말랑한 움직임: 걸을 때 눌렸다 늘어나고, 휘두를 때 앞으로 늘어나며, 맞으면 납작해진다 */
-    let sy = 1;
-    if (moving) sy = 1 + Math.sin(t * 18 + (u.bob || 0)) * 0.055;
-    else sy = 1 + Math.sin(t * 2.8 + (u.bob || 0)) * 0.018;
-    if (u.swing > 0) { const k = 1 - Math.min(1, u.swing / 0.22); sy *= k < 0.3 ? 0.9 : 1 + Math.sin((k - 0.3) / 0.7 * Math.PI) * 0.07; }
-    if (u.flash > 0) sy *= 1 - Math.min(0.12, u.flash * 0.7);
-    const sx = 1 / Math.sqrt(sy);
+    const moving = spd > 12 && (u.stun || 0) <= 0;
+    const fr = frameOf(u, t, moving);
+    const hh = 64 * (u.boss ? 1.18 : 1);
+    const scale = hh / spr.meta.h0;
+    const gy = u.y + (u.r || 12) * 0.75; /* 그림자 중심 = 발 위치 */
+    const bob = moving ? Math.abs(Math.sin((t * 6 + (u.bob || 0)) * Math.PI)) * 1.6 : 0;
+    const breathe = moving ? 1 : 1 + Math.sin(t * 2.2 + (u.bob || 0)) * 0.012;
+    const lunge = u.swing > 0 ? Math.sin((1 - Math.min(1, u.swing / 0.22)) * Math.PI) * 4 : 0;
+    const hitSq = u.flash > 0 ? 1 - Math.min(0.06, u.flash * 0.4) : 1;
+    u.topY = gy - hh - 4;
     c.save();
-    c.translate(u.x, u.y + 10);
-    c.rotate(lean);
-    c.scale(sx, sy);
-    c.translate(-u.x, -(u.y + 10));
-    c.translate(dir * sw, -bob);
-    /* 어두운 시트도 전장에서 보이게: 은은한 실루엣 → 본체 (키잉 실패 시 보라 번짐 약화) */
-    c.save();
-    c.globalAlpha = 0.28;
-    c.filter = 'brightness(1.9) contrast(0.85)';
-    blitSheet(c, spr, fr, u.x, u.y + 11, hh, dir, stun);
-    c.restore();
-    c.filter = 'contrast(1.22) brightness(1.32) saturate(1.15)';
-    blitSheet(c, spr, fr, u.x, u.y + 10, hh, dir, stun);
-    c.filter = 'none';
+    c.translate(u.x + dir * lunge, gy - bob);
+    if (moving) c.rotate(Math.min(0.05, spd / 2400) * dir);
+    if (u.stun > 0) c.rotate(Math.sin(t * 22) * 0.05);
+    c.scale(dir, breathe * hitSq);
+    blitFrame(c, spr, fr, scale);
     if (u.flash > 0) {
       c.globalCompositeOperation = 'lighter';
-      c.globalAlpha = Math.min(0.75, u.flash * 4);
-      blitSheet(c, spr, fr, u.x, u.y + 10, hh, dir, 0);
-      c.globalAlpha = 1;
+      c.globalAlpha *= Math.min(0.6, u.flash * 3);
+      blitFrame(c, spr, fr, scale);
       c.globalCompositeOperation = 'source-over';
-    }
-    /* 이동 잔상 — 전투 밀도감 */
-    if (moving && spd > 40) {
-      c.globalAlpha = 0.18;
-      blitSheet(c, spr, fr, u.x - dir * 7, u.y + 10, hh * 0.98, dir, 0);
-      c.globalAlpha = 0.1;
-      blitSheet(c, spr, fr, u.x - dir * 14, u.y + 10, hh * 0.96, dir, 0);
-      c.globalAlpha = 1;
     }
     c.restore();
     return true;

@@ -2000,9 +2000,7 @@ const Battle = (() => {
       if (u.orbit > 0) {
         Art.blitFx(c, 'swords', u.x, u.y - 8, 90, 90, u.orbitA, 1, 0.9);
       }
-      if (u.flash > 0) c.filter = 'brightness(2.6)';
       Sprites.hero(c, u, t);
-      c.filter = 'none';
       c.globalAlpha = 1;
       if (u.kind === 'hero') {
         hpBar(c, u, 30);
@@ -2055,7 +2053,7 @@ const Battle = (() => {
 
   function hpBar(c, u, w) {
     const k = clamp(u.hp / u.maxHp, 0, 1);
-    const y = u.kind === 'hero' ? u.y - (u.boss ? 62 : 55) : u.y - u.r - 13;
+    const y = u.kind === 'hero' ? (u.topY != null ? u.topY : u.y - (u.boss ? 62 : 55)) : u.y - u.r - 13;
     c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(u.x - w / 2 - 1, y - 1, w + 2, u.kind === 'hero' ? 5 : 3);
     c.fillStyle = u.team === 0 ? (k > 0.35 ? '#7fd3e6' : '#ffb35c') : '#e0503c';
     c.fillRect(u.x - w / 2, y, w * k, u.kind === 'hero' ? 3 : 1.6);
