@@ -208,6 +208,7 @@ const Art = (() => {
     return keyedImg('fx', id, fx);
   }
   function warm() {
+    if (typeof Rig !== 'undefined') Rig.warm();
     SHEET_IDS.forEach((id) => loadImg(sheets, id, `img/sheets/${id}.jpg`));
     FX_IDS.forEach((id) => loadImg(fx, id, `img/fx/${id}.jpg`));
   }
@@ -225,6 +226,21 @@ const Art = (() => {
   }
 
   function drawActor(c, u, t) {
+    if (!u.generic && u.hid && typeof Rig !== 'undefined' && Rig.has(u.hid)) {
+      const cf = Math.cos(u.face || 0);
+      if (!u.dirS) u.dirS = cf >= 0 ? 1 : -1;
+      else if (cf > 0.3) u.dirS = 1;
+      else if (cf < -0.3) u.dirS = -1;
+      const gy = u.y + (u.r || 12) * 0.75;
+      const hh = 76 * (u.boss ? 1.18 : 1);
+      u.topY = gy - hh - 4;
+      Rig.draw(c, u, t, gy, u.dirS, hh);
+      if (u.flash > 0) {
+        c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha *= Math.min(0.5, u.flash * 2.5);
+        Rig.draw(c, u, t, gy, u.dirS, hh); c.restore();
+      }
+      return true;
+    }
     const id = u.generic ? 'generic' : (u.hid || 'generic');
     const spr = sheetOf(id) || sheetOf('generic');
     if (!spr || !spr.meta) return false;
