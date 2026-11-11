@@ -115,7 +115,18 @@ const RigLab = (() => {
   function mix(P, Q, k) { if (k <= 0) return; for (const key of CK) P[key] = lerp(P[key], Q[key], k); }
   const IDLE = { lean: 0.03, head: 0, tF: -0.06, kF: 0.08, fF: 0, tB: 0.08, kB: 0.05, fB: 0, uF: 0.1, aF: -0.45, uB: 0.06, aB: -0.25, sw: 1.55, rx: 0 };
   /* 공격 시간(초): 젖힌 칼이 맞는 순간(impact)까지, 맞은 뒤 칼이 바닥까지, 다시 겨눔으로 */
-  const PRE = 0.2, DOWN = 0.1, BACK = 0.55, OVER = DOWN; /* OVER: 칼 궤적 길이 */
+  /* 베기 시간표(초) — 액션 게임 공식: 준비는 짧게 모았다가, 휘두르기는 몇 프레임 만에 번개처럼,
+     맞는 순간 아주 잠깐 멈추고(히트스톱), 끝자세에서 잠깐 버텼다가 돌아온다 */
+  const PRE = 0.18;               /* 준비(칼을 더 젖히며 체중을 뒤로) */
+  const T_SW = 0.06, T_STOP = 0.1, T_FOL = 0.14, T_HOLD = 0.26, BACK = 0.52;
+  const OVER = T_FOL;             /* 칼 궤적은 휘두르는 동안만 */
+  /* 동작 자료에서 칼이 정면 수평(맞는 순간)·가장 아래(끝)인 장면 번호 */
+  let IMP = 13, BOT = 20;
+  if (M) {
+    const S = M.strike, bl = S.uF.map((v, i) => v + S.aF[i] + S.sw[i] - Math.PI);
+    IMP = bl.findIndex((v) => v >= -Math.PI / 2); if (IMP < 1) IMP = 13;
+    BOT = IMP; for (let i = IMP; i < bl.length; i++) { if (bl[i] >= bl[BOT]) BOT = i; else break; }
+  }
 
   function pose(u, t) {
     const br = Math.sin(t * 2.1 + (u.bob || 0));
@@ -140,24 +151,27 @@ const RigLab = (() => {
     }
     const rest = Object.assign({}, P);
     if (M) {
-      const S = M.strike, imp = M.impact, n = S.lean.length;
-      const bottom = Math.min(n - 1, imp + 7);
-      let f = -1;
+      const S = M.strike, n = S.lean.length;
+      let f = -1, coil = 0;
       const wu = sw > 0.5 && !(u.atkE >= 0) ? clamp01(1 - (u.atkT || 0) / PRE) : 0;
-      if (wu > 0) f = wu * imp;
+      if (wu > 0) { f = 0; coil = smooth(wu); }
       const e = u.atkE;
       if (e >= 0) {
-        if (e < DOWN) f = imp + (bottom - imp) * (e / DOWN);
-        else f = bottom + (n - 1 - bottom) * clamp01((e - DOWN) / (BACK - DOWN));
+        if (e < T_SW) { const k = e / T_SW; f = IMP * k * k; coil = 1 - k; }         /* 점점 빨라지며 내려벤다 */
+        else if (e < T_STOP) f = IMP;                                                 /* 히트스톱 */
+        else if (e < T_FOL) { const k = (e - T_STOP) / (T_FOL - T_STOP); f = IMP + (BOT - IMP) * (1 - (1 - k) * (1 - k)); }
+        else if (e < T_HOLD) f = BOT;                                                 /* 끝자세 버티기 */
+        else f = BOT + (n - 1 - BOT) * smooth((e - T_HOLD) / (BACK - T_HOLD));
       }
       if (f >= 0) {
         const Q = sample(S, f, false); Q.rx -= S.rx[0];
-        /* 처음엔 지금 자세에서 이어지게, 끝에서 다시 겨눔으로 돌아가게 섞는다 */
+        /* 준비: 칼을 조금 더 젖히고 몸을 뒤로 */
+        Q.sw -= 0.25 * coil; Q.uF -= 0.12 * coil; Q.lean -= 0.08 * coil; Q.rx -= 0.5 * coil;
+        if (e >= T_HOLD && e < T_HOLD + 0.05) Q.lean += 0.02 * Math.sin(Math.PI * (e - T_HOLD) / 0.05); /* 살짝 더 나갔다 */
         let k = 1;
-        if (!(e >= 0)) k = clamp01(wu * 3);
-        else if (e > BACK - 0.15) k = clamp01((BACK - e) / 0.15);
+        if (!(e >= 0)) k = clamp01(wu * 2.5);
+        else if (e > BACK - 0.12) k = clamp01((BACK - e) / 0.12);
         mix(P, Q, smooth(k));
-        if (e >= 0 && e > BACK - 0.15) mix(P, rest, 0);
       }
     }
     P.hipX = P.rx * (M ? M.unit : 15);
@@ -314,7 +328,7 @@ const RigLab = (() => {
   function drawTrail(c, u, t) {
     const tr = u.trail;
     if (!tr || tr.length < 2 || !(u.atkE >= 0)) return;
-    const life = 1 - u.atkE / (OVER + 0.06);
+    const life = u.atkE < OVER ? 1 : 1 - (u.atkE - OVER) / 0.1;
     if (life <= 0) return;
     const last = tr[tr.length - 1], first = tr[0];
     const cx = last.sh.x, cy = last.sh.y;
@@ -327,7 +341,7 @@ const RigLab = (() => {
     while (cw && da < 0) da += Math.PI * 2;
     while (!cw && da > 0) da -= Math.PI * 2;
     if (Math.abs(da) > Math.PI * 1.6) return;
-    if (Math.abs(da) > 1.4) da = Math.sign(da) * 1.4; /* 꼬리는 칼끝 뒤쪽 일부만 */
+    if (Math.abs(da) > 2.6) da = Math.sign(da) * 2.6; /* 꼬리는 칼끝 뒤쪽 일부만 */
     if (Math.abs(da) < 0.2) return;
     a0 = a1 - da;
     const ccw = da < 0;
@@ -335,11 +349,11 @@ const RigLab = (() => {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.globalCompositeOperation = 'lighter';
     const g = c.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.05);
-    g.addColorStop(0, 'rgba(120,230,255,0)'); g.addColorStop(0.85, `rgba(150,235,255,${0.12 * life})`); g.addColorStop(1, `rgba(240,253,255,${0.55 * life})`);
+    g.addColorStop(0, 'rgba(120,230,255,0)'); g.addColorStop(0.8, `rgba(150,235,255,${0.18 * life})`); g.addColorStop(1, `rgba(245,253,255,${0.85 * life})`);
     c.fillStyle = g;
     c.beginPath();
     c.arc(cx, cy, r * 1.04, a0, a1, ccw);
-    c.arc(cx, cy, r * 0.84, a1, a0, !ccw);
+    c.arc(cx, cy, r * 0.8, a1, a0, !ccw);
     c.closePath(); c.fill();
     c.restore();
   }
