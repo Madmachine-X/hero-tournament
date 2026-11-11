@@ -7,22 +7,26 @@ const RigLab = (() => {
   /* 조각 위치(아틀라스 좌표)와 관절(pivot)·붙는 점(at)은 조각 기준 좌표 */
   const DEFS = {
     hero: {
-      src: 'img/rig/hero.png',
+      src: 'lab/hero-lab.png',
       height: 477, /* 서 있을 때 머리끝~발끝 (아틀라스 단위) */
       leg: 229,    /* 엉덩이~발바닥 (다리 배율 반영) */
       /* 조각별 배율: 머리는 줄이고 팔다리는 길게 늘려 7등신 정도로 */
       scale: { head: 0.72, torso: 0.9, leg: [1.0, 1.2], arm: [1.0, 1.15] }, /* [가로, 세로] */
       parts: {
         head: { r: [103, 0, 105, 117], pv: [51.1, 103.1] },
-        torso: { r: [0, 0, 101, 259], pv: [50.9, 208], neck: [49.5, 12.3], shF: [31.3, 54.8], shB: [22.9, 53.7], belt: [60.7, 153.5] },
-        uarmF: { r: [554, 0, 48, 96], pv: [27.1, 11.6], elbow: [24, 82.2] },
-        uarmB: { r: [604, 0, 48, 96], pv: [27.1, 11.6], elbow: [24, 82.2] },
-        farmF: { r: [654, 0, 43, 84], pv: [13.6, 4.7], grip: [31, 73.6], cuff: [18.6, 23.3] },
-        farmB: { r: [699, 0, 43, 84], pv: [13.6, 4.7], grip: [31, 73.6], cuff: [18.6, 23.3] },
-        thighF: { r: [382, 0, 85, 108], pv: [47, 5.5], knee: [35.6, 98] },
+        torso: { r: [0, 0, 101, 259], pv: [50.9, 208.0], neck: [49.5, 12.3], shF: [31.3, 54.8], shB: [22.9, 53.7], belt: [60.7, 153.5] },
+        uarmF: { r: [554, 0, 48, 96], pv: [27.1, 11.6], elbow: [24.0, 82.2] },
+        uarmB: { r: [604, 0, 48, 96], pv: [27.1, 11.6], elbow: [24.0, 82.2] },
+        farmF: { r: [826, 0, 43, 84], pv: [13.6, 4.7], grip: [31.0, 73.6], cuff: [18.6, 23.3] },
+        farmB: { r: [871, 0, 43, 84], pv: [13.6, 4.7], grip: [31.0, 73.6], cuff: [18.6, 23.3] },
+        thighF: { r: [382, 0, 85, 108], pv: [47.0, 5.5], knee: [35.6, 98.0] },
         shinF: { r: [210, 0, 85, 110], pv: [35.6, 11.4] },
-        thighB: { r: [469, 0, 83, 108], pv: [46.1, 5.5], knee: [34.7, 98] },
+        shin2F: { r: [654, 0, 85, 86], pv: [35.6, 11.4], ankle: [32.8, 79.8] },
+        footF: { r: [916, 0, 85, 32], pv: [32.8, 2.7] },
+        thighB: { r: [469, 0, 83, 108], pv: [46.1, 5.5], knee: [34.7, 98.0] },
         shinB: { r: [297, 0, 83, 109], pv: [34.7, 11.4] },
+        shin2B: { r: [741, 0, 83, 86], pv: [34.7, 11.4], ankle: [32.4, 79.8] },
+        footB: { r: [0, 261, 83, 31], pv: [32.4, 2.7] },
       },
     },
   };
@@ -86,70 +90,81 @@ const RigLab = (() => {
      그래서 몸이 내려가면 무릎이 자연스럽게 굽고, 디딘 발은 땅에 붙어 있다.
      좌표: 원점 = 엉덩이 바로 아래 땅, x = 앞(+), hipH = 엉덩이 높이, fFx/fBx = 앞·뒷발 x, fFl/fBl = 발 들림 */
   const L = 229;
-  const K = {
-    idle:   { hipX: 0,  hipH: L * 0.975, fFx: 16, fBx: -14, fFl: 0, fBl: 0, lean: 0.04, head: 0,     uarmF: 0.1,  farmF: -0.45, sword: 1.55, uarmB: 0.06, farmB: -0.25 },
-    /* 적 앞에서 칼끝을 겨눈 자세: 다리를 벌리고 무릎을 굽혀 낮춘다 */
-    stance: { hipX: -2, hipH: L * 0.9,  fFx: 52, fBx: -46, fFl: 0, fBl: 0, lean: 0.1,  head: 0.04,  uarmF: -0.75, farmF: -0.85, sword: 2.55, uarmB: -0.35, farmB: -0.9 },
-    /* 준비: 체중을 뒷발로, 칼을 머리 뒤로 젖힌다 */
-    wind:   { hipX: -14, hipH: L * 0.885, fFx: 52, fBx: -46, fFl: 0, fBl: 0, lean: -0.1, head: -0.04, uarmF: -2.85, farmF: -0.75, sword: 1.45, uarmB: -1.2, farmB: -0.7 },
-    /* 베기: 앞발을 크게 내딛으며 몸을 앞으로 던진다 */
-    hit:    { hipX: 26, hipH: L * 0.84, fFx: 96, fBx: -44, fFl: 0, fBl: 0, lean: 0.22, head: 0.06,  uarmF: -0.35, farmF: -0.1, sword: 2.45, uarmB: 0.55, farmB: -0.35 },
-    /* 마무리: 칼이 아래로 빠져나가고 몸이 조금 더 숙여진다 */
-    over:   { hipX: 30, hipH: L * 0.83, fFx: 96, fBx: -44, fFl: 0, fBl: 0, lean: 0.27, head: 0.08,  uarmF: 0.3,  farmF: -0.15, sword: 2.6, uarmB: 0.7, farmB: -0.3 },
-  };
-  const KEYS = Object.keys(K.idle);
-  function blend(P, B, k) { if (k <= 0) return; for (const key of KEYS) P[key] = lerp(P[key], B[key], k); }
-  function snap(P) { const o = {}; for (const key of KEYS) o[key] = P[key]; return o; }
-  /* 공격 시간표(초): 베기 → 마무리 → 겨눔으로 복귀 */
-  const STRIKE = 0.09, OVER = 0.18, BACK = 0.5;
-  /* 걷기 한 주기: 한 발이 땅을 미는 구간 55%, 공중에서 앞으로 나가는 구간 45% */
-  const STRIDE = L * 0.62, DUTY = 0.55, LIFT = L * 0.16;
-  function footCycle(q) {
-    q = ((q % 1) + 1) % 1;
-    if (q < DUTY) return { x: STRIDE / 2 - STRIDE * (q / DUTY), l: 0 };
-    const s = (q - DUTY) / (1 - DUTY);
-    return { x: -STRIDE / 2 + STRIDE * smooth(s), l: Math.sin(Math.PI * s) * LIFT * (0.6 + 0.4 * (1 - s)) };
+  /* ===== 실제 사람 동작(모션캡처) 재생 =====
+     MOCAP(mocap.js): CMU 모션캡처에서 뽑은 옆모습 관절 각도. 30장/초.
+     키: lean 몸 기울기, head, t/k/f = 허벅지·무릎·발목, u/a = 윗팔·아래팔, sw = 칼(앞손 기준), rx = 엉덩이 앞뒤 이동 */
+  const M = typeof MOCAP !== 'undefined' ? MOCAP : null;
+  /* 걷기: 일정한 속도로 나아가는 부분을 빼서 한 바퀴가 이음매 없이 반복되게 */
+  if (M && !M.walk.rxD) {
+    const R = M.walk.rx, n = R.length, per = R[n - 1] + (R[n - 1] - R[n - 2]);
+    M.walk.rxD = true; M.walk.rx = R.map((v, i) => v - per * i / n);
+    /* 칼 그림은 위를 향한 상태가 0이라, 팔다리(아래가 0) 기준 각도에서 반 바퀴 돌린다 */
+    for (const c of [M.guard, M.strike]) c.sw = c.sw.map((v) => v + Math.PI);
+    /* 실제 배우가 낮은 곳을 벨 때 허리를 많이 숙여서, 게임에선 숙임을 조금 줄인다 */
+    M.strike.lean = M.strike.lean.map((v) => v > 0.25 ? 0.25 + (v - 0.25) * 0.55 : v);
   }
+  const CK = ['lean', 'head', 'tF', 'kF', 'fF', 'tB', 'kB', 'fB', 'uF', 'aF', 'uB', 'aB', 'sw', 'rx'];
+  function sample(clip, f, loop) {
+    const n = clip.lean.length;
+    if (loop) f = ((f % n) + n) % n; else f = Math.max(0, Math.min(n - 1, f));
+    const i = Math.floor(f), j = loop ? (i + 1) % n : Math.min(n - 1, i + 1), k = f - i;
+    const o = {};
+    for (const key of CK) { const A = clip[key]; o[key] = A[i] + (A[j] - A[i]) * k; }
+    return o;
+  }
+  function mix(P, Q, k) { if (k <= 0) return; for (const key of CK) P[key] = lerp(P[key], Q[key], k); }
+  const IDLE = { lean: 0.03, head: 0, tF: -0.06, kF: 0.08, fF: 0, tB: 0.08, kB: 0.05, fB: 0, uF: 0.1, aF: -0.45, uB: 0.06, aB: -0.25, sw: 1.55, rx: 0 };
+  /* 공격 시간(초): 젖힌 칼이 맞는 순간(impact)까지, 맞은 뒤 칼이 바닥까지, 다시 겨눔으로 */
+  const PRE = 0.2, DOWN = 0.1, BACK = 0.55, OVER = DOWN; /* OVER: 칼 궤적 길이 */
 
   function pose(u, t) {
-    const w = u.walkW || 0, p = u.walkPh || 0;
     const br = Math.sin(t * 2.1 + (u.bob || 0));
-    const P = snap(K.idle);
-    P.hipH += br * 1.2; P.lean += br * 0.01; P.head += Math.sin(t * 2.1 + 0.6 + (u.bob || 0)) * 0.025;
-    P.uarmF += br * 0.02; P.uarmB -= br * 0.02;
-    if (w > 0) {
-      const f = footCycle(p), b = footCycle(p + 0.5);
-      const c2 = Math.cos(2 * Math.PI * p);
-      /* 발을 디딘 직후 가장 낮고, 두 발이 엇갈릴 때 가장 높다 */
-      const Wk = {
-        hipX: 0, hipH: L * 0.94 - 7 * Math.cos(4 * Math.PI * (p - 0.06)),
-        fFx: f.x, fBx: b.x, fFl: f.l, fBl: b.l,
-        lean: 0.1 + 0.02 * Math.cos(4 * Math.PI * p), head: -0.05 - 0.02 * Math.cos(4 * Math.PI * p),
-        /* 팔은 같은 쪽 다리와 반대로 흔든다 */
-        uarmF: 0.05 + 0.22 * c2, farmF: -0.55 - 0.25 * Math.max(0, -c2), sword: 1.5,
-        uarmB: 0.05 - 0.3 * c2, farmB: -0.3 - 0.35 * Math.max(0, c2),
-      };
-      blend(P, Wk, w);
+    const P = Object.assign({}, IDLE);
+    P.lean += br * 0.012; P.head += Math.sin(t * 2.1 + 0.6 + (u.bob || 0)) * 0.025; P.uF += br * 0.02;
+    P.hipX = 0;
+    const w = u.walkW || 0;
+    if (M && w > 0) {
+      const n = M.walk.lean.length, f = (u.walkPh || 0) * n;
+      const Q = sample(M.walk, f, true);
+      /* 걷는 동안 몸이 일정한 속도로 나아가는 부분은 빼고, 출렁임만 남긴다 */
+      Q.sw = 1.5; Q.uF = Q.uF * 0.7 + 0.05; Q.aF = Math.min(Q.aF, -0.35);
+      mix(P, Q, w);
     }
-    blend(P, K.stance, ease(u.stanceW || 0));
-    const rest = snap(P);
-    const wu = (u.stanceW || 0) > 0.5 && !(u.atkE >= 0) ? clamp01(1 - (u.atkT || 0) / 0.32) : 0;
-    blend(P, K.wind, smooth(wu));
-    const e = u.atkE;
-    if (e >= 0) {
-      if (e < STRIKE) {
-        const k = e / STRIKE;
-        Object.assign(P, snap(K.wind)); blend(P, K.hit, k * k * (3 - 2 * k) * 0.3 + k * k * 0.7);
-        P.fFl = Math.sin(Math.PI * k) * 16; /* 앞발을 들어 내딛는다 */
-      } else if (e < OVER) { Object.assign(P, snap(K.hit)); blend(P, K.over, smooth((e - STRIKE) / (OVER - STRIKE))); }
-      else {
-        const k = (e - OVER) / (BACK - OVER);
-        Object.assign(P, snap(K.over)); blend(P, rest, smooth(k));
-        if (k < 0.6) P.fFl = Math.sin(Math.PI * k / 0.6) * 10; /* 앞발을 다시 끌어온다 */
+    const sw = u.stanceW || 0;
+    if (M && sw > 0) {
+      const n = M.guard.lean.length;
+      /* 겨눔: 실제 동작을 앞뒤로 오가며 반복(숨 쉬듯 미세하게 흔들림) */
+      const ph = (t * 30) % (2 * n - 2), f = ph < n ? ph : 2 * n - 2 - ph;
+      const Q = sample(M.guard, f, false); Q.rx = 0;
+      mix(P, Q, ease(sw));
+    }
+    const rest = Object.assign({}, P);
+    if (M) {
+      const S = M.strike, imp = M.impact, n = S.lean.length;
+      const bottom = Math.min(n - 1, imp + 7);
+      let f = -1;
+      const wu = sw > 0.5 && !(u.atkE >= 0) ? clamp01(1 - (u.atkT || 0) / PRE) : 0;
+      if (wu > 0) f = wu * imp;
+      const e = u.atkE;
+      if (e >= 0) {
+        if (e < DOWN) f = imp + (bottom - imp) * (e / DOWN);
+        else f = bottom + (n - 1 - bottom) * clamp01((e - DOWN) / (BACK - DOWN));
+      }
+      if (f >= 0) {
+        const Q = sample(S, f, false); Q.rx -= S.rx[0];
+        /* 처음엔 지금 자세에서 이어지게, 끝에서 다시 겨눔으로 돌아가게 섞는다 */
+        let k = 1;
+        if (!(e >= 0)) k = clamp01(wu * 3);
+        else if (e > BACK - 0.15) k = clamp01((BACK - e) / 0.15);
+        mix(P, Q, smooth(k));
+        if (e >= 0 && e > BACK - 0.15) mix(P, rest, 0);
       }
     }
+    P.hipX = P.rx * (M ? M.unit : 15);
     if (u.flash > 0) { const h = Math.min(1, u.flash * 6); P.lean -= 0.16 * h; P.head -= 0.15 * h; P.hipX -= 8 * h; }
     if (u.stun > 0) P.head += Math.sin(t * 9) * 0.12;
+    /* 옛 이름과 맞춤 (팔 그리기 코드가 쓰는 이름) */
+    P.uarmF = P.uF; P.farmF = P.aF; P.uarmB = P.uB; P.farmB = P.aB; P.sword = P.sw;
     return P;
   }
   /* 두 관절 IK: 엉덩이(0,0)에서 발(fx, fy)까지. 각도 0 = 아래, 음수 = 앞. 무릎은 앞으로 굽는다 */
@@ -186,7 +201,7 @@ const RigLab = (() => {
     u.rigT = t;
     const k0 = hPx / d.height;
     /* 걸음 위상은 실제 이동 거리로 진행 → 디딘 발이 미끄러지지 않는다 */
-    u.walkPh = (u.walkPh || 0) + spd * dt / ((STRIDE / DUTY) * k0);
+    u.walkPh = (u.walkPh || 0) + (M ? spd * dt / (M.walkSpeed * (M.walk.lean.length / 30) * M.unit * k0) : 0);
     u.walkW = (u.walkW || 0) + ((moving ? 1 : 0) - (u.walkW || 0)) * Math.min(1, dt * 8);
     /* 전투 쪽에서 공격이 새로 시작되면(swing 값이 다시 올라가면) 내려베기를 처음부터 재생 */
     if ((u.swing || 0) > (u.lastSwing || 0) + 0.01) { u.atkE = 0; u.trail = []; }
@@ -201,22 +216,35 @@ const RigLab = (() => {
     c.save();
     c.translate(u.x, gy);
     c.scale(dir * k, k);
-    /* 원점 = 엉덩이 */
+    /* 원점 = 엉덩이 (높이는 다리 그리기 직전에 정해짐) */
+
+    /* 다리: 허벅지 → 정강이 → 발(발목 관절). 땅에 닿는 높이는 아래에서 계산 */
+    const lsx = LS.length ? LS[0] : LS, lsy = LS.length ? LS[1] : LS;
+    const legPts = (side) => {
+      const th = Pp['thigh' + side], sh = Pp['shin2' + side];
+      const L1 = (th.knee[1] - th.pv[1]) * lsy, L2 = (sh.ankle[1] - sh.pv[1]) * lsy;
+      const a1 = P['t' + side], a2 = a1 + P['k' + side], a3 = a2 + P['f' + side];
+      const kx = -Math.sin(a1) * L1, ky = Math.cos(a1) * L1;
+      const ax = kx - Math.sin(a2) * L2, ay = ky + Math.cos(a2) * L2;
+      /* 발바닥: 뒤꿈치·발끝 (발목 기준, 발이 평평할 때) */
+      const sole = (x, y) => [ax + x * Math.cos(a3) - y * Math.sin(a3), ay + x * Math.sin(a3) + y * Math.cos(a3)];
+      return [sole(-16, 30), sole(50, 30)];
+    };
+    const low = Math.max(...legPts('F').map((q) => q[1]), ...legPts('B').map((q) => q[1]));
+    P.hipH = low;
     c.translate(P.hipX, -P.hipH);
     const drawLeg = (side) => {
-      const th = Pp['thigh' + side], sh = Pp['shin' + side];
-      const sy = LS.length ? LS[1] : LS;
-      const L1 = (th.knee[1] - th.pv[1]) * sy, L2 = (sh.r[3] - sh.pv[1] - 4) * sy;
-      const hx = side === 'F' ? 5 : -5;
-      /* 발 목표(엉덩이 기준) → 무릎 각도 */
-      const ik = legIK(P['f' + side + 'x'] - P.hipX - hx, P.hipH - P['f' + side + 'l'], L1, L2);
+      const th = Pp['thigh' + side], sh = Pp['shin2' + side], ft = Pp['foot' + side];
       c.save();
-      c.translate(hx, 0);
-      c.rotate(ik.thigh);
+      c.translate(side === 'F' ? 4 : -4, 0);
+      c.rotate(P['t' + side]);
       part(c, im, th, LS);
       at(c, th, th.knee, LS);
-      c.rotate(ik.knee);
+      c.rotate(P['k' + side]);
       part(c, im, sh, LS);
+      at(c, sh, sh.ankle, LS);
+      c.rotate(P['f' + side]);
+      part(c, im, ft, LS);
       c.restore();
     };
     /* 팔: 몸통 기준 어깨에서 시작. 갑옷이 있으면 어깨받이·팔찌를 같은 뼈에 덧입힌다 */

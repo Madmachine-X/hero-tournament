@@ -16,6 +16,7 @@
 </header>
 <canvas id="cv" width="1400" height="560"></canvas>
 <p>게임과 분리된 시험 화면입니다. 확정되면 게임에 넣습니다.</p>
+<script src="mocap.js"></script>
 <script src="rig-lab.js"></script>
 <script>
 const cv=document.getElementById('cv'), c=cv.getContext('2d');
@@ -23,7 +24,7 @@ let armor=null, speed=1, t=0, last=performance.now();
 document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{armor=b.dataset.a||null;document.querySelectorAll('[data-a]').forEach(x=>x.classList.toggle('on',x===b));});
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('on',x===b));});
 RigLab.warm();
-const H=300, GY=470, WALK=210;
+const H=300, GY=470, WALK=MOCAP.walkSpeed*MOCAP.unit*(H/477);
 const us=[
  {label:'서 있기', x:230, mode:'idle'},
  {label:'걷기', x:700, mode:'walk'},
