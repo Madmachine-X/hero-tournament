@@ -662,3 +662,18 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .soul-list b { font-family: var(--f-display); font-weight: 400; white-space: nowrap; color: #f3e3b8; }
 .soul-list span { color: var(--ash); font-size: 0.8rem; }
 @media (max-width: 720px) { .bc-opts { grid-template-columns: 1fr; } #b-sit { top: 96px; max-width: calc(100% - 24px); } }
+
+/* 길 고르기 · 도시 특색 · 대회 */
+.way-opts { display: grid; gap: 8px; margin: 12px 0; }
+.way-opts button { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; background: #17150f; border: 1px solid var(--line-2); border-radius: 4px; color: #ece4cf; cursor: pointer; font: inherit; }
+.way-opts button:hover { border-color: var(--gold); }
+.way-opts b { font-family: var(--f-display); font-weight: 400; font-size: 1.1rem; color: var(--gold); }
+.way-opts span { color: var(--ash); font-size: 0.82rem; }
+.trait { margin: 8px 0; padding: 7px 10px; border-left: 2px solid var(--gold); background: rgba(217,171,74,0.06); font-size: 0.84rem; }
+.trait b { font-family: var(--f-display); font-weight: 400; color: var(--gold); margin-right: 8px; }
+.tour-foes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+.tour-foes span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.82rem; }
+.tour-bracket { display: flex; gap: 6px; justify-content: center; margin: 10px 0 2px; }
+.tour-bracket i { font-style: normal; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 3px; color: var(--ash); font-size: 0.78rem; }
+.tour-bracket i.on { border-color: var(--gold); color: var(--gold); }
+.tour-bracket i.won { color: #7fd3e6; border-color: #2e5560; }

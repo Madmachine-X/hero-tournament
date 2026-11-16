@@ -28,7 +28,7 @@ const EventQ = (() => {
   return { push, kick };
 })();
 
-function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
+function saveGame() { if (G && G.tour) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
 function loadSave() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 
@@ -445,8 +445,9 @@ function unequip(hid, slot) {
 
 /* ----- 도시와 경제 ----- */
 function ownedCities() { return Object.keys(G.cities).filter((c) => G.cities[c].owner === 'player'); }
-function cityGold(id) { const c = G.cities[id]; return Math.round(10 + c.comm * 0.9 * c.loyal / 100); }
-function cityFood(id) { const c = G.cities[id]; return Math.round(10 + c.agri * 1.0 * c.loyal / 100); }
+function traitMul(id, key) { const t = CITIES[id] && CITIES[id].trait; return (t && t[key]) || 1; }
+function cityGold(id) { const c = G.cities[id]; return Math.round((10 + c.comm * 0.9 * c.loyal / 100) * traitMul(id, 'gold')); }
+function cityFood(id) { const c = G.cities[id]; return Math.round((10 + c.agri * 1.0 * c.loyal / 100) * traitMul(id, 'food')); }
 function totalTroops() { return ownedCities().reduce((a, c) => a + G.cities[c].troops, 0); }
 function foodUpkeep() { return Math.round(totalTroops() * 0.06); }
 function freeHeroes() { return G.roster.filter((h) => !G.heroes[h].acted && !G.heroes[h].travel); }
@@ -458,8 +459,8 @@ function commandGain(cmd, hid, cityId) {
   if (cmd === 'comm') return 2 + Math.floor(s.int / 6);
   if (cmd === 'wall') return 2 + Math.floor((s.lea * 0.6 + s.str * 0.4) / 7);
   if (cmd === 'loyal') return 2 + Math.floor(s.int / 7);
-  if (cmd === 'train') return 3 + Math.floor((s.str + s.lea) / 11);
-  if (cmd === 'draft') return Math.max(0, Math.min(20 + s.lea * 2, 400 - c.troops));
+  if (cmd === 'train') return Math.round((3 + Math.floor((s.str + s.lea) / 11)) * traitMul(cityId, 'train'));
+  if (cmd === 'draft') return Math.max(0, Math.min(Math.round((20 + s.lea * 2) * traitMul(cityId, 'draft')), 400 - c.troops));
   if (cmd === 'search') {
     const found = c.owner === 'player' ? G.roster.length : ((G.foeFound && G.foeFound[c.owner]) || 0);
     return Math.round(Math.max(10, Math.min(85, 25 + s.int * 2 + c.loyal * 0.2 - found * 3.5)));

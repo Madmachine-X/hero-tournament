@@ -350,27 +350,27 @@ const HERO_GEAR = {
 
 /* 도시 (현재 지도 좌표) */
 const CITIES = {
-  seoul:     { name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
+  seoul:     { trait: { name: '저잣거리', desc: '업전 수입 +30%', gold: 1.3 }, name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
                shop: ['w_hwando','w_bisu','w_jangchang','w_gakgung','w_deungpae','a_dopo','a_chalgap','r_ok','r_eun','n_hobak'] },
-  pyongyang: { sit: 'river', name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
+  pyongyang: { sit: 'river', trait: { name: '철기', desc: '가지고 있으면 모든 아군 병사 공격 +10%', solAtk: 1.1 }, name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
                boss: 'gaesomun', captains: ['고구려 망령장', '고구려 망령장'], theme: 'north',
                shop: ['w_woldo','w_heukgak','a_dujeong','n_hobal'] },
-  gangneung: { sit: 'fog', name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
+  gangneung: { sit: 'fog', trait: { name: '안갯길', desc: '가지고 있으면 야간 기습 때 적 사기 -6 추가', raid: 6 }, name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
                bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장'], theme: 'mist',
                shop: ['r_honbul','b_bujeok'] },
-  jeonju:    { name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
+  jeonju:    { trait: { name: '곡창', desc: '혼식 수입 +50%', food: 1.5 }, name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
                boss: 'gyeonhwon', captains: ['후백제 망령장'], theme: 'field',
                shop: ['w_ungeom','w_wonbang','b_norigae','r_honbul'] },
-  gyeongju:  { name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
+  gyeongju:  { duel: '화랑 망령', trait: { name: '화랑도', desc: '조련 효과 +50%', train: 1.5 }, name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
                boss: 'yusin', captains: ['신라 망령장', '화랑 망령'], theme: 'field',
                shop: ['w_hakuseon','a_suui','n_yeomju','b_bujeok'] },
-  tongyeong: { sit: 'tide', name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
+  tongyeong: { sit: 'tide', trait: { name: '수군', desc: '가지고 있으면 아군은 물속에서 덜 느려진다', water: true }, name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
                bossGeneric: '수귀 대장', bossSkill: 'tide', captains: ['망령 수군장'], theme: 'coast',
                shop: ['w_heukgak','a_dujeong'] },
-  hamheung:  { name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 150, train: 50, level: 4, cap: 9,
+  hamheung:  { trait: { name: '북방 장정', desc: '소환(징병) 인원 +30%', draft: 1.3 }, name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 150, train: 50, level: 4, cap: 9,
                captains: ['고구려 망령장'], theme: 'north',
                shop: ['w_jangchang','a_chalgap','n_hobal'] },
-  jeju:      { sit: 'tide', name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 35, level: 2, cap: 9,
+  jeju:      { sit: 'tide', trait: { name: '목장', desc: '업전 +15%, 혼식 +25%', gold: 1.15, food: 1.25 }, name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 35, level: 2, cap: 9,
                bossGeneric: '탐라 수귀', bossSkill: 'tide', captains: ['탐라 망령'], theme: 'coast',
                shop: ['w_bisu','r_honbul','b_bujeok'] },
 };
@@ -505,3 +505,11 @@ const BONDS = [
 
 /* 업에 따라 걷는 길 */
 function karmaPath(k) { return k >= 20 ? { id: 'guide', name: '인도자의 길' } : k >= 8 ? { id: 'lord', name: '맹주의 길' } : { id: 'conq', name: '정복자의 길' }; }
+
+/* 전직할 때 고르는 길. 전직할 때마다 하나씩, 같은 길을 두 번 골라도 된다 */
+const WAYS = {
+  mu:   { name: '무(武)', desc: '고유 기술과 특수기의 위력 +20%' },
+  sok:  { name: '속(速)', desc: '기술 재사용 시간 -20%, 이동 속도 +8%' },
+  tong: { name: '통(統)', desc: '이끄는 부대의 사기 +10, 병사 공격 +12%' },
+};
+function hasTrait(key) { return Object.keys(CITIES).some((c) => CITIES[c].trait && CITIES[c].trait[key] && G && G.cities[c] && G.cities[c].owner === 'player'); }

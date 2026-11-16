@@ -330,7 +330,10 @@ const Sprites = (() => {
     c.arc(cx, cy, S * 0.24, 0, Math.PI);
     c.bezierCurveTo(cx - S * 0.26, cy - S * 0.2, cx - S * 0.06, cy - S * 0.3, cx, cy - S * 0.62);
     c.fill();
-    c.fillStyle = 'rgba(10,12,16,0.85)';
+    /* 먹선: 영웅 그림의 선과 맞춘다 */
+    c.strokeStyle = 'rgba(14,16,20,0.78)'; c.lineWidth = 1.6; c.lineJoin = 'round'; c.stroke();
+    c.strokeStyle = 'rgba(14,16,20,0.4)'; c.lineWidth = 1; c.beginPath(); c.moveTo(cx - S * 0.1, cy + S * 0.12); c.quadraticCurveTo(cx, cy + S * 0.19, cx + S * 0.12, cy + S * 0.1); c.stroke();
+    c.fillStyle = 'rgba(10,12,16,0.9)';
     c.beginPath(); c.ellipse(cx - 4, cy - 1, 2, 3, 0, 0, Math.PI * 2); c.ellipse(cx + 4, cy - 1, 2, 3, 0, 0, Math.PI * 2); c.fill();
     wispCache.set(color, cv);
     return cv;

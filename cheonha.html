@@ -672,6 +672,21 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .soul-list span { color: var(--ash); font-size: 0.8rem; }
 @media (max-width: 720px) { .bc-opts { grid-template-columns: 1fr; } #b-sit { top: 96px; max-width: calc(100% - 24px); } }
 
+/* 길 고르기 · 도시 특색 · 대회 */
+.way-opts { display: grid; gap: 8px; margin: 12px 0; }
+.way-opts button { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; background: #17150f; border: 1px solid var(--line-2); border-radius: 4px; color: #ece4cf; cursor: pointer; font: inherit; }
+.way-opts button:hover { border-color: var(--gold); }
+.way-opts b { font-family: var(--f-display); font-weight: 400; font-size: 1.1rem; color: var(--gold); }
+.way-opts span { color: var(--ash); font-size: 0.82rem; }
+.trait { margin: 8px 0; padding: 7px 10px; border-left: 2px solid var(--gold); background: rgba(217,171,74,0.06); font-size: 0.84rem; }
+.trait b { font-family: var(--f-display); font-weight: 400; color: var(--gold); margin-right: 8px; }
+.tour-foes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+.tour-foes span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.82rem; }
+.tour-bracket { display: flex; gap: 6px; justify-content: center; margin: 10px 0 2px; }
+.tour-bracket i { font-style: normal; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 3px; color: var(--ash); font-size: 0.78rem; }
+.tour-bracket i.on { border-color: var(--gold); color: var(--gold); }
+.tour-bracket i.won { color: #7fd3e6; border-color: #2e5560; }
+
 </style>
 
 <div id="app">
@@ -690,10 +705,11 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
       <div class="ti-actions">
         <button class="btn primary big" id="ti-new">새로 시작</button>
         <button class="btn big" id="ti-cont" hidden>이어하기</button>
+        <button class="btn big" id="ti-tour">대회</button>
         <button class="btn ghost" id="ti-help">조작법</button>
       </div>
       <p class="ti-save" id="ti-save"></p>
-      <p class="ti-foot">프로토타입 · 1막 「고향의 혼」 · 태초 국가 한국 · 도시 8곳 · 영웅 14명</p>
+      <p class="ti-foot">프로토타입 · 1막 「고향의 혼」 · 태초 국가 한국 · 도시 8곳 · 영웅 16명</p>
     </div>
   </section>
 
@@ -1160,27 +1176,27 @@ const HERO_GEAR = {
 
 /* 도시 (현재 지도 좌표) */
 const CITIES = {
-  seoul:     { name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
+  seoul:     { trait: { name: '저잣거리', desc: '업전 수입 +30%', gold: 1.3 }, name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
                shop: ['w_hwando','w_bisu','w_jangchang','w_gakgung','w_deungpae','a_dopo','a_chalgap','r_ok','r_eun','n_hobak'] },
-  pyongyang: { sit: 'river', name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
+  pyongyang: { sit: 'river', trait: { name: '철기', desc: '가지고 있으면 모든 아군 병사 공격 +10%', solAtk: 1.1 }, name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
                boss: 'gaesomun', captains: ['고구려 망령장', '고구려 망령장'], theme: 'north',
                shop: ['w_woldo','w_heukgak','a_dujeong','n_hobal'] },
-  gangneung: { sit: 'fog', name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
+  gangneung: { sit: 'fog', trait: { name: '안갯길', desc: '가지고 있으면 야간 기습 때 적 사기 -6 추가', raid: 6 }, name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
                bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장'], theme: 'mist',
                shop: ['r_honbul','b_bujeok'] },
-  jeonju:    { name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
+  jeonju:    { trait: { name: '곡창', desc: '혼식 수입 +50%', food: 1.5 }, name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
                boss: 'gyeonhwon', captains: ['후백제 망령장'], theme: 'field',
                shop: ['w_ungeom','w_wonbang','b_norigae','r_honbul'] },
-  gyeongju:  { name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
+  gyeongju:  { duel: '화랑 망령', trait: { name: '화랑도', desc: '조련 효과 +50%', train: 1.5 }, name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
                boss: 'yusin', captains: ['신라 망령장', '화랑 망령'], theme: 'field',
                shop: ['w_hakuseon','a_suui','n_yeomju','b_bujeok'] },
-  tongyeong: { sit: 'tide', name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
+  tongyeong: { sit: 'tide', trait: { name: '수군', desc: '가지고 있으면 아군은 물속에서 덜 느려진다', water: true }, name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
                bossGeneric: '수귀 대장', bossSkill: 'tide', captains: ['망령 수군장'], theme: 'coast',
                shop: ['w_heukgak','a_dujeong'] },
-  hamheung:  { name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 150, train: 50, level: 4, cap: 9,
+  hamheung:  { trait: { name: '북방 장정', desc: '소환(징병) 인원 +30%', draft: 1.3 }, name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 150, train: 50, level: 4, cap: 9,
                captains: ['고구려 망령장'], theme: 'north',
                shop: ['w_jangchang','a_chalgap','n_hobal'] },
-  jeju:      { sit: 'tide', name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 35, level: 2, cap: 9,
+  jeju:      { sit: 'tide', trait: { name: '목장', desc: '업전 +15%, 혼식 +25%', gold: 1.15, food: 1.25 }, name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 35, level: 2, cap: 9,
                bossGeneric: '탐라 수귀', bossSkill: 'tide', captains: ['탐라 망령'], theme: 'coast',
                shop: ['w_bisu','r_honbul','b_bujeok'] },
 };
@@ -1316,6 +1332,14 @@ const BONDS = [
 /* 업에 따라 걷는 길 */
 function karmaPath(k) { return k >= 20 ? { id: 'guide', name: '인도자의 길' } : k >= 8 ? { id: 'lord', name: '맹주의 길' } : { id: 'conq', name: '정복자의 길' }; }
 
+/* 전직할 때 고르는 길. 전직할 때마다 하나씩, 같은 길을 두 번 골라도 된다 */
+const WAYS = {
+  mu:   { name: '무(武)', desc: '고유 기술과 특수기의 위력 +20%' },
+  sok:  { name: '속(速)', desc: '기술 재사용 시간 -20%, 이동 속도 +8%' },
+  tong: { name: '통(統)', desc: '이끄는 부대의 사기 +10, 병사 공격 +12%' },
+};
+function hasTrait(key) { return Object.keys(CITIES).some((c) => CITIES[c].trait && CITIES[c].trait[key] && G && G.cities[c] && G.cities[c].owner === 'player'); }
+
 'use strict';
 /* ===== 공용 도구와 게임 상태 ===== */
 const $ = (s, r = document) => r.querySelector(s);
@@ -1346,7 +1370,7 @@ const EventQ = (() => {
   return { push, kick };
 })();
 
-function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
+function saveGame() { if (G && G.tour) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
 function loadSave() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 
@@ -1763,8 +1787,9 @@ function unequip(hid, slot) {
 
 /* ----- 도시와 경제 ----- */
 function ownedCities() { return Object.keys(G.cities).filter((c) => G.cities[c].owner === 'player'); }
-function cityGold(id) { const c = G.cities[id]; return Math.round(10 + c.comm * 0.9 * c.loyal / 100); }
-function cityFood(id) { const c = G.cities[id]; return Math.round(10 + c.agri * 1.0 * c.loyal / 100); }
+function traitMul(id, key) { const t = CITIES[id] && CITIES[id].trait; return (t && t[key]) || 1; }
+function cityGold(id) { const c = G.cities[id]; return Math.round((10 + c.comm * 0.9 * c.loyal / 100) * traitMul(id, 'gold')); }
+function cityFood(id) { const c = G.cities[id]; return Math.round((10 + c.agri * 1.0 * c.loyal / 100) * traitMul(id, 'food')); }
 function totalTroops() { return ownedCities().reduce((a, c) => a + G.cities[c].troops, 0); }
 function foodUpkeep() { return Math.round(totalTroops() * 0.06); }
 function freeHeroes() { return G.roster.filter((h) => !G.heroes[h].acted && !G.heroes[h].travel); }
@@ -1776,8 +1801,8 @@ function commandGain(cmd, hid, cityId) {
   if (cmd === 'comm') return 2 + Math.floor(s.int / 6);
   if (cmd === 'wall') return 2 + Math.floor((s.lea * 0.6 + s.str * 0.4) / 7);
   if (cmd === 'loyal') return 2 + Math.floor(s.int / 7);
-  if (cmd === 'train') return 3 + Math.floor((s.str + s.lea) / 11);
-  if (cmd === 'draft') return Math.max(0, Math.min(20 + s.lea * 2, 400 - c.troops));
+  if (cmd === 'train') return Math.round((3 + Math.floor((s.str + s.lea) / 11)) * traitMul(cityId, 'train'));
+  if (cmd === 'draft') return Math.max(0, Math.min(Math.round((20 + s.lea * 2) * traitMul(cityId, 'draft')), 400 - c.troops));
   if (cmd === 'search') {
     const found = c.owner === 'player' ? G.roster.length : ((G.foeFound && G.foeFound[c.owner]) || 0);
     return Math.round(Math.max(10, Math.min(85, 25 + s.int * 2 + c.loyal * 0.2 - found * 3.5)));
@@ -3295,7 +3320,10 @@ const Sprites = (() => {
     c.arc(cx, cy, S * 0.24, 0, Math.PI);
     c.bezierCurveTo(cx - S * 0.26, cy - S * 0.2, cx - S * 0.06, cy - S * 0.3, cx, cy - S * 0.62);
     c.fill();
-    c.fillStyle = 'rgba(10,12,16,0.85)';
+    /* 먹선: 영웅 그림의 선과 맞춘다 */
+    c.strokeStyle = 'rgba(14,16,20,0.78)'; c.lineWidth = 1.6; c.lineJoin = 'round'; c.stroke();
+    c.strokeStyle = 'rgba(14,16,20,0.4)'; c.lineWidth = 1; c.beginPath(); c.moveTo(cx - S * 0.1, cy + S * 0.12); c.quadraticCurveTo(cx, cy + S * 0.19, cx + S * 0.12, cy + S * 0.1); c.stroke();
+    c.fillStyle = 'rgba(10,12,16,0.9)';
     c.beginPath(); c.ellipse(cx - 4, cy - 1, 2, 3, 0, 0, Math.PI * 2); c.ellipse(cx + 4, cy - 1, 2, 3, 0, 0, Math.PI * 2); c.fill();
     wispCache.set(color, cv);
     return cv;
@@ -3517,6 +3545,10 @@ const Battle = (() => {
     });
     /* 뼈대 그림용: 입은 갑옷·든 무기 아이템 */
     u.armorId = eq.armor || null; u.w1Id = eq.w1 || null;
+    if (team === 0 && G.heroes[hid] && G.heroes[hid].ways) {
+      const cnt = (k) => G.heroes[hid].ways.filter((w) => w === k).length;
+      u.sp = Math.round(u.sp * (1 + 0.2 * cnt('mu'))); u.cdr = Math.min(60, (u.cdr || 0) + 20 * cnt('sok')); u.spd = Math.round(u.spd * (1 + 0.08 * cnt('sok'))); u.wayTong = cnt('tong');
+    }
     const basic = (typeof heroBasicSkill === 'function' ? heroBasicSkill(hid) : null) || d.skill;
     const hidSk = (typeof heroHiddenSkill === 'function' ? heroHiddenSkill(hid) : null) || d.hidden;
     u.skills = [{ id: basic, t: 1.5 + Math.random() * 2, hidden: false }];
@@ -3684,6 +3716,15 @@ const Battle = (() => {
       }
     });
     B.ctrl = pHeroes[0] || B.units.find((u) => u.team === 0 && u.captain) || null;
+    /* 통(統)의 길과 평양 철기 */
+    const solAtk = hasTrait('solAtk') ? 1.1 : 1;
+    B.units.forEach((u) => {
+      if (u.team !== 0 || u.kind !== 'soldier') return;
+      const t = u.leader && u.leader.wayTong ? 1 + 0.12 * u.leader.wayTong : 1;
+      u.atk *= solAtk * t;
+    });
+    pHeroes.forEach((h) => { if (h.wayTong && h.sq) h.sq.morale = Math.min(100, h.sq.morale + 10 * h.wayTong); });
+    B.waterOk = hasTrait('water');
     /* 명부: 이름을 되찾은 혼이 많을수록 아군 부대가 잘 버틴다 */
     const soulBonus = Math.min(15, (G.named || []).length);
     if (soulBonus) B.squads.forEach((q) => { if (q.team === 0) q.morale = Math.min(100, q.morale + soulBonus); });
@@ -4269,7 +4310,8 @@ const Battle = (() => {
       return best;
     }
     for (const o of B.units) {
-      if (!o.alive || o.team === tm || o.rout || hidden(o, tm)) continue;
+      /* 멀리 찾을 때는 안개 속 기척을 따라간다 (서로 못 보고 멈춰 서는 일 방지) */
+      if (!o.alive || o.team === tm || o.rout || (maxD > 400 ? o.yield : hidden(o, tm))) continue;
       const dx = o.x - fx, dy = o.y - fy, d = dx * dx + dy * dy;
       if (d < bd) { bd = d; best = o; }
     }
@@ -5488,10 +5530,34 @@ const Battle = (() => {
       if (x > 320 && x < W - 320 && y > 260 && y < H - 260 && R() < 0.7) continue;
       drawDeco(c, deco[Math.floor(R() * deco.length)], x, y, 0.8 + R() * 0.6, R);
     }
+    inkWash(c, R);
     const vg = c.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.28)');
     c.fillStyle = vg; c.fillRect(0, 0, W, H);
     return g;
+  }
+
+  /* 영웅 그림과 톤을 맞춘다: 한지 결, 먹 번짐, 붓 자국 */
+  function inkWash(c, R) {
+    c.save();
+    c.globalCompositeOperation = 'multiply';
+    c.fillStyle = 'rgba(226,216,192,0.4)'; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < 26; i++) {
+      const x = R() * W, y = R() * H, r = 120 + R() * 260;
+      const g2 = c.createRadialGradient(x, y, r * 0.1, x, y, r);
+      g2.addColorStop(0, `rgba(58,54,46,${0.05 + R() * 0.08})`); g2.addColorStop(1, 'rgba(58,54,46,0)');
+      c.fillStyle = g2; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    }
+    c.globalCompositeOperation = 'source-over';
+    c.lineCap = 'round';
+    for (let i = 0; i < 70; i++) {
+      const x = R() * W, y = R() * H, len = 60 + R() * 220, a = (R() - 0.5) * 0.5;
+      c.strokeStyle = `rgba(28,26,22,${0.05 + R() * 0.09})`; c.lineWidth = 2 + R() * 9;
+      c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + Math.cos(a) * len * 0.5, y + Math.sin(a) * len * 0.5 - 10 + R() * 20, x + Math.cos(a) * len, y + Math.sin(a) * len); c.stroke();
+    }
+    c.strokeStyle = 'rgba(240,232,210,0.07)'; c.lineWidth = 0.7;
+    for (let i = 0; i < 2600; i++) { const x = R() * W, y = R() * H, a = R() * Math.PI; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * (4 + R() * 9), y + Math.sin(a) * (4 + R() * 9)); c.stroke(); }
+    c.restore();
   }
 
   function drawDeco(c, kind, x, y, s, R) {
@@ -5752,7 +5818,7 @@ const Battle = (() => {
   }
   /* 결판 내기: 남은 전투를 자동으로 끝까지 빠르게 돌린다 */
   function skipBattle() {
-    if (!B || B.over || B.skipping) return;
+    if (!B || B.over || B.skipping || B.choosing) return;
     B.skipping = true; B.paused = false; B.autoCtrl = true;
     $('#cutin').innerHTML = '';
     syncButtons();
@@ -5859,6 +5925,8 @@ const Battle = (() => {
       if (!B || B.over) return;
       const live = mem.filter((u) => u.alive);
       if (!live.length) { if (done) done(); return; }
+      /* 결판 내기·빨리 감기 중에는 묻지 않고 벤다 */
+      if (B.ffwd || B.skipping) { live.forEach((u) => { u.yield = false; kill(u, B.ctrl); }); if (done) done(); return; }
       let el = $('#b-choice');
       if (!el) { el = document.createElement('div'); el.id = 'b-choice'; $('#scr-battle').appendChild(el); }
       B.paused = true; B.choosing = true;
@@ -5932,7 +6000,7 @@ const Battle = (() => {
     if (B.sit === 'tide') return B.tide > 0.6 && u.y > tideLine();
     return false;
   }
-  function zoneSlow(u) { return inWater(u) ? (u.ghost && B.sit === 'tide' ? 0.9 : 0.5) : 1; }
+  function zoneSlow(u) { return inWater(u) ? ((u.ghost && B.sit === 'tide') ? 0.9 : (u.team === 0 && B.waterOk) ? 0.8 : 0.5) : 1; }
 
   function situationTick(dt) {
     if (B.t > 16 && !B.sitHid) { B.sitHid = true; const sn = $('#b-sit'); if (sn) sn.hidden = true; }
@@ -6700,11 +6768,13 @@ function statBar(label, v, max = 100) {
 function cityCard(id) {
   const c = CITIES[id], st = G.cities[id], f = FACTIONS[st.owner];
   const mine = st.owner === 'player';
+  const traitHtml = c.trait ? `<p class="trait"><b>${c.trait.name}</b>${c.trait.desc}${mine ? '' : ' (차지하면 얻는다)'}</p>` : '';
+  const sitHtml = !mine && (c.sit || c.duel || st.boss === 'gyeonhwon') ? `<p class="trait"><b>전장</b>${c.sit === 'fog' ? '안개. 가까이 가야 적이 보인다' : c.sit === 'river' ? '강. 물속에서는 느려지고 더 아프게 맞는다' : c.sit === 'tide' ? '물때. 갯벌이 주기적으로 잠긴다' : c.duel ? '화랑이 일기토를 청해 온다' : '견훤은 몰리면 범이 된다'}</p>` : '';
   let body = '';
   if (mine) {
     const cmds = isNight() ? ['rest', 'scout', 'move'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'scout', 'move'];
     const here = heroesIn(id);
-    body = `<div class="sbars">${statBar('공양', st.agri)}${statBar('명부', st.comm)}${statBar('결계', st.wall)}${statBar('신망', st.loyal)}${statBar('조련', st.train)}</div>
+    body = `${traitHtml}<div class="sbars">${statBar('공양', st.agri)}${statBar('명부', st.comm)}${statBar('결계', st.wall)}${statBar('신망', st.loyal)}${statBar('조련', st.train)}</div>
       <dl class="kv small">
         <div><dt>병력</dt><dd>${st.troops} / 400</dd></div>
         <div><dt>매일 아침</dt><dd>업전 +${cityGold(id)} · 혼식 +${cityFood(id)}</dd></div>
@@ -6719,7 +6789,7 @@ function cityCard(id) {
     if (st.owner === c.owner) (c.captains || []).forEach((n) => heads.push(`<span class="foe"><span class="chip" style="--c:${f.color}">${f.glyph}</span>${n}</span>`));
     const adj = adjacentToPlayer(id);
     const free = neighbors(id).filter((n) => G.cities[n].owner === 'player').reduce((a, n) => a + freeIn(n).length, 0);
-    body = `<div class="sbars">${statBar('결계', st.wall)}${statBar('조련', st.train)}</div>
+    body = `${traitHtml}${sitHtml}<div class="sbars">${statBar('결계', st.wall)}${statBar('조련', st.train)}</div>
       <dl class="kv small">
         <div><dt>병력</dt><dd>${st.troops}${st.scouted === G.day ? ' <small class="gold">정탐</small>' : ''}</dd></div>
         <div><dt>위험도</dt><dd class="danger">${'◆'.repeat(DANGER[id] || 1)}${'◇'.repeat(3 - (DANGER[id] || 1))}</dd></div>
@@ -6916,7 +6986,7 @@ function jobBlock(id) {
   const hints = nextJobHints(id);
   const chips = hints.map((j) => `<button class="job-chip ${j.ready ? 'ready' : 'blocked'} ${j.unique ? 'uniq' : ''}" ${j.ready ? `data-job="${j.id}"` : `data-block="${esc(j.need || '아직 전직할 수 없습니다')}"`}>${esc(j.name)}${j.need ? ` · ${esc(j.need)}` : j.ready ? ' · 승급' : ''}</button>`).join('');
   return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '1차 · 공유 병과' : job.tier === 1 ? (job.shared ? '2차 · 장수 공용' : '2차 · 고유') : '3차 · 고유 최종'} · ${jobWepText(jobIdOf(id))}</span></p>
-    <p class="job-now">${esc(job.name)}</p>
+    <p class="job-now">${esc(job.name)}${(G.heroes[id].ways || []).length ? ` <span class="muted small">걸어온 길: ${G.heroes[id].ways.map((w) => WAYS[w].name).join(' · ')}</span>` : ''}</p>
     ${chips ? `<div class="job-next">${chips}</div>` : job.tier >= 2 ? '<p class="muted small">더 올릴 직업이 없습니다.</p>' : ''}`;
 }
 
@@ -7050,10 +7120,22 @@ function onPanelClick(e) {
     UI.equipSlot = null; saveGame(); renderPanel(); return;
   }
   if (b.dataset.job) {
-    const r = promoteJob(UI.heroView, b.dataset.job);
-    toast(r.msg, r.ok ? 'gold' : 'warn');
-    if (r.ok) { logEvent(r.msg); saveGame(); }
-    renderPanel(); return;
+    const hid = UI.heroView, jid = b.dataset.job;
+    openModal(`<div class="modal-head"><h3 class="h-display">${esc(heroName(hid))} · 「${esc(JOBS[jid].name)}」 승급</h3><button class="x" data-close>×</button></div>
+      <p class="muted">어느 길로 오를지 고릅니다. 한번 고르면 바꿀 수 없습니다.</p>
+      <div class="way-opts">${Object.keys(WAYS).map((k) => `<button data-way="${k}"><b>${WAYS[k].name}</b><span>${WAYS[k].desc}</span></button>`).join('')}</div>`, (card) => {
+      card.onclick = (e) => {
+        if (e.target.closest('[data-close]')) { closeModal(); return; }
+        const w = e.target.closest('[data-way]');
+        if (!w) return;
+        closeModal();
+        const r = promoteJob(hid, jid);
+        if (r.ok) { const hh = G.heroes[hid]; (hh.ways = hh.ways || []).push(w.dataset.way); r.msg += ` · ${WAYS[w.dataset.way].name}의 길`; logEvent(r.msg); saveGame(); }
+        toast(r.msg, r.ok ? 'gold' : 'warn');
+        renderPanel();
+      };
+    }, 'narrow');
+    return;
   }
   const id = UI.sel && UI.sel.id;
   if (b.dataset.auto) { const c = G.cities[b.dataset.auto]; c.auto = !c.auto; toast(c.auto ? `${CITIES[b.dataset.auto].name}을(를) 위임했습니다. 턴이 끝날 때 남은 장수가 내정합니다.` : '위임을 풀었습니다.'); saveGame(); renderAll(); return; }
@@ -7205,6 +7287,112 @@ function openMarket() {
   }, 'wide');
 }
 
+/* ---------- 일기토 ---------- */
+function offerDuel(cityId, foeName, party, enemy, fight) {
+  const foe = enemy.heroes.find((h) => h.generic && h.name === foeName);
+  openModal(`<div class="modal-head"><h3 class="h-display">일기토</h3></div>
+    <p class="muted">${esc(foeName)}이 홀로 진 앞으로 걸어 나온다. “신라의 화랑은 물러서지 않는다. 누가 나서겠는가.”</p>
+    <p class="muted small">이기면 ${esc(foeName)}은 본 전투에 나오지 못하고 적 사기가 15 떨어집니다. 지면 그 영웅은 다친 채로 싸우고 적 사기가 8 오릅니다. 받지 않으면 적 사기가 6 오릅니다.</p>
+    <div class="party">${party.map((h) => `<button class="pick-hero" data-duel="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 체력 ${Math.round(G.heroes[h].hp * 100)}%</span></span></button>`).join('')}</div>
+    <div class="actions"><button class="btn" data-no>받지 않는다</button></div>`, (card) => {
+    card.onclick = (e) => {
+      if (e.target.closest('[data-no]')) { closeModal(); enemy.moraleAdj = (enemy.moraleAdj || 0) + 6; fight(); return; }
+      const b = e.target.closest('[data-duel]');
+      if (!b) return;
+      const h = b.dataset.duel;
+      closeModal();
+      startBattle({ title: `${CITIES[cityId].name} 일기토`, theme: CITIES[cityId].theme || 'field', type: 'duel', party: [h], playerSoldiers: 0,
+        enemy: { heroes: [Object.assign({}, foe)], soldiers: 0, level: enemy.level, faction: enemy.faction, formation: enemy.formation, train: enemy.train },
+        onEnd: (res) => {
+          applyBattle(res, [h], false);
+          if (res.win) { enemy.heroes = enemy.heroes.filter((x) => x !== foe); enemy.moraleAdj = (enemy.moraleAdj || 0) - 15; toast(`${heroName(h)}이(가) 일기토에서 이겼습니다. 적 사기 -15`, 'gold'); }
+          else { enemy.moraleAdj = (enemy.moraleAdj || 0) + 8; toast(`${heroName(h)}이(가) 일기토에서 졌습니다. 적 사기 +8`, 'warn'); }
+          setTimeout(fight, 900);
+        } });
+    };
+  }, 'narrow');
+}
+
+/* ---------- 대회 모드: 영웅 셋으로 대진표를 오른다 ---------- */
+const TOUR_ROUNDS = ['8강', '4강', '결승'];
+const TOUR_FIELDS = [{ sit: 'fog', theme: 'mist', name: '안개 낀 들' }, { sit: 'river', theme: 'north', name: '강가' }, { sit: 'tide', theme: 'coast', name: '갯벌' }, { sit: null, theme: 'field', name: '너른 들' }];
+function tourBest() { try { return JSON.parse(localStorage.getItem('chyw-tour-best') || 'null'); } catch (e) { return null; } }
+function tourStart() {
+  const picked = new Set();
+  const draw = () => {
+    const best = tourBest();
+    openModal(`<div class="modal-head"><h3 class="h-display">천하제일 영웅대회</h3><button class="x" data-close>×</button></div>
+      <p class="muted">영웅 셋을 골라 8강, 4강, 결승을 치릅니다. 모두 Lv 8, 영웅마다 혼불 20. 싸움 사이에 체력은 조금만 돌아옵니다. 진행은 저장되지 않고, 본편 저장도 건드리지 않습니다. (${picked.size}/3)</p>
+      ${best ? `<p class="muted small">최고 기록: ${esc(best.text)}</p>` : ''}
+      <div class="party">${HERO_ORDER.map((h) => `<div class="pick-hero ${picked.has(h) ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(HEROES[h].name)}</b><span class="muted small">${esc(HEROES[h].title)} · ${JOBS[HEROES[h].job].name}</span></span></div>`).join('')}</div>
+      <div class="actions"><button class="btn primary" data-go ${picked.size === 3 ? '' : 'disabled'}>출전</button></div>`, (card) => {
+      card.onclick = (e) => {
+        if (e.target.closest('[data-close]')) { closeModal(); return; }
+        const row = e.target.closest('[data-h]');
+        if (row) { const h = row.dataset.h; if (picked.has(h)) picked.delete(h); else if (picked.size < 3) picked.add(h); draw(); return; }
+        if (e.target.closest('[data-go]') && picked.size === 3) { closeModal(); tourBegin([...picked]); }
+      };
+    });
+  };
+  newGame();
+  draw();
+}
+function tourBegin(team) {
+  G.tour = { round: 0, team, foes: [], fields: [] };
+  G.stage = 'tour';
+  G.roster = [];
+  team.forEach((h) => { addHero(h, 8, 'seoul'); });
+  G.roster = team.slice();
+  const rest = HERO_ORDER.filter((h) => !team.includes(h) && h !== 'hero').sort(() => Math.random() - 0.5);
+  const fields = TOUR_FIELDS.slice().sort(() => Math.random() - 0.5);
+  for (let r = 0; r < 3; r++) { G.tour.foes.push(rest.slice(r * 3, r * 3 + 3)); G.tour.fields.push(fields[r]); }
+  tourNext();
+}
+function tourNext() {
+  const T = G.tour, r = T.round, foes = T.foes[r], fld = T.fields[r];
+  showScreen('scr-title');
+  openModal(`<div class="reward"><p class="eyebrow">천하제일 영웅대회</p><h3 class="h-display big">${TOUR_ROUNDS[r]}</h3>
+    <div class="tour-bracket">${TOUR_ROUNDS.map((n, i) => `<i class="${i < r ? 'won' : i === r ? 'on' : ''}">${n}</i>`).join('')}</div>
+    <p class="muted">상대</p>
+    <div class="tour-foes">${foes.map((h) => `<span>${medallion(h)}${esc(HEROES[h].name)}</span>`).join('')}</div>
+    <p class="muted small">전장: ${fld.name} · 우리 편 체력 ${T.team.map((h) => `${heroName(h)} ${Math.round(G.heroes[h].hp * 100)}%`).join(', ')}</p>
+    <div class="actions"><button class="btn primary" data-go>싸운다</button><button class="btn" data-quit>그만둔다</button></div></div>`, (card) => {
+    card.onclick = (e) => {
+      if (e.target.closest('[data-quit]')) { closeModal(); G.tour = null; refreshTitle(); return; }
+      if (!e.target.closest('[data-go]')) return;
+      closeModal();
+      const lv = 8 + r;
+      startBattle({ title: `대회 ${TOUR_ROUNDS[r]}`, theme: fld.theme, sit: fld.sit, type: 'attack', field: false, party: T.team.slice(), playerSoldiers: 60, playerTrain: 60, formation: UI.formation,
+        enemy: { heroes: foes.map((h, i) => ({ id: h, level: lv, boss: r === 2 && i === 0, recruit: false })), soldiers: 60, level: 7 + r, faction: 'ghost', formation: ['hakik', 'eorin', 'bangwon'][r], train: 60 + r * 10, extraSquads: 0 },
+        onEnd: (res) => {
+          applyBattle(res, T.team, false);
+          if (!res.win) { tourEnd(false); return; }
+          T.round++;
+          T.team.forEach((h) => { G.heroes[h].hp = Math.min(1, G.heroes[h].hp + 0.3); });
+          if (T.round >= 3) tourEnd(true); else tourNext();
+        } });
+    };
+  }, 'narrow');
+}
+function tourEnd(win) {
+  const T = G.tour;
+  showScreen('scr-title');
+  const names = T.team.map((h) => heroName(h)).join(' · ');
+  const text = `${win ? '우승' : TOUR_ROUNDS[T.round] + ' 탈락'} · ${names} · 업 ${G.karma} · 되찾은 이름 ${(G.named || []).length}`;
+  const score = (win ? 100 : T.round * 20) + G.karma * 3 + (G.named || []).length;
+  const best = tourBest();
+  if (!best || score > best.score) { try { localStorage.setItem('chyw-tour-best', JSON.stringify({ score, text })); } catch (e) {} }
+  openModal(`<div class="reward"><p class="eyebrow">천하제일 영웅대회</p><h3 class="h-display big">${win ? '천하제일' : TOUR_ROUNDS[T.round] + ' 탈락'}</h3>
+    <dl class="kv"><div><dt>출전</dt><dd>${esc(names)}</dd></div><div><dt>업</dt><dd>${G.karma}</dd></div><div><dt>되찾은 이름</dt><dd>${(G.named || []).length}명</dd></div><div><dt>점수</dt><dd>${score}${!best || score > best.score ? ' (새 기록)' : ''}</dd></div></dl>
+    <p class="muted">${win ? '염라대왕이 고개를 끄덕인다. “소원을 말해 보아라.”' : '“다음 대회에서 보자.” 저승차사가 명부를 덮는다.'}</p>
+    <div class="actions"><button class="btn primary" data-again>다시 도전</button><button class="btn" data-close>타이틀로</button></div></div>`, (card) => {
+    card.onclick = (e) => {
+      if (e.target.closest('[data-again]')) { closeModal(); tourStart(); return; }
+      if (e.target.closest('[data-close]')) { closeModal(); G.tour = null; refreshTitle(); }
+    };
+  }, 'narrow');
+}
+
 /* ---------- 출진 ---------- */
 const SQUAD = 20;
 /* opts: { only: 고를 수 있는 영웅, troops: 쓸 수 있는 병력, allowEmpty, food: 병사당 군량, note } */
@@ -7291,10 +7479,12 @@ function launchAttack(cityId) {
       st.troops -= sent;
       G.food -= foodCost;
       const enemy = enemyForce(cityId, { party: party.length });
-      if (raid) { enemy.extraSquads = 1; enemy.moraleAdj = -8; enemy.surprised = true; enemy.surpriseT = 5; enemy.nightRaid = true; }
-      startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', sit: CITIES[cityId].sit || null, type: 'attack', party, enemy,
+      if (raid) { enemy.extraSquads = 1; enemy.moraleAdj = -8 - (hasTrait('raid') ? 6 : 0); enemy.surprised = true; enemy.surpriseT = 5; enemy.nightRaid = true; }
+      const fight = () => startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', sit: CITIES[cityId].sit || null, type: 'attack', party, enemy,
         playerSoldiers: sent, playerTrain: st.train * (raid ? 0.85 : 1), wall: { team: 1, value: G.cities[cityId].wall * (raid ? 0.75 : 1) }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])),
         onEnd: (res) => afterAttack(cityId, src, res, party) });
+      const dn = CITIES[cityId].duel;
+      if (dn && !raid && G.cities[cityId].owner === CITIES[cityId].owner && enemy.heroes.some((h) => h.generic && h.name === dn)) offerDuel(cityId, dn, party, enemy, fight); else fight();
     }, null, { only: freeIn(src), troops: st.troops, food: raid ? 0.75 : 0.5, note: note + (raid ? '<br><b class="gold">야간 기습</b> · 적은 초반 5초만 허둥대고, 사기 -8, 결계 75%. 지원 혼불이 일부 나옵니다. 어둠 때문에 아군 공격·조련도 떨어지며, 기습에 나선 장수는 다음날 피로합니다.' : ''), formation: true, enemyCity: cityId });
     const sw = $('#modal-card [data-switch]');
     if (sw) sw.onclick = (e) => { e.stopPropagation(); closeModal(); go((srcIdx + 1) % srcs.length); };
@@ -7349,6 +7539,7 @@ function captureCity(cityId, res) {
   const st = G.cities[cityId];
   const from = st.owner, boss = st.boss, lv = CITIES[cityId].level;
   st.owner = 'player'; st.boss = null;
+  st.auto = true;
   const surrender = res ? Math.floor((res.reserve || 0) * 0.5) : 0;
   st.troops = (res ? res.survivors : 0) + surrender;
   st.loyal = Math.max(20, st.loyal - 20);
@@ -7830,7 +8021,10 @@ function howTo() {
       <li>되찾은 이름 한 명마다 아군 부대 사기가 1 오릅니다 (최대 15). 이름 찾은 혼이 전투에서 쓰러지면 그 이름은 사라집니다.</li>
       <li>업이 쌓이는 만큼 1막의 끝이 달라집니다 (정복자 · 맹주 · 인도자).</li>
       <li>도시마다 전장이 다릅니다. 강릉은 안개, 평양은 강, 통영·제주는 물때. 전주의 견훤은 몰리면 범이 됩니다.</li>
-      <li>밤에 같은 도시에 머무는 영웅들은 인연 대화를 나누기도 합니다.</li></ul>
+      <li>밤에 같은 도시에 머무는 영웅들은 인연 대화를 나누기도 합니다.</li>
+      <li>경주에서는 화랑이 일기토를 청합니다. 전직할 때는 무(武)·속(速)·통(統) 가운데 한 길을 고릅니다.</li>
+      <li>도시마다 특색이 있습니다 (서울 업전, 전주 혼식, 경주 조련, 평양 병사 공격, 통영 물속 이동 등). 새로 차지한 도시는 위임으로 시작합니다.</li>
+      <li>타이틀의 <b>대회</b>에서는 영웅 셋으로 8강·4강·결승을 치릅니다.</li></ul>
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다. 내정·이동·소문 탐색 같은 행동은 체력을 깎고, 체력이 50% 이하면 능력치가 20% 떨어집니다. 휴식하면 체력이 가득 찹니다.</li>
       <li>오전·오후: 공양·명부·결계·위무·소환·조련·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
@@ -7883,6 +8077,7 @@ function boot() {
   });
   $('#ti-cont').addEventListener('click', continueGame);
   $('#ti-help').addEventListener('click', howTo);
+  $('#ti-tour').addEventListener('click', tourStart);
   refreshTitle();
   showScreen('scr-title');
 }

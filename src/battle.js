@@ -181,6 +181,10 @@ const Battle = (() => {
     });
     /* 뼈대 그림용: 입은 갑옷·든 무기 아이템 */
     u.armorId = eq.armor || null; u.w1Id = eq.w1 || null;
+    if (team === 0 && G.heroes[hid] && G.heroes[hid].ways) {
+      const cnt = (k) => G.heroes[hid].ways.filter((w) => w === k).length;
+      u.sp = Math.round(u.sp * (1 + 0.2 * cnt('mu'))); u.cdr = Math.min(60, (u.cdr || 0) + 20 * cnt('sok')); u.spd = Math.round(u.spd * (1 + 0.08 * cnt('sok'))); u.wayTong = cnt('tong');
+    }
     const basic = (typeof heroBasicSkill === 'function' ? heroBasicSkill(hid) : null) || d.skill;
     const hidSk = (typeof heroHiddenSkill === 'function' ? heroHiddenSkill(hid) : null) || d.hidden;
     u.skills = [{ id: basic, t: 1.5 + Math.random() * 2, hidden: false }];
@@ -348,6 +352,15 @@ const Battle = (() => {
       }
     });
     B.ctrl = pHeroes[0] || B.units.find((u) => u.team === 0 && u.captain) || null;
+    /* 통(統)의 길과 평양 철기 */
+    const solAtk = hasTrait('solAtk') ? 1.1 : 1;
+    B.units.forEach((u) => {
+      if (u.team !== 0 || u.kind !== 'soldier') return;
+      const t = u.leader && u.leader.wayTong ? 1 + 0.12 * u.leader.wayTong : 1;
+      u.atk *= solAtk * t;
+    });
+    pHeroes.forEach((h) => { if (h.wayTong && h.sq) h.sq.morale = Math.min(100, h.sq.morale + 10 * h.wayTong); });
+    B.waterOk = hasTrait('water');
     /* 명부: 이름을 되찾은 혼이 많을수록 아군 부대가 잘 버틴다 */
     const soulBonus = Math.min(15, (G.named || []).length);
     if (soulBonus) B.squads.forEach((q) => { if (q.team === 0) q.morale = Math.min(100, q.morale + soulBonus); });
@@ -933,7 +946,8 @@ const Battle = (() => {
       return best;
     }
     for (const o of B.units) {
-      if (!o.alive || o.team === tm || o.rout || hidden(o, tm)) continue;
+      /* 멀리 찾을 때는 안개 속 기척을 따라간다 (서로 못 보고 멈춰 서는 일 방지) */
+      if (!o.alive || o.team === tm || o.rout || (maxD > 400 ? o.yield : hidden(o, tm))) continue;
       const dx = o.x - fx, dy = o.y - fy, d = dx * dx + dy * dy;
       if (d < bd) { bd = d; best = o; }
     }
@@ -2152,10 +2166,34 @@ const Battle = (() => {
       if (x > 320 && x < W - 320 && y > 260 && y < H - 260 && R() < 0.7) continue;
       drawDeco(c, deco[Math.floor(R() * deco.length)], x, y, 0.8 + R() * 0.6, R);
     }
+    inkWash(c, R);
     const vg = c.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.28)');
     c.fillStyle = vg; c.fillRect(0, 0, W, H);
     return g;
+  }
+
+  /* 영웅 그림과 톤을 맞춘다: 한지 결, 먹 번짐, 붓 자국 */
+  function inkWash(c, R) {
+    c.save();
+    c.globalCompositeOperation = 'multiply';
+    c.fillStyle = 'rgba(226,216,192,0.4)'; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < 26; i++) {
+      const x = R() * W, y = R() * H, r = 120 + R() * 260;
+      const g2 = c.createRadialGradient(x, y, r * 0.1, x, y, r);
+      g2.addColorStop(0, `rgba(58,54,46,${0.05 + R() * 0.08})`); g2.addColorStop(1, 'rgba(58,54,46,0)');
+      c.fillStyle = g2; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    }
+    c.globalCompositeOperation = 'source-over';
+    c.lineCap = 'round';
+    for (let i = 0; i < 70; i++) {
+      const x = R() * W, y = R() * H, len = 60 + R() * 220, a = (R() - 0.5) * 0.5;
+      c.strokeStyle = `rgba(28,26,22,${0.05 + R() * 0.09})`; c.lineWidth = 2 + R() * 9;
+      c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + Math.cos(a) * len * 0.5, y + Math.sin(a) * len * 0.5 - 10 + R() * 20, x + Math.cos(a) * len, y + Math.sin(a) * len); c.stroke();
+    }
+    c.strokeStyle = 'rgba(240,232,210,0.07)'; c.lineWidth = 0.7;
+    for (let i = 0; i < 2600; i++) { const x = R() * W, y = R() * H, a = R() * Math.PI; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * (4 + R() * 9), y + Math.sin(a) * (4 + R() * 9)); c.stroke(); }
+    c.restore();
   }
 
   function drawDeco(c, kind, x, y, s, R) {
@@ -2416,7 +2454,7 @@ const Battle = (() => {
   }
   /* 결판 내기: 남은 전투를 자동으로 끝까지 빠르게 돌린다 */
   function skipBattle() {
-    if (!B || B.over || B.skipping) return;
+    if (!B || B.over || B.skipping || B.choosing) return;
     B.skipping = true; B.paused = false; B.autoCtrl = true;
     $('#cutin').innerHTML = '';
     syncButtons();
@@ -2523,6 +2561,8 @@ const Battle = (() => {
       if (!B || B.over) return;
       const live = mem.filter((u) => u.alive);
       if (!live.length) { if (done) done(); return; }
+      /* 결판 내기·빨리 감기 중에는 묻지 않고 벤다 */
+      if (B.ffwd || B.skipping) { live.forEach((u) => { u.yield = false; kill(u, B.ctrl); }); if (done) done(); return; }
       let el = $('#b-choice');
       if (!el) { el = document.createElement('div'); el.id = 'b-choice'; $('#scr-battle').appendChild(el); }
       B.paused = true; B.choosing = true;
@@ -2596,7 +2636,7 @@ const Battle = (() => {
     if (B.sit === 'tide') return B.tide > 0.6 && u.y > tideLine();
     return false;
   }
-  function zoneSlow(u) { return inWater(u) ? (u.ghost && B.sit === 'tide' ? 0.9 : 0.5) : 1; }
+  function zoneSlow(u) { return inWater(u) ? ((u.ghost && B.sit === 'tide') ? 0.9 : (u.team === 0 && B.waterOk) ? 0.8 : 0.5) : 1; }
 
   function situationTick(dt) {
     if (B.t > 16 && !B.sitHid) { B.sitHid = true; const sn = $('#b-sit'); if (sn) sn.hidden = true; }

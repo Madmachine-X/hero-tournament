@@ -235,11 +235,13 @@ function statBar(label, v, max = 100) {
 function cityCard(id) {
   const c = CITIES[id], st = G.cities[id], f = FACTIONS[st.owner];
   const mine = st.owner === 'player';
+  const traitHtml = c.trait ? `<p class="trait"><b>${c.trait.name}</b>${c.trait.desc}${mine ? '' : ' (차지하면 얻는다)'}</p>` : '';
+  const sitHtml = !mine && (c.sit || c.duel || st.boss === 'gyeonhwon') ? `<p class="trait"><b>전장</b>${c.sit === 'fog' ? '안개. 가까이 가야 적이 보인다' : c.sit === 'river' ? '강. 물속에서는 느려지고 더 아프게 맞는다' : c.sit === 'tide' ? '물때. 갯벌이 주기적으로 잠긴다' : c.duel ? '화랑이 일기토를 청해 온다' : '견훤은 몰리면 범이 된다'}</p>` : '';
   let body = '';
   if (mine) {
     const cmds = isNight() ? ['rest', 'scout', 'move'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'scout', 'move'];
     const here = heroesIn(id);
-    body = `<div class="sbars">${statBar('공양', st.agri)}${statBar('명부', st.comm)}${statBar('결계', st.wall)}${statBar('신망', st.loyal)}${statBar('조련', st.train)}</div>
+    body = `${traitHtml}<div class="sbars">${statBar('공양', st.agri)}${statBar('명부', st.comm)}${statBar('결계', st.wall)}${statBar('신망', st.loyal)}${statBar('조련', st.train)}</div>
       <dl class="kv small">
         <div><dt>병력</dt><dd>${st.troops} / 400</dd></div>
         <div><dt>매일 아침</dt><dd>업전 +${cityGold(id)} · 혼식 +${cityFood(id)}</dd></div>
@@ -254,7 +256,7 @@ function cityCard(id) {
     if (st.owner === c.owner) (c.captains || []).forEach((n) => heads.push(`<span class="foe"><span class="chip" style="--c:${f.color}">${f.glyph}</span>${n}</span>`));
     const adj = adjacentToPlayer(id);
     const free = neighbors(id).filter((n) => G.cities[n].owner === 'player').reduce((a, n) => a + freeIn(n).length, 0);
-    body = `<div class="sbars">${statBar('결계', st.wall)}${statBar('조련', st.train)}</div>
+    body = `${traitHtml}${sitHtml}<div class="sbars">${statBar('결계', st.wall)}${statBar('조련', st.train)}</div>
       <dl class="kv small">
         <div><dt>병력</dt><dd>${st.troops}${st.scouted === G.day ? ' <small class="gold">정탐</small>' : ''}</dd></div>
         <div><dt>위험도</dt><dd class="danger">${'◆'.repeat(DANGER[id] || 1)}${'◇'.repeat(3 - (DANGER[id] || 1))}</dd></div>
@@ -451,7 +453,7 @@ function jobBlock(id) {
   const hints = nextJobHints(id);
   const chips = hints.map((j) => `<button class="job-chip ${j.ready ? 'ready' : 'blocked'} ${j.unique ? 'uniq' : ''}" ${j.ready ? `data-job="${j.id}"` : `data-block="${esc(j.need || '아직 전직할 수 없습니다')}"`}>${esc(j.name)}${j.need ? ` · ${esc(j.need)}` : j.ready ? ' · 승급' : ''}</button>`).join('');
   return `<p class="label">직업 <span class="muted small">${job.tier === 0 ? '1차 · 공유 병과' : job.tier === 1 ? (job.shared ? '2차 · 장수 공용' : '2차 · 고유') : '3차 · 고유 최종'} · ${jobWepText(jobIdOf(id))}</span></p>
-    <p class="job-now">${esc(job.name)}</p>
+    <p class="job-now">${esc(job.name)}${(G.heroes[id].ways || []).length ? ` <span class="muted small">걸어온 길: ${G.heroes[id].ways.map((w) => WAYS[w].name).join(' · ')}</span>` : ''}</p>
     ${chips ? `<div class="job-next">${chips}</div>` : job.tier >= 2 ? '<p class="muted small">더 올릴 직업이 없습니다.</p>' : ''}`;
 }
 
@@ -585,10 +587,22 @@ function onPanelClick(e) {
     UI.equipSlot = null; saveGame(); renderPanel(); return;
   }
   if (b.dataset.job) {
-    const r = promoteJob(UI.heroView, b.dataset.job);
-    toast(r.msg, r.ok ? 'gold' : 'warn');
-    if (r.ok) { logEvent(r.msg); saveGame(); }
-    renderPanel(); return;
+    const hid = UI.heroView, jid = b.dataset.job;
+    openModal(`<div class="modal-head"><h3 class="h-display">${esc(heroName(hid))} · 「${esc(JOBS[jid].name)}」 승급</h3><button class="x" data-close>×</button></div>
+      <p class="muted">어느 길로 오를지 고릅니다. 한번 고르면 바꿀 수 없습니다.</p>
+      <div class="way-opts">${Object.keys(WAYS).map((k) => `<button data-way="${k}"><b>${WAYS[k].name}</b><span>${WAYS[k].desc}</span></button>`).join('')}</div>`, (card) => {
+      card.onclick = (e) => {
+        if (e.target.closest('[data-close]')) { closeModal(); return; }
+        const w = e.target.closest('[data-way]');
+        if (!w) return;
+        closeModal();
+        const r = promoteJob(hid, jid);
+        if (r.ok) { const hh = G.heroes[hid]; (hh.ways = hh.ways || []).push(w.dataset.way); r.msg += ` · ${WAYS[w.dataset.way].name}의 길`; logEvent(r.msg); saveGame(); }
+        toast(r.msg, r.ok ? 'gold' : 'warn');
+        renderPanel();
+      };
+    }, 'narrow');
+    return;
   }
   const id = UI.sel && UI.sel.id;
   if (b.dataset.auto) { const c = G.cities[b.dataset.auto]; c.auto = !c.auto; toast(c.auto ? `${CITIES[b.dataset.auto].name}을(를) 위임했습니다. 턴이 끝날 때 남은 장수가 내정합니다.` : '위임을 풀었습니다.'); saveGame(); renderAll(); return; }
@@ -740,6 +754,112 @@ function openMarket() {
   }, 'wide');
 }
 
+/* ---------- 일기토 ---------- */
+function offerDuel(cityId, foeName, party, enemy, fight) {
+  const foe = enemy.heroes.find((h) => h.generic && h.name === foeName);
+  openModal(`<div class="modal-head"><h3 class="h-display">일기토</h3></div>
+    <p class="muted">${esc(foeName)}이 홀로 진 앞으로 걸어 나온다. “신라의 화랑은 물러서지 않는다. 누가 나서겠는가.”</p>
+    <p class="muted small">이기면 ${esc(foeName)}은 본 전투에 나오지 못하고 적 사기가 15 떨어집니다. 지면 그 영웅은 다친 채로 싸우고 적 사기가 8 오릅니다. 받지 않으면 적 사기가 6 오릅니다.</p>
+    <div class="party">${party.map((h) => `<button class="pick-hero" data-duel="${h}">${medallion(h)}<span><b>${esc(heroName(h))}</b><span class="muted small">Lv ${G.heroes[h].level} · 체력 ${Math.round(G.heroes[h].hp * 100)}%</span></span></button>`).join('')}</div>
+    <div class="actions"><button class="btn" data-no>받지 않는다</button></div>`, (card) => {
+    card.onclick = (e) => {
+      if (e.target.closest('[data-no]')) { closeModal(); enemy.moraleAdj = (enemy.moraleAdj || 0) + 6; fight(); return; }
+      const b = e.target.closest('[data-duel]');
+      if (!b) return;
+      const h = b.dataset.duel;
+      closeModal();
+      startBattle({ title: `${CITIES[cityId].name} 일기토`, theme: CITIES[cityId].theme || 'field', type: 'duel', party: [h], playerSoldiers: 0,
+        enemy: { heroes: [Object.assign({}, foe)], soldiers: 0, level: enemy.level, faction: enemy.faction, formation: enemy.formation, train: enemy.train },
+        onEnd: (res) => {
+          applyBattle(res, [h], false);
+          if (res.win) { enemy.heroes = enemy.heroes.filter((x) => x !== foe); enemy.moraleAdj = (enemy.moraleAdj || 0) - 15; toast(`${heroName(h)}이(가) 일기토에서 이겼습니다. 적 사기 -15`, 'gold'); }
+          else { enemy.moraleAdj = (enemy.moraleAdj || 0) + 8; toast(`${heroName(h)}이(가) 일기토에서 졌습니다. 적 사기 +8`, 'warn'); }
+          setTimeout(fight, 900);
+        } });
+    };
+  }, 'narrow');
+}
+
+/* ---------- 대회 모드: 영웅 셋으로 대진표를 오른다 ---------- */
+const TOUR_ROUNDS = ['8강', '4강', '결승'];
+const TOUR_FIELDS = [{ sit: 'fog', theme: 'mist', name: '안개 낀 들' }, { sit: 'river', theme: 'north', name: '강가' }, { sit: 'tide', theme: 'coast', name: '갯벌' }, { sit: null, theme: 'field', name: '너른 들' }];
+function tourBest() { try { return JSON.parse(localStorage.getItem('chyw-tour-best') || 'null'); } catch (e) { return null; } }
+function tourStart() {
+  const picked = new Set();
+  const draw = () => {
+    const best = tourBest();
+    openModal(`<div class="modal-head"><h3 class="h-display">천하제일 영웅대회</h3><button class="x" data-close>×</button></div>
+      <p class="muted">영웅 셋을 골라 8강, 4강, 결승을 치릅니다. 모두 Lv 8, 영웅마다 혼불 20. 싸움 사이에 체력은 조금만 돌아옵니다. 진행은 저장되지 않고, 본편 저장도 건드리지 않습니다. (${picked.size}/3)</p>
+      ${best ? `<p class="muted small">최고 기록: ${esc(best.text)}</p>` : ''}
+      <div class="party">${HERO_ORDER.map((h) => `<div class="pick-hero ${picked.has(h) ? 'on' : ''}" data-h="${h}">${medallion(h)}<span><b>${esc(HEROES[h].name)}</b><span class="muted small">${esc(HEROES[h].title)} · ${JOBS[HEROES[h].job].name}</span></span></div>`).join('')}</div>
+      <div class="actions"><button class="btn primary" data-go ${picked.size === 3 ? '' : 'disabled'}>출전</button></div>`, (card) => {
+      card.onclick = (e) => {
+        if (e.target.closest('[data-close]')) { closeModal(); return; }
+        const row = e.target.closest('[data-h]');
+        if (row) { const h = row.dataset.h; if (picked.has(h)) picked.delete(h); else if (picked.size < 3) picked.add(h); draw(); return; }
+        if (e.target.closest('[data-go]') && picked.size === 3) { closeModal(); tourBegin([...picked]); }
+      };
+    });
+  };
+  newGame();
+  draw();
+}
+function tourBegin(team) {
+  G.tour = { round: 0, team, foes: [], fields: [] };
+  G.stage = 'tour';
+  G.roster = [];
+  team.forEach((h) => { addHero(h, 8, 'seoul'); });
+  G.roster = team.slice();
+  const rest = HERO_ORDER.filter((h) => !team.includes(h) && h !== 'hero').sort(() => Math.random() - 0.5);
+  const fields = TOUR_FIELDS.slice().sort(() => Math.random() - 0.5);
+  for (let r = 0; r < 3; r++) { G.tour.foes.push(rest.slice(r * 3, r * 3 + 3)); G.tour.fields.push(fields[r]); }
+  tourNext();
+}
+function tourNext() {
+  const T = G.tour, r = T.round, foes = T.foes[r], fld = T.fields[r];
+  showScreen('scr-title');
+  openModal(`<div class="reward"><p class="eyebrow">천하제일 영웅대회</p><h3 class="h-display big">${TOUR_ROUNDS[r]}</h3>
+    <div class="tour-bracket">${TOUR_ROUNDS.map((n, i) => `<i class="${i < r ? 'won' : i === r ? 'on' : ''}">${n}</i>`).join('')}</div>
+    <p class="muted">상대</p>
+    <div class="tour-foes">${foes.map((h) => `<span>${medallion(h)}${esc(HEROES[h].name)}</span>`).join('')}</div>
+    <p class="muted small">전장: ${fld.name} · 우리 편 체력 ${T.team.map((h) => `${heroName(h)} ${Math.round(G.heroes[h].hp * 100)}%`).join(', ')}</p>
+    <div class="actions"><button class="btn primary" data-go>싸운다</button><button class="btn" data-quit>그만둔다</button></div></div>`, (card) => {
+    card.onclick = (e) => {
+      if (e.target.closest('[data-quit]')) { closeModal(); G.tour = null; refreshTitle(); return; }
+      if (!e.target.closest('[data-go]')) return;
+      closeModal();
+      const lv = 8 + r;
+      startBattle({ title: `대회 ${TOUR_ROUNDS[r]}`, theme: fld.theme, sit: fld.sit, type: 'attack', field: false, party: T.team.slice(), playerSoldiers: 60, playerTrain: 60, formation: UI.formation,
+        enemy: { heroes: foes.map((h, i) => ({ id: h, level: lv, boss: r === 2 && i === 0, recruit: false })), soldiers: 60, level: 7 + r, faction: 'ghost', formation: ['hakik', 'eorin', 'bangwon'][r], train: 60 + r * 10, extraSquads: 0 },
+        onEnd: (res) => {
+          applyBattle(res, T.team, false);
+          if (!res.win) { tourEnd(false); return; }
+          T.round++;
+          T.team.forEach((h) => { G.heroes[h].hp = Math.min(1, G.heroes[h].hp + 0.3); });
+          if (T.round >= 3) tourEnd(true); else tourNext();
+        } });
+    };
+  }, 'narrow');
+}
+function tourEnd(win) {
+  const T = G.tour;
+  showScreen('scr-title');
+  const names = T.team.map((h) => heroName(h)).join(' · ');
+  const text = `${win ? '우승' : TOUR_ROUNDS[T.round] + ' 탈락'} · ${names} · 업 ${G.karma} · 되찾은 이름 ${(G.named || []).length}`;
+  const score = (win ? 100 : T.round * 20) + G.karma * 3 + (G.named || []).length;
+  const best = tourBest();
+  if (!best || score > best.score) { try { localStorage.setItem('chyw-tour-best', JSON.stringify({ score, text })); } catch (e) {} }
+  openModal(`<div class="reward"><p class="eyebrow">천하제일 영웅대회</p><h3 class="h-display big">${win ? '천하제일' : TOUR_ROUNDS[T.round] + ' 탈락'}</h3>
+    <dl class="kv"><div><dt>출전</dt><dd>${esc(names)}</dd></div><div><dt>업</dt><dd>${G.karma}</dd></div><div><dt>되찾은 이름</dt><dd>${(G.named || []).length}명</dd></div><div><dt>점수</dt><dd>${score}${!best || score > best.score ? ' (새 기록)' : ''}</dd></div></dl>
+    <p class="muted">${win ? '염라대왕이 고개를 끄덕인다. “소원을 말해 보아라.”' : '“다음 대회에서 보자.” 저승차사가 명부를 덮는다.'}</p>
+    <div class="actions"><button class="btn primary" data-again>다시 도전</button><button class="btn" data-close>타이틀로</button></div></div>`, (card) => {
+    card.onclick = (e) => {
+      if (e.target.closest('[data-again]')) { closeModal(); tourStart(); return; }
+      if (e.target.closest('[data-close]')) { closeModal(); G.tour = null; refreshTitle(); }
+    };
+  }, 'narrow');
+}
+
 /* ---------- 출진 ---------- */
 const SQUAD = 20;
 /* opts: { only: 고를 수 있는 영웅, troops: 쓸 수 있는 병력, allowEmpty, food: 병사당 군량, note } */
@@ -826,10 +946,12 @@ function launchAttack(cityId) {
       st.troops -= sent;
       G.food -= foodCost;
       const enemy = enemyForce(cityId, { party: party.length });
-      if (raid) { enemy.extraSquads = 1; enemy.moraleAdj = -8; enemy.surprised = true; enemy.surpriseT = 5; enemy.nightRaid = true; }
-      startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', sit: CITIES[cityId].sit || null, type: 'attack', party, enemy,
+      if (raid) { enemy.extraSquads = 1; enemy.moraleAdj = -8 - (hasTrait('raid') ? 6 : 0); enemy.surprised = true; enemy.surpriseT = 5; enemy.nightRaid = true; }
+      const fight = () => startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', sit: CITIES[cityId].sit || null, type: 'attack', party, enemy,
         playerSoldiers: sent, playerTrain: st.train * (raid ? 0.85 : 1), wall: { team: 1, value: G.cities[cityId].wall * (raid ? 0.75 : 1) }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])),
         onEnd: (res) => afterAttack(cityId, src, res, party) });
+      const dn = CITIES[cityId].duel;
+      if (dn && !raid && G.cities[cityId].owner === CITIES[cityId].owner && enemy.heroes.some((h) => h.generic && h.name === dn)) offerDuel(cityId, dn, party, enemy, fight); else fight();
     }, null, { only: freeIn(src), troops: st.troops, food: raid ? 0.75 : 0.5, note: note + (raid ? '<br><b class="gold">야간 기습</b> · 적은 초반 5초만 허둥대고, 사기 -8, 결계 75%. 지원 혼불이 일부 나옵니다. 어둠 때문에 아군 공격·조련도 떨어지며, 기습에 나선 장수는 다음날 피로합니다.' : ''), formation: true, enemyCity: cityId });
     const sw = $('#modal-card [data-switch]');
     if (sw) sw.onclick = (e) => { e.stopPropagation(); closeModal(); go((srcIdx + 1) % srcs.length); };
@@ -884,6 +1006,7 @@ function captureCity(cityId, res) {
   const st = G.cities[cityId];
   const from = st.owner, boss = st.boss, lv = CITIES[cityId].level;
   st.owner = 'player'; st.boss = null;
+  st.auto = true;
   const surrender = res ? Math.floor((res.reserve || 0) * 0.5) : 0;
   st.troops = (res ? res.survivors : 0) + surrender;
   st.loyal = Math.max(20, st.loyal - 20);
@@ -1365,7 +1488,10 @@ function howTo() {
       <li>되찾은 이름 한 명마다 아군 부대 사기가 1 오릅니다 (최대 15). 이름 찾은 혼이 전투에서 쓰러지면 그 이름은 사라집니다.</li>
       <li>업이 쌓이는 만큼 1막의 끝이 달라집니다 (정복자 · 맹주 · 인도자).</li>
       <li>도시마다 전장이 다릅니다. 강릉은 안개, 평양은 강, 통영·제주는 물때. 전주의 견훤은 몰리면 범이 됩니다.</li>
-      <li>밤에 같은 도시에 머무는 영웅들은 인연 대화를 나누기도 합니다.</li></ul>
+      <li>밤에 같은 도시에 머무는 영웅들은 인연 대화를 나누기도 합니다.</li>
+      <li>경주에서는 화랑이 일기토를 청합니다. 전직할 때는 무(武)·속(速)·통(統) 가운데 한 길을 고릅니다.</li>
+      <li>도시마다 특색이 있습니다 (서울 업전, 전주 혼식, 경주 조련, 평양 병사 공격, 통영 물속 이동 등). 새로 차지한 도시는 위임으로 시작합니다.</li>
+      <li>타이틀의 <b>대회</b>에서는 영웅 셋으로 8강·4강·결승을 치릅니다.</li></ul>
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다. 내정·이동·소문 탐색 같은 행동은 체력을 깎고, 체력이 50% 이하면 능력치가 20% 떨어집니다. 휴식하면 체력이 가득 찹니다.</li>
       <li>오전·오후: 공양·명부·결계·위무·소환·조련·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
@@ -1418,6 +1544,7 @@ function boot() {
   });
   $('#ti-cont').addEventListener('click', continueGame);
   $('#ti-help').addEventListener('click', howTo);
+  $('#ti-tour').addEventListener('click', tourStart);
   refreshTitle();
   showScreen('scr-title');
 }
