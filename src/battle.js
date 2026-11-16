@@ -224,6 +224,7 @@ const Battle = (() => {
       order: 'form', ctrl: null, cam: { x: 560, y: H / 2 }, shake: 0, slowT: 0, moveTo: null, attackTarget: null,
       ground: makeGround(cfg.theme || 'field', cfg.seed || 1), mist: [], lost: 0, kills: 0, exp: {}, captured: [],
       potions: cfg.potions != null ? cfg.potions : 3, spring: null, field: false, springT: 0,
+      karma: 0, named: [], joined: 0, sit: cfg.sit || null, sitT: 0, tide: 0, tideT: 0,
       holdPos: {}, checkT: 0.5, paused: false, autoCtrl: prefs.auto, speed: prefs.speed, routing: false, flash: 0, darken: 0, phase: G.phase,
     };
     for (let i = 0; i < 9; i++) B.mist.push({ x: rand(0, W), y: rand(0, H), r: rand(160, 320), vx: rand(6, 18) });
@@ -347,6 +348,17 @@ const Battle = (() => {
       }
     });
     B.ctrl = pHeroes[0] || B.units.find((u) => u.team === 0 && u.captain) || null;
+    /* 명부: 이름을 되찾은 혼이 많을수록 아군 부대가 잘 버틴다 */
+    const soulBonus = Math.min(15, (G.named || []).length);
+    if (soulBonus) B.squads.forEach((q) => { if (q.team === 0) q.morale = Math.min(100, q.morale + soulBonus); });
+    /* 인연: 대화를 나눈 두 영웅이 함께 나서면 힘이 난다 */
+    B.bondNames = [];
+    (typeof BONDS !== 'undefined' ? BONDS : []).forEach((b) => {
+      if (!(G.done && G.done['bond_' + b.id])) return;
+      const a = pHeroes.find((u) => u.hid === b.a), c2 = pHeroes.find((u) => u.hid === b.b);
+      if (a && c2) { [a, c2].forEach((u) => { u.atk = Math.round(u.atk * 1.08); u.def *= 1.08; u.bond = true; }); B.bondNames.push(b.title); }
+    });
+    setupSituation();
     captureAllyForm();
     const bannerText = cfg.type === 'defend' ? '수성!' : cfg.type === 'duel' ? '결투!' : '출진!';
     B.fx.push({ t: 0, dur: 1.5, layer: 'screen', draw(c, f) {
@@ -368,6 +380,9 @@ const Battle = (() => {
     $('#b-result').hidden = true;
     $('#b-tip').hidden = !cfg.tutorial;
     if (cfg.tutorial) B.tipT = 14;
+    const ch = $('#b-choice'); if (ch) ch.hidden = true;
+    const sn = $('#b-sit');
+    if (sn) { const t = sitNote(); sn.hidden = !t; sn.innerHTML = t; }
     active = true;
     lastT = performance.now();
     cancelAnimationFrame(raf);
@@ -471,6 +486,7 @@ const Battle = (() => {
     updParts(dt);
     if (!B.over) { B.checkT -= dt; if (B.checkT <= 0) { B.checkT = 0.25; checkEnd(); if (B.field) fieldAlert(); } }
     if (B.spring) springTick(dt);
+    if (!B.over) situationTick(dt);
     if (B.t % 2 < dt) B.units = B.units.filter((u) => u.alive || u.kind === 'hero');
     camera(dt);
     B.shake = Math.max(0, B.shake - dt * 20);
@@ -519,7 +535,7 @@ const Battle = (() => {
   /* ---------- 판단 ---------- */
   function setVel(u, dx, dy, mul = 1) {
     const d = Math.hypot(dx, dy) || 1;
-    const sp = u.spd * mul * (u.slowT > 0 ? 0.5 : 1);
+    const sp = u.spd * mul * (u.slowT > 0 ? 0.5 : 1) * zoneSlow(u);
     u.vx = (dx / d) * sp; u.vy = (dy / d) * sp;
   }
   function moveTo(u, x, y, mul = 1) {
@@ -678,7 +694,7 @@ const Battle = (() => {
 
   function think(u, dt) {
     if (u.dash) { dashStep(u, dt); return; }
-    if (u.stun > 0) { stopU(u); return; }
+    if (u.stun > 0 || u.yield) { stopU(u); return; }
     if (u.fear > 0) { setVel(u, u.x - u.fearX, u.y - u.fearY, 0.85); return; }
     if (u.rout) {
       setVel(u, u.team === 1 ? 1 : -1, rand(-0.3, 0.3), 1.15);
@@ -910,20 +926,22 @@ const Battle = (() => {
       const r = Math.ceil(maxD / CELL);
       const gx = clamp(Math.floor(fx / CELL), 0, GW - 1), gy = clamp(Math.floor(fy / CELL), 0, GH - 1);
       for (let yy = Math.max(0, gy - r); yy <= Math.min(GH - 1, gy + r); yy++) for (let xx = Math.max(0, gx - r); xx <= Math.min(GW - 1, gx + r); xx++) for (const o of grid[yy * GW + xx]) {
-        if (!o.alive || o.team === tm || o.rout) continue;
+        if (!o.alive || o.team === tm || o.rout || hidden(o, tm)) continue;
         const dx = o.x - fx, dy = o.y - fy, d = dx * dx + dy * dy;
         if (d < bd) { bd = d; best = o; }
       }
       return best;
     }
     for (const o of B.units) {
-      if (!o.alive || o.team === tm || o.rout) continue;
+      if (!o.alive || o.team === tm || o.rout || hidden(o, tm)) continue;
       const dx = o.x - fx, dy = o.y - fy, d = dx * dx + dy * dy;
       if (d < bd) { bd = d; best = o; }
     }
     return best;
   }
-  function foes(u) { return B.units.filter((o) => o.alive && o.team !== u.team && !o.rout); }
+  /* 무릎 꿇은 혼과 안개 속 적은 노리지 않는다 */
+  function hidden(o, tm) { return o.yield || (tm === 0 && B.sit === 'fog' && o.team === 1 && !o.seen); }
+  function foes(u) { return B.units.filter((o) => o.alive && o.team !== u.team && !o.rout && !hidden(o, u.team)); }
   function friends(u) { return B.units.filter((o) => o.alive && o.team === u.team); }
   function foesNear(u, x, y, r) { return B.units.filter((o) => o.alive && o.team !== u.team && Math.hypot(o.x - x, o.y - y) < r + o.r); }
   function nearestN(u, n, maxD) {
@@ -943,7 +961,8 @@ const Battle = (() => {
 
   /* ---------- 피해 ---------- */
   function hit(src, t, amt, o = {}) {
-    if (!t || !t.alive || t.invuln > 0) return 0;
+    if (!t || !t.alive || t.invuln > 0 || (t.yield && !o.exec)) return 0;
+    if (inWater(t) && !o.pure) amt *= 1.3;
     if (B.field && t.team === 1 && t.sq && !t.sq.alert) alertSquad(t.sq);
     let d = o.pure ? amt : (amt * 40) / (40 + t.def * (1 + t.buffDef));
     d *= (0.9 + Math.random() * 0.2) * DMG_SCALE;
@@ -1015,6 +1034,7 @@ const Battle = (() => {
       burst(t.x, t.y, t.ghost ? 10 : 6, t.ghost ? '#b9c6d8' : '#5b4a3c', 70, 2.4, 0.5, t.ghost);
     }
     if (t.team === 0 && t.kind === 'soldier') B.lost++;
+    if (t.soul) { B.named = B.named.filter((n) => n !== t.soul); floatText(t.x, t.y - 26, `${t.soul.n} 스러지다`, '#c9bfa8', 20, true); t.soul = null; }
     if (t.sq) {
       const sq = t.sq;
       if (t.kind === 'soldier' && !t.captain) sq.morale = Math.max(0, sq.morale - (24 / Math.max(10, sq.size || 20)) * fmodU(sq.leader || t, 'moraleLoss'));
@@ -1978,8 +1998,11 @@ const Battle = (() => {
       }
       return;
     }
+    if (B.sit === 'fog' && u.team === 1 && !(u.fogA > 0.03)) return;
     const ghost = u.ghost || u.summon === 'ghostsol';
     let alpha = 1;
+    if (B.sit === 'fog' && u.team === 1) alpha *= u.fogA;
+    if (u.yield) alpha *= 0.55;
     if (ghost) alpha = 0.78 + Math.sin(t * 6 + u.bob) * 0.12;
     if (u.summon === 'clone') alpha = 0.55;
     if (u.ttl > 0 && u.ttl < 1) alpha *= u.ttl;
@@ -2032,6 +2055,12 @@ const Battle = (() => {
     }
     Sprites.wisp(c, u, t);
     c.globalAlpha = 1;
+    if (u.soul) {
+      c.font = `700 9px ${FONT_GLYPH}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = 2.5; c.strokeStyle = 'rgba(6,8,10,0.8)'; c.strokeText(u.soul.n, u.x, u.y - u.r - 20);
+      c.fillStyle = '#f3e3b8'; c.fillText(u.soul.n, u.x, u.y - u.r - 20);
+    }
+    if (u.yield) { c.font = `900 10px ${FONT_GLYPH}`; c.fillStyle = '#e8dcc0'; c.textAlign = 'center'; c.fillText('伏', u.x, u.y - u.r - 8); return; }
     if (u.hp < u.maxHp) hpBar(c, u, 14);
     drawStatus(c, u, t);
   }
@@ -2179,6 +2208,7 @@ const Battle = (() => {
     const ox = vw / 2 - B.cam.x * Z + shx, oy = vh / 2 - B.cam.y * Z + shy;
     c.setTransform(DPR * Z, 0, 0, DPR * Z, DPR * ox, DPR * oy);
     c.drawImage(B.ground, 0, 0);
+    drawSituation(c);
     if (B.spring) drawSpring(c, B.spring, B.t);
     if (B.moveTo && B.ctrl) {
       c.strokeStyle = 'rgba(232,192,80,0.6)'; c.lineWidth = 1.5;
@@ -2254,6 +2284,7 @@ const Battle = (() => {
       }
     }
     c.globalAlpha = 1;
+    if (B.sit === 'fog') drawFog(c);
     // 안개
     for (const m of B.mist) {
       const g = c.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r);
@@ -2288,7 +2319,7 @@ const Battle = (() => {
     g.fillStyle = 'rgba(10,10,12,0.85)'; g.fillRect(0, 0, mw, mh);
     const sx = mw / W, sy = mh / H;
     for (const u of B.units) {
-      if (!u.alive) continue;
+      if (!u.alive || (B.sit === 'fog' && u.team === 1 && !u.seen)) continue;
       const hero = u.kind === 'hero' || u.captain;
       g.fillStyle = u.team === 0 ? (hero ? '#e8f8ff' : '#5fb8cc') : (hero ? '#ffd0c8' : '#c0503c');
       const r = hero ? 2.4 : 1.1;
@@ -2399,7 +2430,7 @@ const Battle = (() => {
     run();
   }
 
-  function togglePause() { if (!B || B.over) return; B.paused = !B.paused; syncButtons(); }
+  function togglePause() { if (!B || B.over || B.choosing) return; B.paused = !B.paused; syncButtons(); }
   function syncButtons() {
     if (!B) return;
     $('#b-pause').textContent = B.paused ? '계속' : '일시정지';
@@ -2469,6 +2500,195 @@ const Battle = (() => {
 
   /* ---------- 종료 ---------- */
   const MORALE_HOLD = 45;
+
+  /* ================= 천도 · 이름 · 전장 상황 ================= */
+  function cheondoOn() { return B && !B.over && !B.ffwd && !B.skipping && B.cfg.cheondo !== false && B.cfg.type !== 'tutorial' && B.cfg.type !== 'duel'; }
+
+  function pickSoul() {
+    const used = new Set([...(G.named || []), ...B.named].map((n) => n.n));
+    const pool = (typeof SOULS !== 'undefined' ? SOULS : []).filter((n) => !used.has(n.n));
+    if (pool.length) return Object.assign({}, pool[Math.floor(Math.random() * pool.length)]);
+    return { n: pick(SURNAMES) + pick(GIVEN), was: '어디서 왔는지는 아직 떠올리지 못했다' };
+  }
+
+  /* 무릎 꿇은 적 혼불: 벨지, 이름을 불러 보낼지 고른다 */
+  function askCheondo(mem, last, done) {
+    mem.forEach((u) => { u.yield = true; u.rout = false; u.leader = null; stopU(u); });
+    const a = mem[0];
+    floatText(a.x, a.y - 30, '무릎을 꿇었다', '#e8dcc0', 26, true);
+    const sols = mem.filter((u) => !u.captain);
+    const join = clamp(Math.round(sols.length / 8), sols.length ? 1 : 0, 2);
+    const ghost = B.cfg.enemy.faction === 'ghost';
+    later(0.7, () => {
+      if (!B || B.over) return;
+      const live = mem.filter((u) => u.alive);
+      if (!live.length) { if (done) done(); return; }
+      let el = $('#b-choice');
+      if (!el) { el = document.createElement('div'); el.id = 'b-choice'; $('#scr-battle').appendChild(el); }
+      B.paused = true; B.choosing = true;
+      for (const k in keys) keys[k] = false;
+      el.innerHTML = `<div class="bc-card">
+        <p class="bc-eye">${last ? '싸움이 끝났다' : '적 부대의 사기가 꺾였다'}</p>
+        <h3>혼불 ${live.length}이 무릎을 꿇었다</h3>
+        <p class="bc-line">${ghost ? '“우리는… 이름이… 있었다…”' : '“이제… 그만 싸우고 싶다…”'}</p>
+        <div class="bc-opts">
+          <button id="bc-slay"><b>벤다</b><span>영웅 경험치를 얻는다${last ? '' : '. 남은 적의 사기가 떨어진다'}</span></button>
+          <button id="bc-send"><b>천도한다</b><span>업 +1. ${join ? `${join}명이 이름을 되찾고 아군이 된다` : '혼을 떠나보낸다'}${last ? '' : '. 의식을 치르는 3초 동안 조종 중인 영웅이 움직이지 못한다'}</span></button>
+        </div></div>`;
+      el.hidden = false;
+      const close = (fn) => { el.hidden = true; B.paused = false; B.choosing = false; lastT = performance.now(); fn(); syncButtons(); if (done) done(); };
+      $('#bc-slay').onclick = () => close(() => {
+        live.forEach((u) => { u.yield = false; if (u.alive) kill(u, B.ctrl); });
+        if (!last) B.squads.forEach((q) => { if (q.team === 1) q.morale = Math.max(0, q.morale - 6); });
+        Sfx.play('crit');
+      });
+      $('#bc-send').onclick = () => close(() => {
+        B.karma++;
+        const lead = (B.ctrl && B.ctrl.alive && B.ctrl.sq) ? B.ctrl : B.units.find((o) => o.team === 0 && o.alive && o.sq && (o.kind === 'hero' || o.captain));
+        const stay = live.filter((u) => !u.captain).sort((x, y) => y.hp - x.hp).slice(0, lead ? join : 0);
+        live.forEach((u) => {
+          u.yield = false;
+          if (stay.includes(u)) {
+            u.team = 0; u.leader = lead; u.sq = lead.sq; u.slot = lead.squadN++; u.color = FACTIONS.player.color; u.ghost = false; u.hp = u.maxHp;
+            const off = formOffset(lead.form || B.form[0], u.slot, SQUAD, 1); u.formOx = off.x; u.formOy = off.y;
+            u.soul = pickSoul(); B.named.push(u.soul); B.sent++; B.joined++;
+            floatText(u.x, u.y - 22, u.soul.n, '#f3e3b8', 20, true);
+            ring(u.x, u.y, 4, 34, 0.7, '#f3e3b8', 2);
+          } else {
+            u.alive = false; u.sent = true;
+            B.parts.push({ x: u.x, y: u.y, vx: rand(-6, 6), vy: -46, life: 1.5, max: 1.5, size: 3.2, color: '#f3e3b8', glow: true });
+          }
+        });
+        glyphFx(a.x, a.y - 20, '度', '#f3e3b8', 54, 1.4);
+        if (!last && B.ctrl && B.ctrl.alive) { B.ctrl.stun = Math.max(B.ctrl.stun, 3); floatText(B.ctrl.x, B.ctrl.y - 60, '천도 의식', '#f3e3b8', 20, true); }
+        Sfx.play('start');
+      });
+    });
+  }
+
+  /* 이긴 싸움에서 살아남은 아군 혼불 가운데 몇이 제 이름을 떠올린다 */
+  function recallNames() {
+    if (B.cfg.type === 'tutorial' || B.cfg.type === 'duel') return;
+    const live = B.units.filter((u) => u.team === 0 && u.kind === 'soldier' && u.alive && !u.soul && !u.captain);
+    const n = live.length >= 15 ? 1 : 0;
+    for (let i = 0; i < n; i++) { const u = live[Math.floor(Math.random() * live.length)]; if (u && !u.soul) { u.soul = pickSoul(); B.named.push(u.soul); } }
+  }
+
+  const SIT_NOTE = {
+    fog: '<b>안개</b> 가까이 가야 적이 보인다. 저승차사는 멀리 본다. 먼저 보면 「발견」, 못 보고 맞으면 「기습」',
+    river: '<b>강</b> 물속에서는 느려지고 더 아프게 맞는다. 여울(밝은 곳)은 안전하다. 적도 마찬가지다',
+    tide: '<b>물때</b> 아래쪽 갯벌은 때가 되면 물에 잠긴다. 잠긴 곳에서는 느려지고, 수귀는 더 사나워진다',
+  };
+  function sitNote() { return SIT_NOTE[B.sit] || ''; }
+  const RIVER = { x0: 960, x1: 1090, fords: [[250, 370], [730, 850]] };
+  function tideLine() { return H * 0.56; }
+
+  function setupSituation() {
+    if (B.sit === 'fog') B.units.forEach((u) => { if (u.team === 1) { u.seen = false; u.fogA = 0; } });
+    if (B.sit === 'tide') { B.tide = 0; B.tideT = 14; }
+    /* 강 건너에 적이 진을 친다 */
+    if (B.sit === 'river') B.units.forEach((u) => { if (u.team === 1 && u.x < RIVER.x1 + 70) { u.x += RIVER.x1 + 90 - Math.min(u.x, RIVER.x1); if (u.home) u.home.x = u.x; } });
+  }
+
+  function inWater(u) {
+    if (!B || !B.sit || u.kind === 'summon') return false;
+    if (B.sit === 'river') return u.x > RIVER.x0 && u.x < RIVER.x1 && !RIVER.fords.some((f) => u.y > f[0] && u.y < f[1]);
+    if (B.sit === 'tide') return B.tide > 0.6 && u.y > tideLine();
+    return false;
+  }
+  function zoneSlow(u) { return inWater(u) ? (u.ghost && B.sit === 'tide' ? 0.9 : 0.5) : 1; }
+
+  function situationTick(dt) {
+    if (B.t > 16 && !B.sitHid) { B.sitHid = true; const sn = $('#b-sit'); if (sn) sn.hidden = true; }
+    /* 전주: 견훤은 몰리면 범이 된다 */
+    for (const u of B.units) {
+      if (u.alive && u.team === 1 && u.hid === 'gyeonhwon' && !u.enraged && u.hp < u.maxHp * 0.5) {
+        u.enraged = true; u.atk = Math.round(u.atk * 1.4); u.spd *= 1.25; u.atkCd *= 0.8;
+        label(u, '맹호'); ring(u.x, u.y, 10, 240, 0.8, '#e8893a', 6); B.shake = Math.max(B.shake, 10); B.flash = Math.max(B.flash, 0.5);
+        B.squads.forEach((q) => { if (q.team === 0) q.morale = Math.max(0, q.morale - 8); });
+        Sfx.play('fall', true);
+      }
+    }
+    if (B.sit === 'tide') {
+      B.tideT -= dt;
+      const was = B.tideUp;
+      if (B.tideT <= 0) { B.tideUp = !B.tideUp; B.tideT = B.tideUp ? 9 : 16; }
+      if (!B.tideUp && B.tideT < 3 && !B.tideWarned) { B.tideWarned = true; const a = B.ctrl || { x: W / 2, y: H / 2 }; floatText(a.x, a.y - 80, '물이 들어온다!', '#8cc4ff', 34, true); }
+      if (B.tideUp !== was) B.tideWarned = false;
+      B.tide = clamp(B.tide + (B.tideUp ? dt : -dt) * 0.8, 0, 1);
+      if (B.tide > 0.6) B.units.forEach((u) => { if (u.alive && u.team === 1 && u.ghost && u.y > tideLine()) { u.buffAtk = Math.max(u.buffAtk, 0.25); u.buffT = Math.max(u.buffT, 0.5); } });
+    }
+    if (B.sit !== 'fog') return;
+    for (const u of B.units) if (u.team === 1 && u.alive) u.fogA = clamp((u.fogA || 0) + (u.seen ? dt : -dt) * 3, 0, 1);
+    B.sitT -= dt;
+    if (B.sitT > 0) return;
+    B.sitT = 0.15;
+    const eyes = B.units.filter((u) => u.team === 0 && u.alive).map((u) => ({ x: u.x, y: u.y, r: u.kind === 'hero' ? (u.hid === 'gangrim' ? 520 : 270) : u.captain ? 240 : 150 }));
+    for (const o of B.units) {
+      if (o.team !== 1 || !o.alive) continue;
+      o.seen = eyes.some((e) => (e.x - o.x) ** 2 + (e.y - o.y) ** 2 < e.r * e.r);
+      const sq = o.sq;
+      if (o.seen && sq && !sq.spotted) {
+        sq.spotted = true;
+        if (sq.alert || !B.field) {
+          /* 못 보고 맞았다 */
+          floatText(o.x, o.y - 44, '기습!', '#ff7a6a', 34, true);
+          B.units.forEach((m) => { if (m.sq === sq && m.alive) { m.buffAtk = Math.max(m.buffAtk, 0.35); m.buffT = Math.max(m.buffT, 5); } });
+          let near = null, bd = 1e12;
+          for (const q of B.squads) { const an = q.team === 0 ? sqAnchor(q) : null; if (an) { const d = (an.x - o.x) ** 2 + (an.y - o.y) ** 2; if (d < bd) { bd = d; near = q; } } }
+          if (near) near.morale = Math.max(0, near.morale - 8);
+          B.shake = Math.max(B.shake, 5);
+        } else {
+          /* 먼저 보았다 */
+          floatText(o.x, o.y - 44, '발견', '#ffe08a', 30, true);
+          sq.morale = Math.max(0, sq.morale - 10);
+          B.squads.forEach((q) => { if (q.team === 0) q.morale = Math.min(100, q.morale + 3); });
+        }
+      }
+    }
+  }
+
+  function drawSituation(c) {
+    if (B.sit === 'river') {
+      const g = c.createLinearGradient(RIVER.x0, 0, RIVER.x1, 0);
+      g.addColorStop(0, 'rgba(40,70,96,0)'); g.addColorStop(0.18, 'rgba(40,70,96,0.82)'); g.addColorStop(0.82, 'rgba(40,70,96,0.82)'); g.addColorStop(1, 'rgba(40,70,96,0)');
+      c.fillStyle = g; c.fillRect(RIVER.x0 - 14, 0, RIVER.x1 - RIVER.x0 + 28, H);
+      c.strokeStyle = 'rgba(190,215,230,0.22)'; c.lineWidth = 1.5;
+      for (let i = 0; i < 26; i++) { const y = ((i * 47 + B.t * 26) % H), x = RIVER.x0 + 18 + ((i * 37) % (RIVER.x1 - RIVER.x0 - 50)); c.beginPath(); c.moveTo(x, y); c.lineTo(x + 5, y + 16); c.stroke(); }
+      RIVER.fords.forEach((f) => {
+        c.fillStyle = 'rgba(176,168,132,0.78)'; c.fillRect(RIVER.x0 - 6, f[0], RIVER.x1 - RIVER.x0 + 12, f[1] - f[0]);
+        c.font = `700 13px ${FONT_GLYPH}`; c.fillStyle = 'rgba(20,18,14,0.7)'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('여울', (RIVER.x0 + RIVER.x1) / 2, (f[0] + f[1]) / 2);
+      });
+    }
+    if (B.sit === 'tide') {
+      const y = tideLine();
+      c.fillStyle = `rgba(36,66,104,${0.12 + B.tide * 0.5})`; c.fillRect(0, y, W, H - y);
+      c.strokeStyle = `rgba(200,225,240,${0.25 + B.tide * 0.4})`; c.lineWidth = 2; c.beginPath();
+      for (let x = 0; x <= W; x += 40) c.lineTo(x, y + Math.sin(x * 0.02 + B.t * 1.5) * 5);
+      c.stroke();
+    }
+  }
+
+  let fogCv = null;
+  function drawFog(c) {
+    const S = 4;
+    if (!fogCv) { fogCv = document.createElement('canvas'); fogCv.width = W / S; fogCv.height = H / S; }
+    const g = fogCv.getContext('2d');
+    g.globalCompositeOperation = 'source-over';
+    g.clearRect(0, 0, fogCv.width, fogCv.height);
+    g.fillStyle = 'rgba(176,184,186,0.93)'; g.fillRect(0, 0, fogCv.width, fogCv.height);
+    g.globalCompositeOperation = 'destination-out';
+    for (const u of B.units) {
+      if (u.team !== 0 || !u.alive) continue;
+      const r = (u.kind === 'hero' ? (u.hid === 'gangrim' ? 520 : 270) : u.captain ? 240 : 150) / S, x = u.x / S, y = u.y / S;
+      const gr = g.createRadialGradient(x, y, r * 0.45, x, y, r);
+      gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+    c.drawImage(fogCv, 0, 0, W, H);
+  }
+
+
   function squadMembers(sq) { return B.units.filter((u) => u.sq === sq && u.alive && u.kind === 'soldier' && !u.rout); }
 
   /* 사기가 버티면 혼불 하나가 대장이 된다 */
@@ -2497,6 +2717,7 @@ const Battle = (() => {
   function routSquad(sq) {
     const mem = squadMembers(sq);
     if (!mem.length) return;
+    if (sq.team === 1 && cheondoOn()) { askCheondo(mem, false); return; }
     mem.forEach((u) => { u.rout = true; u.leader = null; });
     const a = mem[0];
     floatText(a.x, a.y - 30, `사기 ${Math.round(sq.morale)} · 도주!`, sq.team === 0 ? '#ff9a8a' : '#ffe08a', 26, true);
@@ -2512,6 +2733,10 @@ const Battle = (() => {
 
   function rout(team) {
     B.routing = true;
+    if (team === 1 && cheondoOn()) {
+      const mem = B.units.filter((u) => u.team === 1 && u.alive && u.kind === 'soldier' && !u.rout);
+      if (mem.length) { askCheondo(mem, true, () => later(1.2, () => finish(true))); return; }
+    }
     B.units.forEach((u) => { if (u.team === team && u.alive && u.kind !== 'summon') u.rout = true; });
     const anchor = B.ctrl && B.ctrl.alive ? B.ctrl : B.units.find((u) => u.alive) || { x: W / 2, y: H / 2 };
     floatText(anchor.x + 60, anchor.y - 70, team === 1 ? '적이 무너진다!' : '아군이 무너진다!', team === 1 ? '#ffe08a' : '#ff9a8a', 40, true);
@@ -2521,8 +2746,9 @@ const Battle = (() => {
   function checkEnd() {
     const live = (tm) => B.units.filter((u) => u.team === tm && u.alive && u.kind !== 'summon' && !u.rout);
     const p = live(0), e = live(1);
-    if (B.routing) return;
+    if (B.routing || B.choosing) return;
     if (!p.length) { finish(false); return; }
+    if (B.units.some((u) => u.alive && u.yield)) return;
     if (!e.length) { finish(true); return; }
     // 이끌 자가 하나도 없으면 남은 병사는 흩어진다
     if (!e.some((u) => u.kind === 'hero' || u.captain)) { rout(1); return; }
@@ -2537,8 +2763,9 @@ const Battle = (() => {
     const pSol = B.units.filter((u) => u.team === 0 && u.kind === 'soldier' && u.alive).length + B.units.filter((u) => u.team === 0 && u.kind === 'soldier' && u.fled).length;
     const eSol = B.units.filter((u) => u.team === 1 && u.kind === 'soldier' && u.alive && !u.rout).length;
     const sent = B.sent || 0;
+    if (win) recallNames();
     const survivors = retreat ? Math.round(pSol * 0.7) : win ? pSol : Math.round(pSol * 0.5);
-    const res = { win, retreat: !!retreat, sent, survivors, lost: sent - survivors, enemyLeft: win ? 0 : eSol + (B.reserve || 0), kills: B.kills, exp: Object.assign({}, B.exp), captured: B.captured.slice(), reserve: B.reserve || 0, heroes: {} };
+    const res = { win, retreat: !!retreat, sent, survivors, lost: sent - survivors, enemyLeft: win ? 0 : eSol + (B.reserve || 0), kills: B.kills, exp: Object.assign({}, B.exp), captured: B.captured.slice(), reserve: B.reserve || 0, heroes: {}, karma: B.karma, named: B.named.slice(), joined: B.joined };
     B.units.filter((u) => u.team === 0 && u.kind === 'hero').forEach((u) => { res.heroes[u.hid] = u.alive ? Math.max(0.05, u.hp / u.maxHp) : 0.15; });
     setTimeout(() => showResult(res), win ? 1300 : 700);
   }
@@ -2546,6 +2773,7 @@ const Battle = (() => {
   function showResult(res) {
     if (!B) return;
     const el = $('#b-result');
+    const sn = $('#b-sit'); if (sn) sn.hidden = true;
     const title = res.win ? '승리' : res.retreat ? '퇴각' : '패배';
     const caps = res.captured.map((h) => HEROES[h].name);
     el.innerHTML = `<div class="br-card ${res.win ? 'win' : 'lose'}">
@@ -2554,7 +2782,9 @@ const Battle = (() => {
         <div><dt>쓰러뜨린 적</dt><dd>${res.kills}</dd></div>
         <div><dt>아군 병사</dt><dd>${res.sent}명 중 ${res.survivors}명 생존</dd></div>
         <div><dt>사로잡은 영웅</dt><dd>${caps.length ? esc(caps.join(', ')) : '없음'}</dd></div>
+        ${res.karma ? `<div><dt>천도한 부대</dt><dd>${res.karma} · 업 +${res.karma}</dd></div>` : ''}
       </dl>
+      ${res.named.length ? `<div class="br-souls"><p>이름을 되찾은 혼</p>${res.named.map((n) => `<div><b>${esc(n.n)}</b><span>${esc(n.was)}</span></div>`).join('')}</div>` : ''}
       <button class="btn primary" id="br-ok">계속</button></div>`;
     el.hidden = false;
     $('#br-ok').onclick = () => {

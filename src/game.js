@@ -37,7 +37,7 @@ function newGame() {
     v: 6, name: '무명', day: 1, phase: 0, gold: 600, food: 900, karma: 0,
     cities: {}, roster: [], heroes: {}, inv: ['r_ok', 'w_deungpae'], keys: [],
     places: [], done: {}, seen: {}, log: [], stats: { battles: 0, wins: 0 },
-    stage: 'prologue', attackDay: 0, officers: {}, offSeq: 0, joinCity: 'seoul',
+    stage: 'prologue', attackDay: 0, officers: {}, offSeq: 0, joinCity: 'seoul', named: [],
   };
   for (const id in CITIES) {
     const c = CITIES[id];
@@ -352,6 +352,8 @@ function ensureCities() {
     G.cities[id] = { owner: c.owner, agri: c.agri, comm: c.comm, wall: c.wall, loyal: c.loyal, troops: c.troops, train: c.train, boss: c.boss || null };
   }
   if (!G.foeFound) G.foeFound = {};
+  if (!G.named) G.named = [];
+  if (G.karma == null) G.karma = 0;
 }
 
 function statsFrom(id, level, equip, tired) {

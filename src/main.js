@@ -221,7 +221,7 @@ function overview() {
     <h3 class="h-display">한반도의 도시를 차지하라</h3>
     <div class="progress"><i style="width:${(owned / Object.keys(CITIES).length) * 100}%"></i></div>
     <p class="muted">${owned} / ${Object.keys(CITIES).length} 도시 · 이름난 영웅 ${namedCount()} / ${HERO_ORDER.length} · 장수 ${G.roster.length}명 · 숨겨진 장소 ${G.places.length}곳</p>
-    <dl class="kv small"><div><dt>매일 아침 업전</dt><dd>+${gIn}</dd></div><div><dt>매일 아침 혼식</dt><dd>+${fIn} / 혼병 소모 -${foodUpkeep()}</dd></div></dl>
+    <dl class="kv small"><div><dt>업 ${G.karma} · 지금 걷는 길</dt><dd>${karmaPath(G.karma).name}</dd></div><div><dt>되찾은 이름</dt><dd>${(G.named || []).length}명 (아군 사기 +${Math.min(15, (G.named || []).length)})</dd></div><div><dt>매일 아침 업전</dt><dd>+${gIn}</dd></div><div><dt>매일 아침 혼식</dt><dd>+${fIn} / 혼병 소모 -${foodUpkeep()}</dd></div></dl>
   </div>
   ${phaseCard()}
   <div class="list">${rows}</div>
@@ -558,7 +558,11 @@ function rumorView() {
     return `<button class="row rumor-row ${done ? 'done' : ''}" data-place="${id}"><span class="chip violet">${done ? '✓' : '?'}</span><span class="row-main">${p.name}<span class="muted small">${esc(p.hint)}</span></span></button>`;
   }).join('');
   const log = G.log.slice(0, 12).map((l) => `<li><span class="muted">${l.day}일 ${PHASES[l.phase].name}</span> ${esc(l.text)}</li>`).join('');
-  return `<p class="label">들은 소문</p><div class="list">${places || '<p class="muted small">아직 들은 소문이 없습니다. 소문 탐색을 하면 숨겨진 장소가 들립니다.</p>'}</div>
+  const souls = (G.named || []).slice().reverse().slice(0, 40).map((n) => `<div><b>${esc(n.n)}</b><span>${esc(n.was)}</span></div>`).join('');
+  const bonds = BONDS.filter((b) => G.done['bond_' + b.id]).map((b) => `<div><b>${esc(b.title)}</b><span>${heroName(b.a)} · ${heroName(b.b)} (함께 출전하면 공격·방어 +8%)</span></div>`).join('');
+  return `<p class="label">되찾은 이름 ${(G.named || []).length}명</p><div class="soul-list">${souls || '<p class="muted small">아직 없습니다. 전투에서 무릎 꿇은 혼을 천도하거나, 이긴 싸움에서 살아남은 혼불이 제 이름을 떠올립니다. 한 명마다 아군 부대 사기가 1 오릅니다 (최대 15).</p>'}</div>
+    ${bonds ? `<p class="label">인연</p><div class="soul-list">${bonds}</div>` : ''}
+    <p class="label">들은 소문</p><div class="list">${places || '<p class="muted small">아직 들은 소문이 없습니다. 소문 탐색을 하면 숨겨진 장소가 들립니다.</p>'}</div>
     ${log ? `<p class="label">기록</p><ul class="log">${log}</ul>` : ''}`;
 }
 
@@ -793,6 +797,10 @@ function applyBattle(res, party, markActed = true) {
     if (availablePromos(h).length) ups.push(`${heroName(h)} 직업 승급 가능`);
   });
   if (res.win) G.stats.wins++;
+  if (!G.named) G.named = [];
+  if (res.karma) G.karma += res.karma;
+  (res.named || []).forEach((n) => G.named.push({ n: n.n, was: n.was, day: G.day }));
+  if (res.karma || (res.named || []).length) ups.push(`업 +${res.karma || 0} · 되찾은 이름 ${(res.named || []).length}`);
   if (ups.length) setTimeout(() => toast(ups.join(', '), 'gold'), 400);
 }
 
@@ -819,7 +827,7 @@ function launchAttack(cityId) {
       G.food -= foodCost;
       const enemy = enemyForce(cityId, { party: party.length });
       if (raid) { enemy.extraSquads = 1; enemy.moraleAdj = -8; enemy.surprised = true; enemy.surpriseT = 5; enemy.nightRaid = true; }
-      startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', type: 'attack', party, enemy,
+      startBattle({ title: `${CITIES[cityId].name} ${raid ? '야간 기습' : '공략전'}`, theme: CITIES[cityId].theme || 'field', sit: CITIES[cityId].sit || null, type: 'attack', party, enemy,
         playerSoldiers: sent, playerTrain: st.train * (raid ? 0.85 : 1), wall: { team: 1, value: G.cities[cityId].wall * (raid ? 0.75 : 1) }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])),
         onEnd: (res) => afterAttack(cityId, src, res, party) });
     }, null, { only: freeIn(src), troops: st.troops, food: raid ? 0.75 : 0.5, note: note + (raid ? '<br><b class="gold">야간 기습</b> · 적은 초반 5초만 허둥대고, 사기 -8, 결계 75%. 지원 혼불이 일부 나옵니다. 어둠 때문에 아군 공격·조련도 떨어지며, 기습에 나선 장수는 다음날 피로합니다.' : ''), formation: true, enemyCity: cityId });
@@ -1002,6 +1010,21 @@ function playPhaseWipe(day, phase, onMid, onDone) {
     setTimeout(() => { el.classList.remove('on', 'out'); el.innerHTML = ''; if (onDone) onDone(); }, 420);
   }, 980);
 }
+/* 인연 대화: 밤에 같은 도시에 머무는 두 영웅이 한 번 이야기를 나눈다 */
+function maybeBond() {
+  if (!isNight() || !$('#modal').hidden || !$('#scr-battle').hidden || Dialog.active()) return;
+  const b = BONDS.find((x) => !G.done['bond_' + x.id] && (!x.afterCheondo || G.karma > 0) && G.heroes[x.a] && G.heroes[x.b] && G.roster.includes(x.a) && G.roster.includes(x.b)
+    && !G.heroes[x.a].travel && !G.heroes[x.b].travel && G.heroes[x.a].city === G.heroes[x.b].city);
+  if (!b) return;
+  G.done['bond_' + b.id] = true;
+  const city = CITIES[G.heroes[b.a].city].name;
+  Dialog.play([{ who: 'narr', text: `${city}의 밤. 모닥불 곁에 둘이 남았다.` }].concat(b.lines), () => {
+    logEvent(`인연 「${b.title}」: ${heroName(b.a)}와(과) ${heroName(b.b)}`);
+    toast(`인연 「${b.title}」 · 두 영웅이 함께 출전하면 공격·방어 +8%`, 'gold');
+    saveGame();
+  });
+}
+
 function endTurn() {
   if (UI.turning || Dialog.active() || !$('#modal').hidden) return;
   UI.turning = true;
@@ -1009,6 +1032,7 @@ function endTurn() {
   const nextDay = G.phase === NIGHT ? G.day + 1 : G.day;
   playPhaseWipe(nextDay, next, applyTurnAdvance, () => {
     maybeEnemyAttack();
+    maybeBond();
     if (G.market && G.market.day === G.day && G.market.fresh) { G.market.fresh = false; marketNotice(); }
     UI.turning = false;
   });
@@ -1235,7 +1259,8 @@ function finale() {
   if (G.done.finale) return;
   G.done.finale = true;
   saveGame();
-  Dialog.play(SCRIPT.finale, () => {
+  const path = karmaPath(G.karma);
+  Dialog.play(SCRIPT.finale.concat(ENDINGS[path.id]), () => {
     const evTotal = Object.keys(EVENTS).length;
     const evDone = Object.keys(EVENTS).filter((e) => G.done[e]).length;
     openModal(`<div class="reward"><p class="eyebrow">1막 「고향의 혼」 완료</p><h3 class="h-display big">한반도 통일</h3>
@@ -1243,7 +1268,8 @@ function finale() {
         <div><dt>걸린 날</dt><dd>${G.day}일</dd></div>
         <div><dt>만난 영웅</dt><dd>${namedCount()} / ${HERO_ORDER.length} (장수 ${G.roster.length})</dd></div>
         <div><dt>숨겨진 사건</dt><dd>${evDone} / ${evTotal}</dd></div>
-        <div><dt>업</dt><dd>${G.karma}</dd></div>
+        <div><dt>업</dt><dd>${G.karma} · ${path.name}</dd></div>
+        <div><dt>되찾은 이름</dt><dd>${(G.named || []).length}명</dd></div>
         <div><dt>전투</dt><dd>${G.stats.wins}승 / ${G.stats.battles}전</dd></div>
       </dl>
       <p class="muted">프로토타입은 여기까지입니다. 계속 둘러보며 남은 영웅과 고유 무기를 찾을 수 있습니다.</p>
@@ -1334,6 +1360,12 @@ function howTo() {
       <li><kbd>Tab</kbd> 조종할 영웅 바꾸기 · <kbd>Space</kbd> 일시정지</li>
       <li><kbd>F</kbd> 속도 1×·2×·3× · <kbd>R</kbd> 자동 전투 (화면 위 버튼으로도 가능)</li></ul>
       <p class="muted small">조종하지 않는 영웅은 부대 명령을 따르며 기술을 알아서 씁니다. 화면 아래 영웅 카드의 버튼으로도 기술을 쓸 수 있습니다.</p>
+      <p class="label">천도와 이름</p>
+      <ul><li>사기가 꺾인 적 혼불은 도망치지 않고 무릎을 꿇습니다. <b>벨지 천도할지</b> 고릅니다. 베면 경험치를, 천도하면 업과 이름을 되찾은 아군을 얻습니다.</li>
+      <li>되찾은 이름 한 명마다 아군 부대 사기가 1 오릅니다 (최대 15). 이름 찾은 혼이 전투에서 쓰러지면 그 이름은 사라집니다.</li>
+      <li>업이 쌓이는 만큼 1막의 끝이 달라집니다 (정복자 · 맹주 · 인도자).</li>
+      <li>도시마다 전장이 다릅니다. 강릉은 안개, 평양은 강, 통영·제주는 물때. 전주의 견훤은 몰리면 범이 됩니다.</li>
+      <li>밤에 같은 도시에 머무는 영웅들은 인연 대화를 나누기도 합니다.</li></ul>
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다. 내정·이동·소문 탐색 같은 행동은 체력을 깎고, 체력이 50% 이하면 능력치가 20% 떨어집니다. 휴식하면 체력이 가득 찹니다.</li>
       <li>오전·오후: 공양·명부·결계·위무·소환·조련·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>

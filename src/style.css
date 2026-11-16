@@ -635,3 +635,30 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
   filter: blur(1px); animation: rise var(--d) linear infinite; opacity: 0.6; transform: scale(var(--s)); }
 #scr-map[data-phase="night"] .map-vignette { background: radial-gradient(ellipse at 50% 42%, rgba(70,12,24,0.28), rgba(4,2,6,0.78) 80%); }
 #scr-map[data-phase="noon"] .map-vignette { background: radial-gradient(ellipse at 50% 48%, rgba(140,40,16,0.2) 15%, transparent 48%, rgba(8,3,2,0.65) 100%); }
+
+/* 천도 선택 · 전장 상황 · 되찾은 이름 */
+#b-choice { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(4,4,5,0.32); padding: 16px; z-index: 6; align-items: end; padding-bottom: 150px; }
+#b-choice[hidden] { display: none; }
+.bc-card { width: min(460px, 100%); background: linear-gradient(180deg, #1c1a16, #121110); border: 1px solid var(--line-2); border-radius: 4px; padding: 22px; text-align: center; animation: pop .25s; }
+.bc-eye { color: var(--ash); font-size: 0.8rem; letter-spacing: 0.2em; margin: 0 0 6px; }
+.bc-card h3 { font-family: var(--f-display); font-weight: 400; font-size: 1.35rem; margin: 0 0 8px; color: #ece4cf; }
+.bc-line { font-family: var(--f-brush); font-size: 1.7rem; color: #b9c6d8; margin: 0 0 16px; }
+.bc-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bc-opts button { display: flex; flex-direction: column; gap: 6px; padding: 14px 12px; background: #17150f; border: 1px solid var(--line-2); border-radius: 4px; color: #ece4cf; cursor: pointer; text-align: left; font: inherit; }
+.bc-opts button b { font-family: var(--f-display); font-weight: 400; font-size: 1.15rem; }
+.bc-opts button span { font-size: 0.8rem; color: var(--ash); line-height: 1.45; }
+#bc-slay:hover { border-color: #c8402f; } #bc-slay b { color: #e0705c; }
+#bc-send:hover { border-color: var(--gold); } #bc-send b { color: var(--gold); }
+#b-sit { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); max-width: min(620px, calc(100% - 300px)); padding: 6px 14px; background: rgba(14,13,11,0.78); border: 1px solid var(--line); border-radius: 3px; font-size: 0.8rem; color: #cfc6ae; z-index: 2; pointer-events: none; text-align: center; }
+#b-sit[hidden] { display: none; }
+#b-sit b { color: var(--gold); font-family: var(--f-display); font-weight: 400; margin-right: 8px; }
+.br-souls { text-align: left; margin: 0 0 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 3px; background: rgba(243,227,184,0.04); }
+.br-souls p { margin: 0 0 6px; color: var(--gold); font-size: 0.8rem; letter-spacing: 0.12em; }
+.br-souls div { display: flex; gap: 10px; align-items: baseline; padding: 2px 0; }
+.br-souls b { font-family: var(--f-display); font-weight: 400; white-space: nowrap; }
+.br-souls span { color: var(--ash); font-size: 0.8rem; }
+.soul-list { display: grid; gap: 4px; margin: 0 0 14px; }
+.soul-list div { display: flex; gap: 10px; align-items: baseline; padding: 4px 8px; border-bottom: 1px dashed var(--line); }
+.soul-list b { font-family: var(--f-display); font-weight: 400; white-space: nowrap; color: #f3e3b8; }
+.soul-list span { color: var(--ash); font-size: 0.8rem; }
+@media (max-width: 720px) { .bc-opts { grid-template-columns: 1fr; } #b-sit { top: 96px; max-width: calc(100% - 24px); } }
