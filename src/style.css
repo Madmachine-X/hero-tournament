@@ -677,3 +677,8 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .tour-bracket i { font-style: normal; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 3px; color: var(--ash); font-size: 0.78rem; }
 .tour-bracket i.on { border-color: var(--gold); color: var(--gold); }
 .tour-bracket i.won { color: #7fd3e6; border-color: #2e5560; }
+
+/* 침공 예고 */
+.res .r.threat { background: rgba(160, 40, 30, .18); border-color: rgba(200, 70, 50, .55); }
+.res .r.threat b { color: #f0b49a; font-size: 12px; }
+.threat-note b { color: #e0705a; margin-right: 4px; }

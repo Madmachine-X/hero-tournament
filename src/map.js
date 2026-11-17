@@ -254,6 +254,25 @@ const MapView = (() => {
         c.fillText(pl.name, p.x, p.y - 15);
       }
     }
+    // 침공 예고: 노리는 길에 붉은 화살
+    if (G && G.threat && CITIES[G.threat.src] && CITIES[G.threat.tgt]) {
+      const a = proj(CITIES[G.threat.src].lon, CITIES[G.threat.src].lat), b = proj(CITIES[G.threat.tgt].lon, CITIES[G.threat.tgt].lat);
+      const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+      const sx = a.x + ux * 16, sy = a.y + uy * 16, ex = b.x - ux * 20, ey = b.y - uy * 20;
+      const pulse = 0.6 + 0.4 * Math.sin(t * 4);
+      c.save();
+      c.strokeStyle = `rgba(255,70,40,${0.85 * pulse})`; c.lineWidth = 4; c.setLineDash([10, 7]); c.lineDashOffset = -t * 30;
+      c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.stroke(); c.setLineDash([]);
+      c.fillStyle = `rgba(255,80,50,${pulse})`;
+      c.beginPath(); c.moveTo(ex + ux * 8, ey + uy * 8); c.lineTo(ex - ux * 10 - uy * 9, ey - uy * 10 + ux * 9); c.lineTo(ex - ux * 10 + uy * 9, ey - uy * 10 - ux * 9); c.closePath(); c.fill();
+      c.strokeStyle = `rgba(255,90,60,${0.5 * pulse})`; c.lineWidth = 2;
+      c.beginPath(); c.arc(b.x, b.y, 22 + 6 * Math.sin(t * 4), 0, Math.PI * 2); c.stroke();
+      c.font = '700 12px "Noto Serif KR", serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = 4; c.strokeStyle = 'rgba(8,7,6,0.9)'; const mx = (sx + ex) / 2 - uy * 14, my = (sy + ey) / 2 + ux * 14;
+      const lbl = `침공 ${typeof threatWhen === 'function' ? threatWhen(G.threat) : ''} · ${G.threat.send}`;
+      c.strokeText(lbl, mx, my); c.fillStyle = '#ffb49a'; c.fillText(lbl, mx, my);
+      c.restore();
+    }
     // 도시
     for (const id of cityIds) {
       const ci = CITIES[id], p = proj(ci.lon, ci.lat), st = G ? G.cities[id] : { owner: ci.owner };

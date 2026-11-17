@@ -687,6 +687,11 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
 .tour-bracket i.on { border-color: var(--gold); color: var(--gold); }
 .tour-bracket i.won { color: #7fd3e6; border-color: #2e5560; }
 
+/* 침공 예고 */
+.res .r.threat { background: rgba(160, 40, 30, .18); border-color: rgba(200, 70, 50, .55); }
+.res .r.threat b { color: #f0b49a; font-size: 12px; }
+.threat-note b { color: #e0705a; margin-right: 4px; }
+
 </style>
 
 <div id="app">
@@ -724,6 +729,7 @@ blockquote.rumor { margin: 6px 0 10px; padding: 10px 14px; border-left: 2px soli
       <div class="brand"><b>천하제일 영웅대회</b><span>1막 · 고향의 혼</span></div>
       <div class="res">
         <span class="r"><i>날</i><b id="t-day">1일차</b></span>
+        <span class="r threat" id="t-threat" hidden><i>첩보</i><b></b></span>
         <span class="phase-orb" id="t-orb" aria-hidden="true"></span>
         <span class="r phase" id="t-phase" data-phase="day">낮</span>
         <span class="r"><i>업전</i><b id="t-gold">0</b></span>
@@ -1185,8 +1191,8 @@ const CITIES = {
   pyongyang: { sit: 'river', trait: { name: '철기', desc: '가지고 있으면 모든 아군 병사 공격 +10%', solAtk: 1.1 }, name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 72, level: 5, cap: 15,
                boss: 'gaesomun', captains: ['고구려 망령장', '고구려 망령장'], theme: 'north',
                shop: ['w_woldo','w_heukgak','a_dujeong','n_hobal'] },
-  gangneung: { sit: 'fog', trait: { name: '안갯길', desc: '가지고 있으면 야간 기습 때 적 사기 -6 추가', raid: 6 }, name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
-               bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장'], theme: 'mist',
+  gangneung: { sit: 'fog', trait: { name: '안갯길', desc: '가지고 있으면 야간 기습 때 적 사기 -6 추가', raid: 6 }, name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 130, train: 55, level: 3, cap: 7,
+               bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장', '무명 오장'], theme: 'mist',
                shop: ['r_honbul','b_bujeok'] },
   jeonju:    { trait: { name: '곡창', desc: '혼식 수입 +50%', food: 1.5 }, name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 58, level: 3, cap: 11,
                boss: 'gyeonhwon', captains: ['후백제 망령장'], theme: 'field',
@@ -2076,13 +2082,16 @@ function enemyForce(cityId, opts = {}) {
   if (opts.attacker) {
     const src = CITIES[opts.attacker];
     const sst = G.cities[opts.attacker];
-    if (sst.boss && Math.random() < 0.35) heroes.push({ id: sst.boss, level: src.level + 2, boss: true, recruit: false });
-    heroes.push({ generic: true, name: (src.captains && src.captains[0]) || '망령장', level: src.level + 1, faction: owner, skill: 'ghostfire' });
-    if (src.bossGeneric) heroes.push({ generic: true, name: src.bossGeneric, level: src.level + 2, faction: owner, skill: src.bossSkill, boss: true });
-    addFoundCaptains(heroes, sst, owner, src.level);
-    addExtraCaptains(heroes, opts.party, owner, src.level + 1, src.level);
+    /* 침공군 수준은 날짜를 따라 오른다. 초반에 큰 성이 쳐들어와도 대비하면 막을 수 있게 */
+    const alv = Math.min(src.level, 2 + Math.floor((G.day - 1) / 3));
+    const boss = opts.boss != null ? opts.boss : (G.day >= 8 && !!sst.boss && Math.random() < 0.35);
+    if (boss && sst.boss) heroes.push({ id: sst.boss, level: alv + 2, boss: true, recruit: false });
+    heroes.push({ generic: true, name: (src.captains && src.captains[0]) || '망령장', level: alv + 1, faction: owner, skill: 'ghostfire' });
+    if (src.bossGeneric && G.day >= 6) heroes.push({ generic: true, name: src.bossGeneric, level: alv + 2, faction: owner, skill: src.bossSkill, boss: true });
+    addFoundCaptains(heroes, sst, owner, alv);
+    addExtraCaptains(heroes, opts.party, owner, alv + 1, src.level);
     const send = Math.max(20, Math.round(sst.troops * 0.6));
-    return { heroes, soldiers: send, level: src.level, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: sst.train, send };
+    return { heroes, soldiers: send, level: alv, boss, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: sst.train, send };
   }
   if (st.boss) heroes.push({ id: st.boss, level: lv + 1, boss: true, recruit: true });
   if (c.bossGeneric && st.owner === CITIES[cityId].owner) heroes.push({ generic: true, name: c.bossGeneric, level: lv + 2, faction: owner, skill: c.bossSkill, boss: true });
@@ -6524,6 +6533,25 @@ const MapView = (() => {
         c.fillText(pl.name, p.x, p.y - 15);
       }
     }
+    // 침공 예고: 노리는 길에 붉은 화살
+    if (G && G.threat && CITIES[G.threat.src] && CITIES[G.threat.tgt]) {
+      const a = proj(CITIES[G.threat.src].lon, CITIES[G.threat.src].lat), b = proj(CITIES[G.threat.tgt].lon, CITIES[G.threat.tgt].lat);
+      const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+      const sx = a.x + ux * 16, sy = a.y + uy * 16, ex = b.x - ux * 20, ey = b.y - uy * 20;
+      const pulse = 0.6 + 0.4 * Math.sin(t * 4);
+      c.save();
+      c.strokeStyle = `rgba(255,70,40,${0.85 * pulse})`; c.lineWidth = 4; c.setLineDash([10, 7]); c.lineDashOffset = -t * 30;
+      c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.stroke(); c.setLineDash([]);
+      c.fillStyle = `rgba(255,80,50,${pulse})`;
+      c.beginPath(); c.moveTo(ex + ux * 8, ey + uy * 8); c.lineTo(ex - ux * 10 - uy * 9, ey - uy * 10 + ux * 9); c.lineTo(ex - ux * 10 + uy * 9, ey - uy * 10 - ux * 9); c.closePath(); c.fill();
+      c.strokeStyle = `rgba(255,90,60,${0.5 * pulse})`; c.lineWidth = 2;
+      c.beginPath(); c.arc(b.x, b.y, 22 + 6 * Math.sin(t * 4), 0, Math.PI * 2); c.stroke();
+      c.font = '700 12px "Noto Serif KR", serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = 4; c.strokeStyle = 'rgba(8,7,6,0.9)'; const mx = (sx + ex) / 2 - uy * 14, my = (sy + ey) / 2 + ux * 14;
+      const lbl = `침공 ${typeof threatWhen === 'function' ? threatWhen(G.threat) : ''} · ${G.threat.send}`;
+      c.strokeText(lbl, mx, my); c.fillStyle = '#ffb49a'; c.fillText(lbl, mx, my);
+      c.restore();
+    }
     // 도시
     for (const id of cityIds) {
       const ci = CITIES[id], p = proj(ci.lon, ci.lat), st = G ? G.cities[id] : { owner: ci.owner };
@@ -6690,6 +6718,8 @@ function itemKind(it) {
 /* ---------- 상단 ---------- */
 function renderTop() {
   $('#t-day').textContent = `${G.day}일차`;
+  const th = $('#t-threat');
+  if (th) { th.hidden = !G.threat; if (G.threat) th.querySelector('b').textContent = `${FACTIONS[G.threat.owner].name} → ${CITIES[G.threat.tgt].name} · ${threatWhen(G.threat)} · 약 ${G.threat.send}`; }
   $('#t-phase').textContent = phaseName();
   $('#t-phase').dataset.phase = PHASES[G.phase].id;
   $('#t-gold').textContent = G.gold.toLocaleString('ko-KR');
@@ -6828,6 +6858,7 @@ function cityCard(id) {
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${cityPop(id)} / ${cityCap(id)}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}${cityPop(id) > cityCap(id) ? ' · 정원 초과' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${isWeary(h) ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${isWeary(h) ? ' · 지침' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${isWeary(h) ? ' · 지침' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
+      ${threatHtml(id)}
       <p class="hint">내정·장터·위임은 위쪽 명령에서 고릅니다. 살림·군비·다스림 셋 중 급한 것을 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
@@ -7853,10 +7884,34 @@ function takeDefendTroops(tgt, cities, need) {
   return { taken, train: nSum ? trainSum / nSum : G.cities[tgt].train, sent: nSum };
 }
 
+/* 침공 예고: 적은 이틀 앞서 움직임을 드러낸다. 그 사이 군비·다스림·병력 이동으로 대비한다 */
+const THREAT_LEAD = 6; /* 시간대 6개 = 이틀 */
+function phaseIndex(d, p) { return (d - 1) * PHASES.length + p; }
+function threatLeft(t) { return phaseIndex(t.day, t.phase) - phaseIndex(G.day, G.phase); }
+function threatWhen(t) {
+  const d = t.day - G.day;
+  return threatLeft(t) <= 0 ? '지금' : d <= 0 ? `오늘 ${PHASES[t.phase].name}` : d === 1 ? `내일 ${PHASES[t.phase].name}` : `${d}일 뒤 ${PHASES[t.phase].name}`;
+}
+function threatHtml(id) {
+  const t = G.threat;
+  if (!t || t.tgt !== id) return '';
+  return `<p class="hint warn-hint threat-note"><b>첩보</b> ${esc(FACTIONS[t.owner].name)}이(가) ${esc(CITIES[t.src].name)}에서 병력 약 ${t.send}으로 이곳을 노립니다. ${threatWhen(t)}에 닥칩니다. 군비로 혼병·조련을, 다스림으로 결계를 올리거나 이웃 도시 병력을 옮겨 대비하세요.</p>`;
+}
 function maybeEnemyAttack(force) {
+  const t = G.threat;
+  if (t && !force) {
+    if (threatLeft(t) > 0) return;
+    G.threat = null;
+    G.calm = phaseIndex(G.day, G.phase) + 3;
+    const S = G.cities[t.src];
+    if (!S || S.owner !== t.owner || G.cities[t.tgt].owner !== 'player') { toast(`${CITIES[t.tgt].name}을(를) 노리던 ${FACTIONS[t.owner].name}의 군세가 물러났습니다.`); return; }
+    launchInvasion(t.src, t.tgt, Math.max(20, Math.min(t.send, S.troops)), t.boss);
+    return;
+  }
   if (!force) {
-    if (G.phase === 0 || G.day < 3 || G.attackDay === G.day) return;
-    if (Math.random() > 0.3) return;
+    if (G.stage !== 'act1' || phaseIndex(G.day, G.phase) < phaseIndex(2, 1)) return;
+    if (G.calm && phaseIndex(G.day, G.phase) < G.calm) return;
+    if (G.threatN && Math.random() > 0.35) return;
   }
   const cand = [];
   for (const id in G.cities) {
@@ -7866,9 +7921,30 @@ function maybeEnemyAttack(force) {
   }
   if (!cand.length) return;
   const [src, tgt] = pick(cand);
-  G.attackDay = G.day;
+  const owner = G.cities[src].owner;
+  const plan = enemyForce(tgt, { attacker: src, faction: owner });
+  if (force) { launchInvasion(src, tgt, plan.send, plan.boss); return; }
+  const at = phaseIndex(G.day, G.phase) + THREAT_LEAD;
+  G.threat = { src, tgt, owner, send: plan.send, boss: plan.boss, day: Math.floor(at / PHASES.length) + 1, phase: at % PHASES.length };
+  G.threatN = (G.threatN || 0) + 1;
+  const fac = FACTIONS[owner], T = G.cities[tgt];
+  const who = plan.heroes.map((h) => `${esc(h.name || HEROES[h.id].name)} Lv${h.level}`).join(' · ');
+  logEvent(`첩보: ${fac.name}이(가) ${CITIES[tgt].name}을(를) 노린다 (${threatWhen(G.threat)})`);
+  EventQ.push(() => openModal(`<div class="modal-head warn"><h3 class="h-display">첩보 · ${esc(threatWhen(G.threat))} 침공</h3></div>
+    <p><b style="color:${fac.color}">${fac.name}</b>이(가) ${CITIES[src].name}에서 병력 약 <b>${plan.send}</b>을 모으고 있습니다. 노리는 곳은 <b>${CITIES[tgt].name}</b>입니다.</p>
+    <p class="muted small">이끄는 장수: ${who}</p>
+    <p class="muted small">${CITIES[tgt].name} 지금 병력 ${T.troops} · 조련 ${T.train} · 결계 ${T.wall}. 닥치기 전까지 군비(혼병·조련), 다스림(결계), 이웃 도시에서 병력 이동으로 대비할 수 있습니다. 결계는 성 안 아군의 방어를 올립니다.</p>
+    <div class="actions"><button class="btn primary" data-close>대비한다</button></div>`, (card) => {
+    card.onclick = (e) => { if (e.target.closest('[data-close]')) { closeModal(); UI.tab = 'info'; UI.sel = { id: tgt, type: 'city' }; renderAll(); } };
+  }));
+  renderAll(); saveGame();
+}
+
+function launchInvasion(src, tgt, send, boss) {
   const owner = G.cities[src].owner, fac = FACTIONS[owner];
-  const preview = enemyForce(tgt, { attacker: src, faction: owner });
+  G.attackDay = G.day;
+  const preview = enemyForce(tgt, { attacker: src, faction: owner, boss });
+  preview.send = send;
   G.cities[src].troops = Math.max(0, G.cities[src].troops - preview.send);
   const T = G.cities[tgt];
   const ally = defendAllies(tgt);
@@ -7886,7 +7962,7 @@ function maybeEnemyAttack(force) {
       if (b.dataset.a === 'fight') {
         choosePartyThen(`${CITIES[tgt].name} 방어`, (party, sent) => {
           const pulled = takeDefendTroops(tgt, ally.cities, sent);
-          const enemy = enemyForce(tgt, { attacker: src, faction: owner, party: party.length });
+          const enemy = enemyForce(tgt, { attacker: src, faction: owner, party: party.length, boss });
           enemy.soldiers = preview.send;
           startBattle({ title: `${CITIES[tgt].name} 방어전`, theme: CITIES[tgt].theme || 'ruin', type: 'defend', party, enemy,
             playerSoldiers: pulled.sent, playerTrain: pulled.train, wall: { team: 0, value: T.wall }, formation: UI.formation, forms: Object.fromEntries(party.map((h) => [h, heroFormOf(h)])), onEnd: (res) => {
@@ -7918,9 +7994,10 @@ function autoDefend(src, tgt, send) {
     ? ally.cities.reduce((a, c) => a + G.cities[c].train * G.cities[c].troops, 0) / ally.troops
     : T.train;
   const lv = ally.heroes.map((h) => G.heroes[h].level).sort((a, b) => b - a).slice(0, 5).reduce((a, b) => a + b, 0);
-  const p = ally.troops * (0.5 + trainAvg / 100) * (1 + T.wall / 200) + lv * 8;
-  const e = send * (0.5 + S.train / 100) + CITIES[src].level * 20;
-  const win = Math.random() < p / (p + e);
+  const p = ally.troops * (0.5 + trainAvg / 100) * (1 + T.wall / 200) + lv * 10;
+  const e = send * (0.5 + S.train / 100) + Math.min(CITIES[src].level, 2 + Math.floor((G.day - 1) / 3)) * 20;
+  /* 전력 차가 승률에 더 크게 반영된다: 대비하면 확실히 막고, 소홀하면 확실히 진다 */
+  const win = Math.random() < (p * p) / (p * p + e * e);
   if (win) {
     const loss = Math.round(send * 0.3 * (0.5 + Math.random() * 0.5));
     takeDefendTroops(tgt, ally.cities, loss);
@@ -8080,6 +8157,7 @@ function howTo() {
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다. 내정·이동·소문 탐색 같은 행동은 체력을 깎고, 체력이 50% 이하면 능력치가 20% 떨어집니다. 휴식하면 체력이 가득 찹니다.</li>
       <li>오전·오후: 살림(공양·명부)·군비(소환·조련)·다스림(결계·신망)·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
+      <li>적의 침공은 이틀 전에 첩보로 알려 줍니다. 지도의 붉은 화살을 보고 군비·다스림·병력 이동으로 대비하세요.</li>
       <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음. 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉼), 소문 탐색, 병력 이동, 야간 기습(초반 5초 허둥, 적 사기 -8, 결계 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
       <li>매일 아침 명부에서 업전(금), 공양에서 혼식(군량)이 들어오고 혼병들이 혼식을 먹습니다. 출병에는 병사당 혼식 0.5가 듭니다.</li>
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다. 적이 쳐들어오면 이웃한 아군 도시의 장수·병력이 지원에 합류할 수 있습니다.</li>

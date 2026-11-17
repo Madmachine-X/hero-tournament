@@ -730,13 +730,16 @@ function enemyForce(cityId, opts = {}) {
   if (opts.attacker) {
     const src = CITIES[opts.attacker];
     const sst = G.cities[opts.attacker];
-    if (sst.boss && Math.random() < 0.35) heroes.push({ id: sst.boss, level: src.level + 2, boss: true, recruit: false });
-    heroes.push({ generic: true, name: (src.captains && src.captains[0]) || '망령장', level: src.level + 1, faction: owner, skill: 'ghostfire' });
-    if (src.bossGeneric) heroes.push({ generic: true, name: src.bossGeneric, level: src.level + 2, faction: owner, skill: src.bossSkill, boss: true });
-    addFoundCaptains(heroes, sst, owner, src.level);
-    addExtraCaptains(heroes, opts.party, owner, src.level + 1, src.level);
+    /* 침공군 수준은 날짜를 따라 오른다. 초반에 큰 성이 쳐들어와도 대비하면 막을 수 있게 */
+    const alv = Math.min(src.level, 2 + Math.floor((G.day - 1) / 3));
+    const boss = opts.boss != null ? opts.boss : (G.day >= 8 && !!sst.boss && Math.random() < 0.35);
+    if (boss && sst.boss) heroes.push({ id: sst.boss, level: alv + 2, boss: true, recruit: false });
+    heroes.push({ generic: true, name: (src.captains && src.captains[0]) || '망령장', level: alv + 1, faction: owner, skill: 'ghostfire' });
+    if (src.bossGeneric && G.day >= 6) heroes.push({ generic: true, name: src.bossGeneric, level: alv + 2, faction: owner, skill: src.bossSkill, boss: true });
+    addFoundCaptains(heroes, sst, owner, alv);
+    addExtraCaptains(heroes, opts.party, owner, alv + 1, src.level);
     const send = Math.max(20, Math.round(sst.troops * 0.6));
-    return { heroes, soldiers: send, level: src.level, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: sst.train, send };
+    return { heroes, soldiers: send, level: alv, boss, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: sst.train, send };
   }
   if (st.boss) heroes.push({ id: st.boss, level: lv + 1, boss: true, recruit: true });
   if (c.bossGeneric && st.owner === CITIES[cityId].owner) heroes.push({ generic: true, name: c.bossGeneric, level: lv + 2, faction: owner, skill: c.bossSkill, boss: true });
