@@ -304,6 +304,10 @@ const ITEMS = {
 /* 내정 명령: 영웅 한 명이 턴마다 하나를 한다 */
 /* 내정: 저승 설정 — 농업/상업 대신 공양·명부. 저장 키(agri/comm 등)는 유지 */
 const COMMANDS = {
+  /* 묶음 명령: 한 번의 행동으로 두 가지를 함께 한다 (화면에는 이 셋만 보인다) */
+  eco:   { name: '살림', combo: ['agri', 'comm'], hp: 0.18, desc: '공양과 명부를 함께 돌본다. 매일 아침 들어오는 혼식과 업전이 는다.', stat: '지력', when: 'day' },
+  army:  { name: '군비', combo: ['draft', 'train'], hp: 0.18, desc: '혼불을 불러 세우고 곧바로 조련한다. 병력과 조련이 함께 오른다. 소환은 신망 30 이상일 때만 된다.', stat: '통솔·무력', when: 'day' },
+  rule:  { name: '다스림', combo: ['wall', 'loyal'], hp: 0.18, desc: '결계를 손보고 떠도는 혼을 달랜다. 결계와 신망이 함께 오른다.', stat: '통솔·지력', when: 'day' },
   agri:  { name: '공양', key: 'agri', label: '공양', cost: { gold: 50 }, hp: 0.18, desc: '산 자의 제물·혼식을 거두는 자리를 넓힌다. 매일 아침 들어오는 군량(혼식)이 는다.', stat: '지력·통솔', when: 'day' },
   comm:  { name: '명부', key: 'comm', label: '명부', cost: { gold: 50 }, hp: 0.18, desc: '명부 장부를 정리하고 업전을 징수한다. 매일 아침 들어오는 금(업전)이 는다.', stat: '지력', when: 'day' },
   wall:  { name: '결계', key: 'wall', label: '결계', cost: { gold: 60 }, hp: 0.18, desc: '성 대신 혼을 가두는 결계를 친다. 이 도시를 지킬 때 방어력이 오른다.', stat: '통솔·무력', when: 'day' },
@@ -352,25 +356,25 @@ const HERO_GEAR = {
 const CITIES = {
   seoul:     { trait: { name: '저잣거리', desc: '업전 수입 +30%', gold: 1.3 }, name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
                shop: ['w_hwando','w_bisu','w_jangchang','w_gakgung','w_deungpae','a_dopo','a_chalgap','r_ok','r_eun','n_hobak'] },
-  pyongyang: { sit: 'river', trait: { name: '철기', desc: '가지고 있으면 모든 아군 병사 공격 +10%', solAtk: 1.1 }, name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
+  pyongyang: { sit: 'river', trait: { name: '철기', desc: '가지고 있으면 모든 아군 병사 공격 +10%', solAtk: 1.1 }, name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 72, level: 5, cap: 15,
                boss: 'gaesomun', captains: ['고구려 망령장', '고구려 망령장'], theme: 'north',
                shop: ['w_woldo','w_heukgak','a_dujeong','n_hobal'] },
   gangneung: { sit: 'fog', trait: { name: '안갯길', desc: '가지고 있으면 야간 기습 때 적 사기 -6 추가', raid: 6 }, name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
                bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장'], theme: 'mist',
                shop: ['r_honbul','b_bujeok'] },
-  jeonju:    { trait: { name: '곡창', desc: '혼식 수입 +50%', food: 1.5 }, name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
+  jeonju:    { trait: { name: '곡창', desc: '혼식 수입 +50%', food: 1.5 }, name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 58, level: 3, cap: 11,
                boss: 'gyeonhwon', captains: ['후백제 망령장'], theme: 'field',
                shop: ['w_ungeom','w_wonbang','b_norigae','r_honbul'] },
-  gyeongju:  { duel: '화랑 망령', trait: { name: '화랑도', desc: '조련 효과 +50%', train: 1.5 }, name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
+  gyeongju:  { duel: '화랑 망령', trait: { name: '화랑도', desc: '조련 효과 +50%', train: 1.5 }, name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 72, level: 5, cap: 13,
                boss: 'yusin', captains: ['신라 망령장', '화랑 망령'], theme: 'field',
                shop: ['w_hakuseon','a_suui','n_yeomju','b_bujeok'] },
-  tongyeong: { sit: 'tide', trait: { name: '수군', desc: '가지고 있으면 아군은 물속에서 덜 느려진다', water: true }, name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
+  tongyeong: { sit: 'tide', trait: { name: '수군', desc: '가지고 있으면 아군은 물속에서 덜 느려진다', water: true }, name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 50, level: 3, cap: 9,
                bossGeneric: '수귀 대장', bossSkill: 'tide', captains: ['망령 수군장'], theme: 'coast',
                shop: ['w_heukgak','a_dujeong'] },
-  hamheung:  { trait: { name: '북방 장정', desc: '소환(징병) 인원 +30%', draft: 1.3 }, name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 150, train: 50, level: 4, cap: 9,
+  hamheung:  { trait: { name: '북방 장정', desc: '소환(징병) 인원 +30%', draft: 1.3 }, name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 180, train: 68, level: 4, cap: 9,
                captains: ['고구려 망령장'], theme: 'north',
                shop: ['w_jangchang','a_chalgap','n_hobal'] },
-  jeju:      { sit: 'tide', trait: { name: '목장', desc: '업전 +15%, 혼식 +25%', gold: 1.15, food: 1.25 }, name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 35, level: 2, cap: 9,
+  jeju:      { sit: 'tide', trait: { name: '목장', desc: '업전 +15%, 혼식 +25%', gold: 1.15, food: 1.25 }, name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 45, level: 2, cap: 9,
                bossGeneric: '탐라 수귀', bossSkill: 'tide', captains: ['탐라 망령'], theme: 'coast',
                shop: ['w_bisu','r_honbul','b_bujeok'] },
 };

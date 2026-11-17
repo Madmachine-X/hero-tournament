@@ -135,7 +135,7 @@ function renderPanel() {
   renderCmdRail();
 }
 function renderAll() { renderTop(); renderPanel(); MapView.redrawRegions(); }
-const CMD_GLYPH = { agri: "供", comm: "簿", wall: "結", loyal: "慰", draft: "召", train: "鍊", search: "才", move: "移", rest: "息", scout: "聞" };
+const CMD_GLYPH = { eco: '供', army: '召', rule: '結', agri: "供", comm: "簿", wall: "結", loyal: "慰", draft: "召", train: "鍊", search: "才", move: "移", rest: "息", scout: "聞" };
 function renderCmdRail() {
   const rail = $("#cmdrail");
   if (!rail) return;
@@ -156,7 +156,7 @@ function renderCmdRail() {
   if (seal) { seal.textContent = f.glyph; seal.style.setProperty("--c", f.color); }
   if (cityEl) cityEl.textContent = CITIES[sel].name + (mine ? "" : " · " + f.name);
   if (mine) {
-    const cmds = isNight() ? ["rest", "scout", "move"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "scout", "move"];
+    const cmds = isNight() ? ["rest", "scout", "move"] : ["eco", "army", "rule", "search", "scout", "move"];
     if (noteEl) noteEl.textContent = isNight() ? "야간 · 휴식 · 소문 · 기습" : ("내정 · 이 도시 장수에게 맡깁니다 · 행동 가능 " + freeIn(sel).length + "명");
     let html = cmds.map(function(k) {
       const on = UI.cmd === k ? ' on' : '';
@@ -239,7 +239,7 @@ function cityCard(id) {
   const sitHtml = !mine && (c.sit || c.duel || st.boss === 'gyeonhwon') ? `<p class="trait"><b>전장</b>${c.sit === 'fog' ? '안개. 가까이 가야 적이 보인다' : c.sit === 'river' ? '강. 물속에서는 느려지고 더 아프게 맞는다' : c.sit === 'tide' ? '물때. 갯벌이 주기적으로 잠긴다' : c.duel ? '화랑이 일기토를 청해 온다' : '견훤은 몰리면 범이 된다'}</p>` : '';
   let body = '';
   if (mine) {
-    const cmds = isNight() ? ['rest', 'scout', 'move'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'scout', 'move'];
+    const cmds = isNight() ? ['rest', 'scout', 'move'] : ['eco', 'army', 'rule', 'search', 'scout', 'move'];
     const here = heroesIn(id);
     body = `${traitHtml}<div class="sbars">${statBar('공양', st.agri)}${statBar('명부', st.comm)}${statBar('결계', st.wall)}${statBar('신망', st.loyal)}${statBar('조련', st.train)}</div>
       <dl class="kv small">
@@ -248,7 +248,7 @@ function cityCard(id) {
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${cityPop(id)} / ${cityCap(id)}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}${cityPop(id) > cityCap(id) ? ' · 정원 초과' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${isWeary(h) ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${isWeary(h) ? ' · 지침' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${isWeary(h) ? ' · 지침' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
-      <p class="hint">내정·장터·위임은 위쪽 명령에서 고릅니다. 공양·명부 현황을 보며 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
+      <p class="hint">내정·장터·위임은 위쪽 명령에서 고릅니다. 살림·군비·다스림 셋 중 급한 것을 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);
@@ -318,6 +318,10 @@ function commandPicker(cityId) {
     if (cmd === 'rest') eff = `체력 ${Math.round(G.heroes[h].hp * 100)}% → 100% · 지침 해제`;
     else if (cmd === 'scout') eff = '소문 듣기';
     else if (cmd === 'search') { cost = commandCost(cmd, h, cityId); eff = `발견 확률 ${commandGain(cmd, h, cityId)}%`; }
+    else if (meta.combo) {
+      cost = commandCost(cmd, h, cityId);
+      eff = comboSubs(cmd, h, cityId).map((k) => { const g = commandGain(k, h, cityId); return k === 'draft' ? `혼병 +${g}` : `${COMMANDS[k].label} +${Math.min(g, 100 - (st[COMMANDS[k].key] || 0))}`; }).join(' · ');
+    }
     else {
       const g = commandGain(cmd, h, cityId);
       cost = commandCost(cmd, h, cityId);
@@ -334,11 +338,12 @@ function commandPicker(cityId) {
       }
     }
     const costTxt = [cost.gold ? `업전 ${cost.gold}` : '', cost.food ? `혼식 ${cost.food}` : ''].filter(Boolean).join(' · ');
-    const key = cmd === 'search' || cmd === 'scout' ? s.int : cmd === 'draft' ? s.lea : cmd === 'agri' ? Math.round(s.int * 0.6 + s.lea * 0.4) : cmd === 'comm' || cmd === 'loyal' ? s.int : cmd === 'wall' ? Math.round(s.lea * 0.6 + s.str * 0.4) : cmd === 'train' ? Math.round((s.str + s.lea) / 2) : 0;
+    const key = cmd === 'eco' ? s.int : cmd === 'army' ? s.lea + s.str : cmd === 'rule' ? s.lea + s.int : cmd === 'search' || cmd === 'scout' ? s.int : cmd === 'draft' ? s.lea : cmd === 'agri' ? Math.round(s.int * 0.6 + s.lea * 0.4) : cmd === 'comm' || cmd === 'loyal' ? s.int : cmd === 'wall' ? Math.round(s.lea * 0.6 + s.str * 0.4) : cmd === 'train' ? Math.round((s.str + s.lea) / 2) : 0;
     return { h, eff: block || eff, costTxt, ok, key, blocked: !!block };
   }).sort((a, b) => (a.blocked === b.blocked ? b.key - a.key : a.blocked ? 1 : -1));
   const statusHint = cmd === 'draft'
     ? `<p class="hint">지금 신망 ${st.loyal} · 업전 ${G.gold} · 병력 ${st.troops}/400 · 혼식 ${G.food}</p>`
+    : meta.combo ? `<p class="hint muted">보유 업전 ${G.gold} · 혼식 ${G.food} · ${meta.combo.map((k) => k === 'draft' ? `병력 ${st.troops}/400` : `${COMMANDS[k].label} ${st[COMMANDS[k].key] || 0}`).join(' · ')}${cmd === 'army' ? ` · 신망 ${st.loyal}` : ''}</p>`
     : `<p class="hint muted">보유 업전 ${G.gold} · 혼식 ${G.food}${meta.key && meta.key !== 'troops' ? ` · ${meta.label} ${st[meta.key] || 0}/100` : ''}</p>`;
   return `<div class="picker"><p class="label">${meta.name} <span class="muted small">${meta.desc}${meta.stat ? ` · ${meta.stat}이 높을수록 효과가 큽니다` : ''}</span></p>
     ${statusHint}
@@ -828,9 +833,9 @@ function tourNext() {
       if (e.target.closest('[data-quit]')) { closeModal(); G.tour = null; refreshTitle(); return; }
       if (!e.target.closest('[data-go]')) return;
       closeModal();
-      const lv = 8 + r;
+      const lv = 5 + Math.min(r, 1);
       startBattle({ title: `대회 ${TOUR_ROUNDS[r]}`, theme: fld.theme, sit: fld.sit, type: 'attack', field: false, party: T.team.slice(), playerSoldiers: 60, playerTrain: 60, formation: UI.formation,
-        enemy: { heroes: foes.map((h, i) => ({ id: h, level: lv, boss: r === 2 && i === 0, recruit: false })), soldiers: 60, level: 7 + r, faction: 'ghost', formation: ['hakik', 'eorin', 'bangwon'][r], train: 60 + r * 10, extraSquads: 0 },
+        enemy: { heroes: foes.map((h, i) => ({ id: h, level: lv, boss: r === 2 && i === 0, recruit: false })), soldiers: 60, level: 5 + r, faction: 'ghost', formation: ['hakik', 'eorin', 'bangwon'][r], train: 50 + r * 6, extraSquads: 0 },
         onEnd: (res) => {
           applyBattle(res, T.team, false);
           if (!res.win) { tourEnd(false); return; }
@@ -1494,7 +1499,7 @@ function howTo() {
       <li>타이틀의 <b>대회</b>에서는 영웅 셋으로 8강·4강·결승을 치릅니다.</li></ul>
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다. 내정·이동·소문 탐색 같은 행동은 체력을 깎고, 체력이 50% 이하면 능력치가 20% 떨어집니다. 휴식하면 체력이 가득 찹니다.</li>
-      <li>오전·오후: 공양·명부·결계·위무·소환·조련·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
+      <li>오전·오후: 살림(공양·명부)·군비(소환·조련)·다스림(결계·신망)·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
       <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음. 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉼), 소문 탐색, 병력 이동, 야간 기습(초반 5초 허둥, 적 사기 -8, 결계 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
       <li>매일 아침 명부에서 업전(금), 공양에서 혼식(군량)이 들어오고 혼병들이 혼식을 먹습니다. 출병에는 병사당 혼식 0.5가 듭니다.</li>
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다. 적이 쳐들어오면 이웃한 아군 도시의 장수·병력이 지원에 합류할 수 있습니다.</li>

@@ -1130,6 +1130,10 @@ const ITEMS = {
 /* 내정 명령: 영웅 한 명이 턴마다 하나를 한다 */
 /* 내정: 저승 설정 — 농업/상업 대신 공양·명부. 저장 키(agri/comm 등)는 유지 */
 const COMMANDS = {
+  /* 묶음 명령: 한 번의 행동으로 두 가지를 함께 한다 (화면에는 이 셋만 보인다) */
+  eco:   { name: '살림', combo: ['agri', 'comm'], hp: 0.18, desc: '공양과 명부를 함께 돌본다. 매일 아침 들어오는 혼식과 업전이 는다.', stat: '지력', when: 'day' },
+  army:  { name: '군비', combo: ['draft', 'train'], hp: 0.18, desc: '혼불을 불러 세우고 곧바로 조련한다. 병력과 조련이 함께 오른다. 소환은 신망 30 이상일 때만 된다.', stat: '통솔·무력', when: 'day' },
+  rule:  { name: '다스림', combo: ['wall', 'loyal'], hp: 0.18, desc: '결계를 손보고 떠도는 혼을 달랜다. 결계와 신망이 함께 오른다.', stat: '통솔·지력', when: 'day' },
   agri:  { name: '공양', key: 'agri', label: '공양', cost: { gold: 50 }, hp: 0.18, desc: '산 자의 제물·혼식을 거두는 자리를 넓힌다. 매일 아침 들어오는 군량(혼식)이 는다.', stat: '지력·통솔', when: 'day' },
   comm:  { name: '명부', key: 'comm', label: '명부', cost: { gold: 50 }, hp: 0.18, desc: '명부 장부를 정리하고 업전을 징수한다. 매일 아침 들어오는 금(업전)이 는다.', stat: '지력', when: 'day' },
   wall:  { name: '결계', key: 'wall', label: '결계', cost: { gold: 60 }, hp: 0.18, desc: '성 대신 혼을 가두는 결계를 친다. 이 도시를 지킬 때 방어력이 오른다.', stat: '통솔·무력', when: 'day' },
@@ -1178,25 +1182,25 @@ const HERO_GEAR = {
 const CITIES = {
   seoul:     { trait: { name: '저잣거리', desc: '업전 수입 +30%', gold: 1.3 }, name: '서울', hanja: '漢陽', lon: 126.98, lat: 37.57, owner: 'player', agri: 45, comm: 50, wall: 55, loyal: 65, troops: 160, train: 45, level: 1, cap: 15,
                shop: ['w_hwando','w_bisu','w_jangchang','w_gakgung','w_deungpae','a_dopo','a_chalgap','r_ok','r_eun','n_hobak'] },
-  pyongyang: { sit: 'river', trait: { name: '철기', desc: '가지고 있으면 모든 아군 병사 공격 +10%', solAtk: 1.1 }, name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 60, level: 5, cap: 15,
+  pyongyang: { sit: 'river', trait: { name: '철기', desc: '가지고 있으면 모든 아군 병사 공격 +10%', solAtk: 1.1 }, name: '평양', hanja: '平壤', lon: 125.75, lat: 39.03, owner: 'goguryeo', agri: 50, comm: 40, wall: 70, loyal: 60, troops: 220, train: 72, level: 5, cap: 15,
                boss: 'gaesomun', captains: ['고구려 망령장', '고구려 망령장'], theme: 'north',
                shop: ['w_woldo','w_heukgak','a_dujeong','n_hobal'] },
   gangneung: { sit: 'fog', trait: { name: '안갯길', desc: '가지고 있으면 야간 기습 때 적 사기 -6 추가', raid: 6 }, name: '강릉', hanja: '江陵', lon: 128.9, lat: 37.75, owner: 'ghost', agri: 30, comm: 25, wall: 35, loyal: 40, troops: 100, train: 30, level: 2, cap: 7,
                bossGeneric: '무명 천부장', bossSkill: 'ghostfire', captains: ['무명 백부장'], theme: 'mist',
                shop: ['r_honbul','b_bujeok'] },
-  jeonju:    { trait: { name: '곡창', desc: '혼식 수입 +50%', food: 1.5 }, name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 45, level: 3, cap: 11,
+  jeonju:    { trait: { name: '곡창', desc: '혼식 수입 +50%', food: 1.5 }, name: '전주', hanja: '全州', lon: 127.15, lat: 35.82, owner: 'baekje', agri: 55, comm: 40, wall: 50, loyal: 55, troops: 160, train: 58, level: 3, cap: 11,
                boss: 'gyeonhwon', captains: ['후백제 망령장'], theme: 'field',
                shop: ['w_ungeom','w_wonbang','b_norigae','r_honbul'] },
-  gyeongju:  { duel: '화랑 망령', trait: { name: '화랑도', desc: '조련 효과 +50%', train: 1.5 }, name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 60, level: 5, cap: 13,
+  gyeongju:  { duel: '화랑 망령', trait: { name: '화랑도', desc: '조련 효과 +50%', train: 1.5 }, name: '경주', hanja: '慶州', lon: 129.22, lat: 35.86, owner: 'silla', agri: 45, comm: 55, wall: 65, loyal: 60, troops: 220, train: 72, level: 5, cap: 13,
                boss: 'yusin', captains: ['신라 망령장', '화랑 망령'], theme: 'field',
                shop: ['w_hakuseon','a_suui','n_yeomju','b_bujeok'] },
-  tongyeong: { sit: 'tide', trait: { name: '수군', desc: '가지고 있으면 아군은 물속에서 덜 느려진다', water: true }, name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 40, level: 3, cap: 9,
+  tongyeong: { sit: 'tide', trait: { name: '수군', desc: '가지고 있으면 아군은 물속에서 덜 느려진다', water: true }, name: '통영', hanja: '統營', lon: 128.43, lat: 34.85, owner: 'sea', agri: 30, comm: 45, wall: 40, loyal: 45, troops: 140, train: 50, level: 3, cap: 9,
                bossGeneric: '수귀 대장', bossSkill: 'tide', captains: ['망령 수군장'], theme: 'coast',
                shop: ['w_heukgak','a_dujeong'] },
-  hamheung:  { trait: { name: '북방 장정', desc: '소환(징병) 인원 +30%', draft: 1.3 }, name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 150, train: 50, level: 4, cap: 9,
+  hamheung:  { trait: { name: '북방 장정', desc: '소환(징병) 인원 +30%', draft: 1.3 }, name: '함흥', hanja: '咸興', lon: 127.54, lat: 39.91, owner: 'goguryeo', agri: 40, comm: 35, wall: 55, loyal: 50, troops: 180, train: 68, level: 4, cap: 9,
                captains: ['고구려 망령장'], theme: 'north',
                shop: ['w_jangchang','a_chalgap','n_hobal'] },
-  jeju:      { sit: 'tide', trait: { name: '목장', desc: '업전 +15%, 혼식 +25%', gold: 1.15, food: 1.25 }, name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 35, level: 2, cap: 9,
+  jeju:      { sit: 'tide', trait: { name: '목장', desc: '업전 +15%, 혼식 +25%', gold: 1.15, food: 1.25 }, name: '제주', hanja: '濟州', lon: 126.53, lat: 33.50, owner: 'sea', agri: 35, comm: 40, wall: 30, loyal: 50, troops: 110, train: 45, level: 2, cap: 9,
                bossGeneric: '탐라 수귀', bossSkill: 'tide', captains: ['탐라 망령'], theme: 'coast',
                shop: ['w_bisu','r_honbul','b_bujeok'] },
 };
@@ -1809,7 +1813,20 @@ function commandGain(cmd, hid, cityId) {
   }
   return 0;
 }
+/* 묶음 명령에서 지금 할 수 있는 것만 고른다 */
+function comboSubs(cmd, hid, cityId) {
+  const c = G.cities[cityId];
+  return (COMMANDS[cmd].combo || []).filter((k) => {
+    if (k === 'draft') return (c.loyal || 0) >= 30 && commandGain('draft', hid, cityId) > 0;
+    return (c[COMMANDS[k].key] || 0) < 100;
+  });
+}
 function commandCost(cmd, hid, cityId) {
+  if (COMMANDS[cmd].combo) {
+    const t = { gold: 0, food: 0 };
+    comboSubs(cmd, hid, cityId).forEach((k) => { const x = commandCost(k, hid, cityId); t.gold += x.gold; t.food += x.food; });
+    return { gold: Math.round(t.gold * 0.8), food: Math.round(t.food * 0.8) };
+  }
   const m = COMMANDS[cmd].cost;
   if (m.goldPer) return { gold: Math.ceil(commandGain(cmd, hid, cityId) * m.goldPer), food: 0 };
   return { gold: m.gold || 0, food: m.food || 0 };
@@ -1875,6 +1892,17 @@ function commandBlockReason(cmd, hid, cityId) {
     return meta.when === 'night' ? '야간에만 가능' : '오전·오후에만 가능';
   }
   if (cmd === 'rest' || cmd === 'scout' || cmd === 'move') return '';
+  if (meta.combo) {
+    if (!comboSubs(cmd, hid, cityId).length) return cmd === 'army' ? ((c.loyal || 0) < 30 ? `신망 ${c.loyal || 0}/30 · 다스림 필요` : '병력과 조련이 이미 가득') : '이미 최대(100)';
+    const cc = commandCost(cmd, hid, cityId);
+    if (!canAfford(cc)) {
+      const bits = [];
+      if ((cc.gold || 0) > G.gold) bits.push(`업전 ${cc.gold} 필요(보유 ${G.gold})`);
+      if ((cc.food || 0) > G.food) bits.push(`혼식 ${cc.food} 필요(보유 ${G.food})`);
+      return bits.join(' · ');
+    }
+    return '';
+  }
   const cost = commandCost(cmd, hid, cityId);
   const gain = commandGain(cmd, hid, cityId);
   if (cmd === 'draft') {
@@ -1898,6 +1926,24 @@ function doCommand(cmd, hid, cityId) {
   if (block) return { ok: false, msg: block };
   if (cmd === 'rest') { h.hp = 1; h.acted = true; h.nightWork = false; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다. 체력이 가득 찼습니다.` }; }
   if (cmd === 'scout') { h.acted = true; markNightWork(hid); grantExp(hid, 5); const r = scoutRumor(hid, cityId); spendActionHp(hid, cmdHpCost('scout')); if (r && r.msg) r.msg += wearyNote(hid); return r; }
+  if (COMMANDS[cmd].combo) {
+    const subs = comboSubs(cmd, hid, cityId), cc = commandCost(cmd, hid, cityId), bits = [];
+    subs.forEach((k) => {
+      const g = commandGain(k, hid, cityId);
+      if (k === 'draft') {
+        c.train = Math.round((c.train * c.troops + 20 * g) / (c.troops + g));
+        c.troops += g; c.loyal = Math.max(0, c.loyal - 4);
+        bits.push(`혼병 +${g}`);
+      } else {
+        const key = COMMANDS[k].key, before = c[key];
+        c[key] = Math.min(100, c[key] + g);
+        bits.push(`${COMMANDS[k].label} ${before} → ${c[key]}`);
+      }
+    });
+    G.gold -= cc.gold || 0; G.food -= cc.food || 0;
+    h.acted = true; markNightWork(hid); spendActionHp(hid, cmdHpCost(cmd)); grantExp(hid, 8);
+    return { ok: true, msg: `${heroName(hid)}의 ${COMMANDS[cmd].name}: ${bits.join(', ')}` + wearyNote(hid) };
+  }
   const cost = commandCost(cmd, hid, cityId);
   const gain = commandGain(cmd, hid, cityId);
   let msg = '';
@@ -2034,7 +2080,7 @@ function enemyForce(cityId, opts = {}) {
     heroes.push({ generic: true, name: (src.captains && src.captains[0]) || '망령장', level: src.level + 1, faction: owner, skill: 'ghostfire' });
     if (src.bossGeneric) heroes.push({ generic: true, name: src.bossGeneric, level: src.level + 2, faction: owner, skill: src.bossSkill, boss: true });
     addFoundCaptains(heroes, sst, owner, src.level);
-    addExtraCaptains(heroes, opts.party, owner, src.level + 1);
+    addExtraCaptains(heroes, opts.party, owner, src.level + 1, src.level);
     const send = Math.max(20, Math.round(sst.troops * 0.6));
     return { heroes, soldiers: send, level: src.level, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: sst.train, send };
   }
@@ -2043,8 +2089,8 @@ function enemyForce(cityId, opts = {}) {
   (c.captains || []).forEach((n) => heroes.push({ generic: true, name: n, level: lv + 1, faction: owner, skill: 'ghostfire' }));
   if (!heroes.length) heroes.push({ generic: true, name: '망령장', level: lv + 1, faction: owner, skill: 'ghostfire' });
   addFoundCaptains(heroes, st, owner, lv);
-  addExtraCaptains(heroes, opts.party, owner, lv + 1);
-  return { heroes, soldiers: Math.max(10, st.troops), level: lv, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: st.train };
+  addExtraCaptains(heroes, opts.party, owner, lv + 1, c.level);
+  return { heroes, soldiers: Math.max(10, st.troops), level: lv + (c.level >= 4 ? 1 : 0), faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: st.train };
 }
 
 function addFoundCaptains(heroes, st, owner, level) {
@@ -2053,8 +2099,9 @@ function addFoundCaptains(heroes, st, owner, level) {
   for (let i = 0; i < n; i++) heroes.push({ generic: true, name: (names[owner] || '신진 망령장') + (n > 1 ? ' ' + (i + 1) : ''), level: level + 1, faction: owner, skill: i % 2 ? 'tide' : 'ghostfire' });
 }
 /* 아군이 많이 출전하면 적도 장수를 더 내보낸다 */
-function addExtraCaptains(heroes, party, owner, level) {
-  const extra = Math.max(0, Math.round(((party || 3) - 4) * 0.5));
+function addExtraCaptains(heroes, party, owner, level, cityLv) {
+  /* 적 장수는 아군 출전 수보다 하나 적게 맞춘다. 큰 성(5급)은 같은 수로 맞선다 */
+  const extra = Math.max(0, (party || 3) - 1 + ((cityLv || 0) >= 5 ? 1 : 0) - heroes.length);
   for (let i = 0; i < extra; i++) heroes.push({ generic: true, name: { goguryeo: '고구려 망령장', baekje: '후백제 망령장', silla: '신라 망령장', ghost: '무명 백부장', sea: '망령 수군장' }[owner] || '망령장', level, faction: owner, skill: i % 2 ? 'tide' : 'ghostfire' });
 }
 
@@ -6668,7 +6715,7 @@ function renderPanel() {
   renderCmdRail();
 }
 function renderAll() { renderTop(); renderPanel(); MapView.redrawRegions(); }
-const CMD_GLYPH = { agri: "供", comm: "簿", wall: "結", loyal: "慰", draft: "召", train: "鍊", search: "才", move: "移", rest: "息", scout: "聞" };
+const CMD_GLYPH = { eco: '供', army: '召', rule: '結', agri: "供", comm: "簿", wall: "結", loyal: "慰", draft: "召", train: "鍊", search: "才", move: "移", rest: "息", scout: "聞" };
 function renderCmdRail() {
   const rail = $("#cmdrail");
   if (!rail) return;
@@ -6689,7 +6736,7 @@ function renderCmdRail() {
   if (seal) { seal.textContent = f.glyph; seal.style.setProperty("--c", f.color); }
   if (cityEl) cityEl.textContent = CITIES[sel].name + (mine ? "" : " · " + f.name);
   if (mine) {
-    const cmds = isNight() ? ["rest", "scout", "move"] : ["agri", "comm", "wall", "loyal", "draft", "train", "search", "scout", "move"];
+    const cmds = isNight() ? ["rest", "scout", "move"] : ["eco", "army", "rule", "search", "scout", "move"];
     if (noteEl) noteEl.textContent = isNight() ? "야간 · 휴식 · 소문 · 기습" : ("내정 · 이 도시 장수에게 맡깁니다 · 행동 가능 " + freeIn(sel).length + "명");
     let html = cmds.map(function(k) {
       const on = UI.cmd === k ? ' on' : '';
@@ -6772,7 +6819,7 @@ function cityCard(id) {
   const sitHtml = !mine && (c.sit || c.duel || st.boss === 'gyeonhwon') ? `<p class="trait"><b>전장</b>${c.sit === 'fog' ? '안개. 가까이 가야 적이 보인다' : c.sit === 'river' ? '강. 물속에서는 느려지고 더 아프게 맞는다' : c.sit === 'tide' ? '물때. 갯벌이 주기적으로 잠긴다' : c.duel ? '화랑이 일기토를 청해 온다' : '견훤은 몰리면 범이 된다'}</p>` : '';
   let body = '';
   if (mine) {
-    const cmds = isNight() ? ['rest', 'scout', 'move'] : ['agri', 'comm', 'wall', 'loyal', 'draft', 'train', 'search', 'scout', 'move'];
+    const cmds = isNight() ? ['rest', 'scout', 'move'] : ['eco', 'army', 'rule', 'search', 'scout', 'move'];
     const here = heroesIn(id);
     body = `${traitHtml}<div class="sbars">${statBar('공양', st.agri)}${statBar('명부', st.comm)}${statBar('결계', st.wall)}${statBar('신망', st.loyal)}${statBar('조련', st.train)}</div>
       <dl class="kv small">
@@ -6781,7 +6828,7 @@ function cityCard(id) {
       </dl>
       <p class="label">주둔 장수 <span class="muted small">${cityPop(id)} / ${cityCap(id)}명 · 행동 가능 ${freeIn(id).length}${here.length < 2 ? ' · 2~3명을 두는 것이 좋습니다' : ''}${cityPop(id) > cityCap(id) ? ' · 정원 초과' : ''}</span></p>
       <div class="stationed">${here.map((h) => `<button class="st-hero ${G.heroes[h].acted ? 'spent' : ''} ${isWeary(h) ? 'tired' : ''}" data-hero-go="${h}" title="${esc(HEROES[h].title)}${isWeary(h) ? ' · 지침' : ''}">${medallion(h, 'sm')}<span>${esc(heroName(h))}${isWeary(h) ? ' · 지침' : ''}</span></button>`).join('') || '<span class="muted small">아무도 없습니다. 다른 도시에서 이동시키세요.</span>'}</div>
-      <p class="hint">내정·장터·위임은 위쪽 명령에서 고릅니다. 공양·명부 현황을 보며 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
+      <p class="hint">내정·장터·위임은 위쪽 명령에서 고릅니다. 살림·군비·다스림 셋 중 급한 것을 맡기면 됩니다.${st.auto ? ' 지금은 위임 중입니다.' : ''}</p>`;
   } else {
     const heads = [];
     if (st.boss) heads.push(`<span class="foe">${medallion(st.boss, 'sm')}${HEROES[st.boss].name}</span>`);
@@ -6851,6 +6898,10 @@ function commandPicker(cityId) {
     if (cmd === 'rest') eff = `체력 ${Math.round(G.heroes[h].hp * 100)}% → 100% · 지침 해제`;
     else if (cmd === 'scout') eff = '소문 듣기';
     else if (cmd === 'search') { cost = commandCost(cmd, h, cityId); eff = `발견 확률 ${commandGain(cmd, h, cityId)}%`; }
+    else if (meta.combo) {
+      cost = commandCost(cmd, h, cityId);
+      eff = comboSubs(cmd, h, cityId).map((k) => { const g = commandGain(k, h, cityId); return k === 'draft' ? `혼병 +${g}` : `${COMMANDS[k].label} +${Math.min(g, 100 - (st[COMMANDS[k].key] || 0))}`; }).join(' · ');
+    }
     else {
       const g = commandGain(cmd, h, cityId);
       cost = commandCost(cmd, h, cityId);
@@ -6867,11 +6918,12 @@ function commandPicker(cityId) {
       }
     }
     const costTxt = [cost.gold ? `업전 ${cost.gold}` : '', cost.food ? `혼식 ${cost.food}` : ''].filter(Boolean).join(' · ');
-    const key = cmd === 'search' || cmd === 'scout' ? s.int : cmd === 'draft' ? s.lea : cmd === 'agri' ? Math.round(s.int * 0.6 + s.lea * 0.4) : cmd === 'comm' || cmd === 'loyal' ? s.int : cmd === 'wall' ? Math.round(s.lea * 0.6 + s.str * 0.4) : cmd === 'train' ? Math.round((s.str + s.lea) / 2) : 0;
+    const key = cmd === 'eco' ? s.int : cmd === 'army' ? s.lea + s.str : cmd === 'rule' ? s.lea + s.int : cmd === 'search' || cmd === 'scout' ? s.int : cmd === 'draft' ? s.lea : cmd === 'agri' ? Math.round(s.int * 0.6 + s.lea * 0.4) : cmd === 'comm' || cmd === 'loyal' ? s.int : cmd === 'wall' ? Math.round(s.lea * 0.6 + s.str * 0.4) : cmd === 'train' ? Math.round((s.str + s.lea) / 2) : 0;
     return { h, eff: block || eff, costTxt, ok, key, blocked: !!block };
   }).sort((a, b) => (a.blocked === b.blocked ? b.key - a.key : a.blocked ? 1 : -1));
   const statusHint = cmd === 'draft'
     ? `<p class="hint">지금 신망 ${st.loyal} · 업전 ${G.gold} · 병력 ${st.troops}/400 · 혼식 ${G.food}</p>`
+    : meta.combo ? `<p class="hint muted">보유 업전 ${G.gold} · 혼식 ${G.food} · ${meta.combo.map((k) => k === 'draft' ? `병력 ${st.troops}/400` : `${COMMANDS[k].label} ${st[COMMANDS[k].key] || 0}`).join(' · ')}${cmd === 'army' ? ` · 신망 ${st.loyal}` : ''}</p>`
     : `<p class="hint muted">보유 업전 ${G.gold} · 혼식 ${G.food}${meta.key && meta.key !== 'troops' ? ` · ${meta.label} ${st[meta.key] || 0}/100` : ''}</p>`;
   return `<div class="picker"><p class="label">${meta.name} <span class="muted small">${meta.desc}${meta.stat ? ` · ${meta.stat}이 높을수록 효과가 큽니다` : ''}</span></p>
     ${statusHint}
@@ -7361,9 +7413,9 @@ function tourNext() {
       if (e.target.closest('[data-quit]')) { closeModal(); G.tour = null; refreshTitle(); return; }
       if (!e.target.closest('[data-go]')) return;
       closeModal();
-      const lv = 8 + r;
+      const lv = 5 + Math.min(r, 1);
       startBattle({ title: `대회 ${TOUR_ROUNDS[r]}`, theme: fld.theme, sit: fld.sit, type: 'attack', field: false, party: T.team.slice(), playerSoldiers: 60, playerTrain: 60, formation: UI.formation,
-        enemy: { heroes: foes.map((h, i) => ({ id: h, level: lv, boss: r === 2 && i === 0, recruit: false })), soldiers: 60, level: 7 + r, faction: 'ghost', formation: ['hakik', 'eorin', 'bangwon'][r], train: 60 + r * 10, extraSquads: 0 },
+        enemy: { heroes: foes.map((h, i) => ({ id: h, level: lv, boss: r === 2 && i === 0, recruit: false })), soldiers: 60, level: 5 + r, faction: 'ghost', formation: ['hakik', 'eorin', 'bangwon'][r], train: 50 + r * 6, extraSquads: 0 },
         onEnd: (res) => {
           applyBattle(res, T.team, false);
           if (!res.win) { tourEnd(false); return; }
@@ -8027,7 +8079,7 @@ function howTo() {
       <li>타이틀의 <b>대회</b>에서는 영웅 셋으로 8강·4강·결승을 치릅니다.</li></ul>
       <p class="label">국가 운영</p>
       <ul><li>하루는 오전 → 오후 → 야간으로 흐릅니다. 영웅마다 시간대마다 한 번 행동합니다. 내정·이동·소문 탐색 같은 행동은 체력을 깎고, 체력이 50% 이하면 능력치가 20% 떨어집니다. 휴식하면 체력이 가득 찹니다.</li>
-      <li>오전·오후: 공양·명부·결계·위무·소환·조련·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
+      <li>오전·오후: 살림(공양·명부)·군비(소환·조련)·다스림(결계·신망)·인재 탐색·소문 탐색·병력 이동 같은 내정과 출병, 장터.</li>
       <li>야간: 휴식(체력 모두 회복, 다음날 피로 없음. 아무 일도 하지 않고 턴을 넘기면 남은 장수는 알아서 쉼), 소문 탐색, 병력 이동, 야간 기습(초반 5초 허둥, 적 사기 -8, 결계 75%, 지원 혼불 일부. 아군도 어둠 패널티). 밤에 쉬지 않고 움직이면 다음날 능력치가 20% 떨어집니다. 가끔 도깨비들이 비밀 장터를 엽니다.</li>
       <li>매일 아침 명부에서 업전(금), 공양에서 혼식(군량)이 들어오고 혼병들이 혼식을 먹습니다. 출병에는 병사당 혼식 0.5가 듭니다.</li>
       <li>출병에는 영웅을 최대 10명, 영웅마다 병사 20명씩 데려갑니다. 부대 사기는 영웅의 통솔력을 따릅니다. 적이 쳐들어오면 이웃한 아군 도시의 장수·병력이 지원에 합류할 수 있습니다.</li>

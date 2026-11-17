@@ -467,7 +467,20 @@ function commandGain(cmd, hid, cityId) {
   }
   return 0;
 }
+/* 묶음 명령에서 지금 할 수 있는 것만 고른다 */
+function comboSubs(cmd, hid, cityId) {
+  const c = G.cities[cityId];
+  return (COMMANDS[cmd].combo || []).filter((k) => {
+    if (k === 'draft') return (c.loyal || 0) >= 30 && commandGain('draft', hid, cityId) > 0;
+    return (c[COMMANDS[k].key] || 0) < 100;
+  });
+}
 function commandCost(cmd, hid, cityId) {
+  if (COMMANDS[cmd].combo) {
+    const t = { gold: 0, food: 0 };
+    comboSubs(cmd, hid, cityId).forEach((k) => { const x = commandCost(k, hid, cityId); t.gold += x.gold; t.food += x.food; });
+    return { gold: Math.round(t.gold * 0.8), food: Math.round(t.food * 0.8) };
+  }
   const m = COMMANDS[cmd].cost;
   if (m.goldPer) return { gold: Math.ceil(commandGain(cmd, hid, cityId) * m.goldPer), food: 0 };
   return { gold: m.gold || 0, food: m.food || 0 };
@@ -533,6 +546,17 @@ function commandBlockReason(cmd, hid, cityId) {
     return meta.when === 'night' ? '야간에만 가능' : '오전·오후에만 가능';
   }
   if (cmd === 'rest' || cmd === 'scout' || cmd === 'move') return '';
+  if (meta.combo) {
+    if (!comboSubs(cmd, hid, cityId).length) return cmd === 'army' ? ((c.loyal || 0) < 30 ? `신망 ${c.loyal || 0}/30 · 다스림 필요` : '병력과 조련이 이미 가득') : '이미 최대(100)';
+    const cc = commandCost(cmd, hid, cityId);
+    if (!canAfford(cc)) {
+      const bits = [];
+      if ((cc.gold || 0) > G.gold) bits.push(`업전 ${cc.gold} 필요(보유 ${G.gold})`);
+      if ((cc.food || 0) > G.food) bits.push(`혼식 ${cc.food} 필요(보유 ${G.food})`);
+      return bits.join(' · ');
+    }
+    return '';
+  }
   const cost = commandCost(cmd, hid, cityId);
   const gain = commandGain(cmd, hid, cityId);
   if (cmd === 'draft') {
@@ -556,6 +580,24 @@ function doCommand(cmd, hid, cityId) {
   if (block) return { ok: false, msg: block };
   if (cmd === 'rest') { h.hp = 1; h.acted = true; h.nightWork = false; grantExp(hid, 3); return { ok: true, msg: `${heroName(hid)}이(가) 밤새 쉬며 기운을 되찾았습니다. 체력이 가득 찼습니다.` }; }
   if (cmd === 'scout') { h.acted = true; markNightWork(hid); grantExp(hid, 5); const r = scoutRumor(hid, cityId); spendActionHp(hid, cmdHpCost('scout')); if (r && r.msg) r.msg += wearyNote(hid); return r; }
+  if (COMMANDS[cmd].combo) {
+    const subs = comboSubs(cmd, hid, cityId), cc = commandCost(cmd, hid, cityId), bits = [];
+    subs.forEach((k) => {
+      const g = commandGain(k, hid, cityId);
+      if (k === 'draft') {
+        c.train = Math.round((c.train * c.troops + 20 * g) / (c.troops + g));
+        c.troops += g; c.loyal = Math.max(0, c.loyal - 4);
+        bits.push(`혼병 +${g}`);
+      } else {
+        const key = COMMANDS[k].key, before = c[key];
+        c[key] = Math.min(100, c[key] + g);
+        bits.push(`${COMMANDS[k].label} ${before} → ${c[key]}`);
+      }
+    });
+    G.gold -= cc.gold || 0; G.food -= cc.food || 0;
+    h.acted = true; markNightWork(hid); spendActionHp(hid, cmdHpCost(cmd)); grantExp(hid, 8);
+    return { ok: true, msg: `${heroName(hid)}의 ${COMMANDS[cmd].name}: ${bits.join(', ')}` + wearyNote(hid) };
+  }
   const cost = commandCost(cmd, hid, cityId);
   const gain = commandGain(cmd, hid, cityId);
   let msg = '';
@@ -692,7 +734,7 @@ function enemyForce(cityId, opts = {}) {
     heroes.push({ generic: true, name: (src.captains && src.captains[0]) || '망령장', level: src.level + 1, faction: owner, skill: 'ghostfire' });
     if (src.bossGeneric) heroes.push({ generic: true, name: src.bossGeneric, level: src.level + 2, faction: owner, skill: src.bossSkill, boss: true });
     addFoundCaptains(heroes, sst, owner, src.level);
-    addExtraCaptains(heroes, opts.party, owner, src.level + 1);
+    addExtraCaptains(heroes, opts.party, owner, src.level + 1, src.level);
     const send = Math.max(20, Math.round(sst.troops * 0.6));
     return { heroes, soldiers: send, level: src.level, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: sst.train, send };
   }
@@ -701,8 +743,8 @@ function enemyForce(cityId, opts = {}) {
   (c.captains || []).forEach((n) => heroes.push({ generic: true, name: n, level: lv + 1, faction: owner, skill: 'ghostfire' }));
   if (!heroes.length) heroes.push({ generic: true, name: '망령장', level: lv + 1, faction: owner, skill: 'ghostfire' });
   addFoundCaptains(heroes, st, owner, lv);
-  addExtraCaptains(heroes, opts.party, owner, lv + 1);
-  return { heroes, soldiers: Math.max(10, st.troops), level: lv, faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: st.train };
+  addExtraCaptains(heroes, opts.party, owner, lv + 1, c.level);
+  return { heroes, soldiers: Math.max(10, st.troops), level: lv + (c.level >= 4 ? 1 : 0), faction: owner, formation: FACTION_FORMATION[owner] || 'bangwon', train: st.train };
 }
 
 function addFoundCaptains(heroes, st, owner, level) {
@@ -711,8 +753,9 @@ function addFoundCaptains(heroes, st, owner, level) {
   for (let i = 0; i < n; i++) heroes.push({ generic: true, name: (names[owner] || '신진 망령장') + (n > 1 ? ' ' + (i + 1) : ''), level: level + 1, faction: owner, skill: i % 2 ? 'tide' : 'ghostfire' });
 }
 /* 아군이 많이 출전하면 적도 장수를 더 내보낸다 */
-function addExtraCaptains(heroes, party, owner, level) {
-  const extra = Math.max(0, Math.round(((party || 3) - 4) * 0.5));
+function addExtraCaptains(heroes, party, owner, level, cityLv) {
+  /* 적 장수는 아군 출전 수보다 하나 적게 맞춘다. 큰 성(5급)은 같은 수로 맞선다 */
+  const extra = Math.max(0, (party || 3) - 1 + ((cityLv || 0) >= 5 ? 1 : 0) - heroes.length);
   for (let i = 0; i < extra; i++) heroes.push({ generic: true, name: { goguryeo: '고구려 망령장', baekje: '후백제 망령장', silla: '신라 망령장', ghost: '무명 백부장', sea: '망령 수군장' }[owner] || '망령장', level, faction: owner, skill: i % 2 ? 'tide' : 'ghostfire' });
 }
 
